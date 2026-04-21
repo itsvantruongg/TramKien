@@ -67,6 +67,16 @@ lib/
 └── widgets/
     └── shared_widgets.dart            # Reusable UI components
 ```
+## 🔑 Tài khoản trải nghiệm (Demo Account)
+
+Để giúp mọi người có thể trải nghiệm nhanh ứng dụng mà không cần tài khoản sinh viên thực tế, bạn có thể sử dụng thông tin sau:
+
+- **Tên đăng nhập:** `admin_test` (Ví dụ)
+- **Mật khẩu:** `hau123456` (Ví dụ)
+
+> [!NOTE]
+> Tài khoản này được cung cấp cho mục đích demo tính năng. Mọi thông tin trong tài khoản này đều là dữ liệu giả lập.
+
 
 ## 📦 Dependencies chính
 
