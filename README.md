@@ -71,8 +71,8 @@ lib/
 
 Để giúp mọi người có thể trải nghiệm nhanh ứng dụng mà không cần tài khoản sinh viên thực tế, bạn có thể sử dụng thông tin sau:
 
-- **Tên đăng nhập:** `admin_test` (Ví dụ)
-- **Mật khẩu:** `hau123456` (Ví dụ)
+- **Tên đăng nhập:** `admin` 
+- **Mật khẩu:** `admin@123` 
 
 > [!NOTE]
 > Tài khoản này được cung cấp cho mục đích demo tính năng. Mọi thông tin trong tài khoản này đều là dữ liệu giả lập.
