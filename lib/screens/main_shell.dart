@@ -25,6 +25,8 @@ class _MainShellState extends State<MainShell>
   DateTime? _lastBackPress;
   double? _navDragValue;
   bool _navDragging = false;
+  Timer? _navHoldTimer;
+  double? _pendingNavDragValue;
   late final List<Widget> _screens;
   int _prevIdx = 0;
   late final AnimationController _animController;
@@ -66,36 +68,66 @@ class _MainShellState extends State<MainShell>
       (_navDragValue ?? _navBaseValue).clamp(0.0, 4.0);
 
   void _startNavDrag(double dx, double itemWidth) {
-    setState(() {
-      _navDragging = true;
-      // Công thức map tọa độ ngón tay (dx) thành vị trí index (0.0 -> 4.0)
-      _navDragValue = ((dx / itemWidth) - 0.5).clamp(0.0, 4.0);
+    _navHoldTimer?.cancel();
+    _pendingNavDragValue = ((dx / itemWidth) - 0.5).clamp(0.0, 4.0);
+
+    // Bắt đầu timer 300ms trước khi cho phép kéo theo tay
+    _navHoldTimer = Timer(const Duration(milliseconds: 100), () {
+      if (mounted) {
+        setState(() {
+          _navDragging = true;
+          _navDragValue = _pendingNavDragValue;
+        });
+        HapticFeedback.selectionClick();
+      }
     });
   }
 
   void _updateNavDrag(double dx, double itemWidth) {
-    setState(() {
-      _navDragValue = ((dx / itemWidth) - 0.5).clamp(0.0, 4.0);
-    });
+    final newValue = ((dx / itemWidth) - 0.5).clamp(0.0, 4.0);
+    _pendingNavDragValue = newValue;
+
+    if (_navDragging) {
+      setState(() {
+        _navDragValue = newValue;
+      });
+    }
   }
 
   void _endNavDrag() {
-    final nextIdx = _navVisualValue.round().clamp(0, 4);
-    if (nextIdx != _idx) {
-      _navigate(nextIdx); // Chuyển màn hình khi nhả tay ra
+    _navHoldTimer?.cancel();
+    _navHoldTimer = null;
+
+    if (_navDragging) {
+      // Nếu đang trong chế độ kéo -> về index gần nhất
+      final nextIdx = _navVisualValue.round().clamp(0, 4);
+      if (nextIdx != _idx) {
+        _navigate(nextIdx);
+      }
+    } else {
+      // Nếu nhả tay trước 500ms -> coi như là một cú chạm (tap)
+      if (_pendingNavDragValue != null) {
+        final nextIdx = _pendingNavDragValue!.round().clamp(0, 4);
+        _navigate(nextIdx);
+      }
     }
+
     if (!mounted) return;
     setState(() {
       _navDragging = false;
       _navDragValue = null;
+      _pendingNavDragValue = null;
     });
   }
 
   void _cancelNavDrag() {
+    _navHoldTimer?.cancel();
+    _navHoldTimer = null;
     if (!mounted) return;
     setState(() {
       _navDragging = false;
       _navDragValue = null;
+      _pendingNavDragValue = null;
     });
   }
 
@@ -111,7 +143,7 @@ class _MainShellState extends State<MainShell>
     ];
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 350),
+      duration: const Duration(milliseconds: 200),
     )..addStatusListener((status) {
         if (status == AnimationStatus.completed) {
           setState(() {
@@ -130,14 +162,6 @@ class _MainShellState extends State<MainShell>
 
   @override
   Widget build(BuildContext context) {
-    final screens = [
-      DashboardScreen(onNavigate: _navigate),
-      const ScheduleScreen(),
-      const GradesScreen(),
-      const FinanceScreen(),
-      const ProfileScreen(),
-    ];
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
@@ -180,57 +204,43 @@ class _MainShellState extends State<MainShell>
         body: AnimatedBuilder(
           animation: _animController,
           builder: (context, child) {
-            final isMovingRight = _idx > _prevIdx;
+            final bool isAnimating = _idx != _prevIdx;
+
+            if (!isAnimating) {
+              return RepaintBoundary(
+                key: ValueKey('screen_$_idx'),
+                child: TickerMode(enabled: true, child: _screens[_idx]),
+              );
+            }
+
+            final animationValue =
+                Curves.easeInOut.transform(_animController.value);
+
             return Stack(
-              children: List.generate(_screens.length, (i) {
-                final bool isCurrent = i == _idx;
-                final bool isPrevious = i == _prevIdx;
-
-                // TRƯỜNG HỢP TĨNH (Vừa vào app hoặc đã chuyển xong): Chỉ render trang hiện tại
-                if (_idx == _prevIdx) {
-                  if (isCurrent) {
-                    return RepaintBoundary(
-                      child: TickerMode(enabled: true, child: _screens[i]),
-                    );
-                  }
-                  return const Offstage(offstage: true);
-                }
-
-                // Nếu không phải trang hiện tại hoặc trang cũ đang trượt ra -> Ẩn hoàn toàn
-                if (!isCurrent && !isPrevious) {
-                  return const Offstage(offstage: true);
-                }
-
-                // Tính toán vị trí trượt
-                Offset offset;
-                if (isCurrent) {
-                  // Trang mới trượt vào
-                  final double startX = isMovingRight ? 1.0 : -1.0;
-                  offset = Offset(
-                      startX *
-                          (1.0 -
-                              Curves.easeOutCubic
-                                  .transform(_animController.value)),
-                      0);
-                } else {
-                  // Trang cũ trượt ra
-                  final double endX = isMovingRight ? -1.0 : 1.0;
-                  offset = Offset(
-                      endX *
-                          Curves.easeOutCubic.transform(_animController.value),
-                      0);
-                }
-
-                return FractionalTranslation(
-                  translation: offset,
+              children: [
+                // 1. Trang cũ (mờ dần đi)
+                Opacity(
+                  opacity: (1.0 - animationValue).clamp(0.0, 1.0),
                   child: RepaintBoundary(
+                    key: ValueKey('screen_$_prevIdx'),
                     child: TickerMode(
-                      enabled: isCurrent,
-                      child: _screens[i],
+                      enabled: false,
+                      child: _screens[_prevIdx],
                     ),
                   ),
-                );
-              }),
+                ),
+                // 2. Trang mới (hiện dần lên)
+                Opacity(
+                  opacity: animationValue.clamp(0.0, 1.0),
+                  child: RepaintBoundary(
+                    key: ValueKey('screen_$_idx'),
+                    child: TickerMode(
+                      enabled: true,
+                      child: _screens[_idx],
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -283,7 +293,7 @@ class _MainShellState extends State<MainShell>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
           // Mở rộng SizedBox xuống thêm bottomPadding (home indicator area),
           // nhưng nội dung icon/label CHỈ chiếm 64px phía trên — giống App Store iOS.
           child: SizedBox(
@@ -299,7 +309,7 @@ class _MainShellState extends State<MainShell>
                   onPanUpdate: (details) =>
                       _updateNavDrag(details.localPosition.dx, itemWidth),
                   onPanEnd: (_) => _endNavDrag(),
-                  onPanCancel: () => _endNavDrag(),
+                  onPanCancel: () => _cancelNavDrag(),
                   child: Stack(
                     children: [
                       Positioned(
@@ -315,6 +325,10 @@ class _MainShellState extends State<MainShell>
                           decoration: BoxDecoration(
                             color: AppTheme.primaryFixed.withOpacity(0.8),
                             borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.5),
+                              width: 1,
+                            ),
                           ),
                         ),
                       ),
