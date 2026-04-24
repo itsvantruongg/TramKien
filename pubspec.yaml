@@ -38,6 +38,8 @@ dependencies:
   crypto: ^3.0.3
   url_launcher: ^6.3.0
   mailer: ^6.1.0
+  firebase_core: ^4.7.0
+  firebase_analytics: ^12.3.0
 
 dev_dependencies:
   flutter_test:

@@ -505,10 +505,20 @@ class AppProvider extends ChangeNotifier {
   List<LichThi> getLichThiForDate(DateTime date) =>
       scheduleProvider.getLichThiForDate(date);
 
-  Future<bool> voteAndRefreshDiem(String tenMonHoc, int mucDo, dynamic diemId,
-          {String nhanXet = ''}) =>
-      gradeProvider.voteAndRefreshDiem(tenMonHoc, mucDo, diemId,
-          nhanXet: nhanXet);
+  Future<bool> voteAndRefreshDiem(
+    String tenMonHoc,
+    int mucDo,
+    dynamic diemId, {
+    String nhanXet = '',
+    String? maMonHoc,
+  }) =>
+      gradeProvider.voteAndRefreshDiem(
+        tenMonHoc,
+        mucDo,
+        diemId,
+        nhanXet: nhanXet,
+        maMonHoc: maMonHoc,
+      );
 
   /// Chỉ đồng bộ điểm (dùng cho RefreshIndicator trang Điểm)
   Future<void> syncGrades({bool forceRefresh = true}) =>

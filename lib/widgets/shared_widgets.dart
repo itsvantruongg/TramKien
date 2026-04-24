@@ -26,45 +26,71 @@ class AcademicAppBar extends StatelessWidget implements PreferredSizeWidget {
           ],
         ),
         child: SafeArea(
-            child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 10, 4, 10),
-          child: Row(children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.primaryFixed,
-                border: Border.all(
-                    color: AppTheme.primary.withOpacity(0.2), width: 2),
-              ),
-              child:
-                  const Icon(Icons.school, color: AppTheme.primary, size: 18),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-                child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+          top: true,
+          bottom: false,
+          left: false,
+          right: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 6, 8, 6),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text('Đại học Kiến trúc Hà Nội',
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontSize: 20,
-                        color: AppTheme.primary,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: -0.3,
-                        height: 1.25)),
-                if (subtitle != null)
-                  Text(subtitle!,
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppTheme.outline, letterSpacing: 1.5)),
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppTheme.primaryFixed,
+                    border: Border.all(
+                      color: AppTheme.primary.withOpacity(0.2),
+                      width: 2,
+                    ),
+                  ),
+                  child: const Icon(Icons.school,
+                      color: AppTheme.primary, size: 16),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Đại học Kiến trúc Hà Nội',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontSize: 18,
+                              color: AppTheme.primary,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.5,
+                              height: 1.2, // Tăng nhẹ từ 1.1 lên 1.2 để chữ thoáng hơn
+                            ),
+                      ),
+                      
+                      // Thêm dòng này để tạo khoảng cách giữa title và subtitle
+                      const SizedBox(height: 4), 
+
+                      if (subtitle != null)
+                        Text(
+                          subtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: AppTheme.outline,
+                                letterSpacing: 1.2,
+                                height: 1.2, // Tăng nhẹ từ 1.0 lên 1.2
+                              ),
+                        ),
+                    ],
+                  ),
+                ),
+                ...?actions,
               ],
-            )),
-            ...?actions,
-          ]),
-        )),
+            ),
+          ),
+        ),
       );
 }
 

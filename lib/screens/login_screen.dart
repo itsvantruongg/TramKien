@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../services/analytics_service.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../widgets/shared_widgets.dart';
@@ -19,10 +20,18 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   bool _remember = false;
 
+  void _logCurrentScreen() {
+    AnalyticsService.logScreenView(
+      screenName: 'Login',
+      screenClass: 'LoginScreen',
+    );
+  }
+
   @override
   void initState() {
     super.initState();
     _loadSaved();
+    _logCurrentScreen();
   }
 
   Future<void> _loadSaved() async {
@@ -65,6 +74,8 @@ class _LoginScreenState extends State<LoginScreen> {
         backgroundColor: AppTheme.error,
       ));
     } else {
+      // Đặt nhãn để tách dữ liệu thống kê
+      await AnalyticsService.setAccountType(mssv);
       // Đúng → vào app ngay, hiển thị banner sync nền
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Row(children: [

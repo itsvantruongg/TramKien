@@ -18,141 +18,170 @@ class _GradesScreenState extends State<GradesScreen> {
   String? _selectedKy;
   bool _showHe10 = true;
 
+  double _swipeOffset = 0.0;
+
   @override
   Widget build(BuildContext context) {
     final p = context.watch<AppProvider>();
     final sortedKys = p.gpaByKy.keys.toList()..sort(_compareKyKey);
-
     // allKyKeys = tất cả kỳ có môn (cho chart X-axis)
     final allKyKeys = p.diemByKy.keys.toList()..sort(_compareKyKey);
-
     // Kỳ hiện tại: ưu tiên _selectedKy, fallback kỳ MỚI NHẤT
     final currentKy =
         _selectedKy ?? (allKyKeys.isNotEmpty ? allKyKeys.last : null);
-
     // Điểm của kỳ được chọn
     final diemHienThi =
         currentKy != null ? (p.diemByKy[currentKy] ?? []) : <DiemMonHoc>[];
-
-    final labelHienThi = currentKy ?? '';
-
+    // Lấy chiều rộng màn hình để tính % vuốt
+    final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       backgroundColor: AppTheme.surface,
-      body: RefreshIndicator(
-        onRefresh: () => p.syncGrades(),
-        child: CustomScrollView(slivers: [
-          SliverToBoxAdapter(
-              child: AcademicAppBar(
-                subtitle: 'ĐIỂM HỌC TẬP',
-                actions: [
-                  IconButton(
-                    icon: p.diemState == LoadState.loading
-                        ? const SizedBox(
-                            width: 20, height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: AppTheme.primary))
-                        : const Icon(Icons.sync_outlined,
-                            color: AppTheme.primary),
-                    onPressed: () => p.syncGrades(forceRefresh: true),
-                    tooltip: 'Đồng bộ điểm',
-                  ),
-                ],
-              )),
-          // Toggle Hệ 10 / Hệ 4
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              child: Row(
-                children: [
-                  const Text('Hiển thị theo:',
-                      style: TextStyle(
-                          fontSize: 13, color: AppTheme.onSurfaceVariant)),
-                  const SizedBox(width: 12),
-                  _ScaleToggle(
-                    value: _showHe10,
-                    onChanged: (v) => setState(() => _showHe10 = v),
-                  ),
-                ],
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        // 2. SỬA LẠI TOÀN BỘ CÁC SỰ KIỆN VUỐT MÀN HÌNH Ở ĐÂY
+        onHorizontalDragUpdate: (details) {
+          setState(() {
+            // Cập nhật vị trí đang vuốt (-1.0 đến 1.0)
+            _swipeOffset += details.delta.dx / screenWidth;
+            _swipeOffset = _swipeOffset.clamp(-1.0, 1.0);
+          });
+        },
+        onHorizontalDragEnd: (details) {
+          final velocity = details.primaryVelocity ?? 0;
+          bool nextShowHe10 = _showHe10;
+
+          // Nếu vuốt mạnh (velocity) hoặc kéo lố 25% màn hình (offset) thì chuyển
+          if (velocity > 200 || _swipeOffset > 0.25) {
+            nextShowHe10 = true;  // Vuốt sang phải -> Chọn Hệ 10
+          } else if (velocity < -200 || _swipeOffset < -0.25) {
+            nextShowHe10 = false; // Vuốt sang trái -> Chọn Hệ 4
+          }
+
+          if (nextShowHe10 != _showHe10) {
+            setState(() => _showHe10 = nextShowHe10);
+          }
+          // Vuốt xong thì nhả offset về 0 để phần xanh trượt vào vị trí cố định
+          setState(() => _swipeOffset = 0.0);
+        },
+        onHorizontalDragCancel: () {
+          setState(() => _swipeOffset = 0.0);
+        },
+        child: RefreshIndicator(
+          onRefresh: () => p.syncGrades(),
+          child: CustomScrollView(slivers: [
+            SliverToBoxAdapter(
+                child: AcademicAppBar(
+                  subtitle: 'ĐIỂM HỌC TẬP',
+                  actions: [
+                    IconButton(
+                      icon: p.diemState == LoadState.loading
+                          ? const SizedBox(
+                              width: 20, height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: AppTheme.primary))
+                          : const Icon(Icons.sync_outlined,
+                              color: AppTheme.primary),
+                      onPressed: () => p.syncGrades(forceRefresh: true),
+                      tooltip: 'Đồng bộ điểm',
+                    ),
+                  ],
+                )),
+            // Toggle Hệ 10 / Hệ 4
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: Row(
+                  children: [
+                    const Text('Hiển thị theo:',
+                        style: TextStyle(
+                            fontSize: 13, color: AppTheme.onSurfaceVariant)),
+                    const SizedBox(width: 12),
+                    _ScaleToggle(
+                      value: _showHe10,
+                      swipeOffset: _swipeOffset, // 3. TRUYỀN OFFSET VÀO THANH CHỌN
+                      onChanged: (v) => setState(() => _showHe10 = v),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          // ── GPA Hero ──────────────────────────────────────────
-          // SliverToBoxAdapter(
-          //   child: Padding(
-          //     padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-          //     child: SurfaceCard(  // ← Đổi từ GradientCard sang SurfaceCard
-          //       padding: const EdgeInsets.all(20),
-          //       child: Row(
-          //         children: [
-          //           // ← Bên TRÁI: Chỉ hiển thị số GPA to
-          //           Expanded(
-          //             child: Column(
-          //               crossAxisAlignment: CrossAxisAlignment.start,
-          //               children: [
-          //                 const Text(
-          //                   'GPA TÍCH LŨY',
-          //                   style: TextStyle(
-          //                     fontSize: 10,
-          //                     color: AppTheme.outline,
-          //                     letterSpacing: 1.5,
-          //                     fontWeight: FontWeight.w700,
-          //                   ),
-          //                 ),
-          //                 const SizedBox(height: 12),
-          //                 Text(
-          //                   p.gpa.toStringAsFixed(2),
-          //                   style: GoogleFonts.manrope(
-          //                     fontSize: 56,
-          //                     fontWeight: FontWeight.w800,
-          //                     color: AppTheme.primary,
-          //                     height: 1,
-          //                   ),
-          //                 ),
-          //                 const SizedBox(height: 4),
-          //                 Text(
-          //                   '/ 10.0 hệ điểm',
-          //                   style: TextStyle(
-          //                     color: AppTheme.onSurfaceVariant,
-          //                     fontSize: 13,
-          //                   ),
-          //                 ),
-          //                 const SizedBox(height: 12),
-          //                 Container(
-          //                   padding: const EdgeInsets.symmetric(
-          //                     horizontal: 12,
-          //                     vertical: 6,
-          //                   ),
-          //                   decoration: BoxDecoration(
-          //                     color: AppTheme.primaryFixed,
-          //                     borderRadius: BorderRadius.circular(99),
-          //                   ),
-          //                   child: Text(
-          //                     p.xepLoaiHocLuc,
-          //                     style: const TextStyle(
-          //                       color: AppTheme.primary,
-          //                       fontSize: 12,
-          //                       fontWeight: FontWeight.w700,
-          //                     ),
-          //                   ),
-          //                 ),
-          //               ],
-          //             ),
-          //           ),
-          //           // ← Bên PHẢI: Chỉ giữ vòng tròn
-          //           CircularProgressWidget(
-          //             value: (p.gpa / 10.0).clamp(0.0, 1.0),
-          //             center: p.gpa.toStringAsFixed(1),
-          //             subtitle: '/10',
-          //             size: 110,
-          //           ),
-          //         ],
-          //       ),
-          //     ),
-          //   ),
-          // ),
-          // Sau SliverToBoxAdapter chứa GPA Hero, thêm:
-          // Tìm đoạn hiển thị GPA (SurfaceCard đầu tiên sau toggle), sửa:
-// Thay SliverToBoxAdapter chứa DiemSummaryCard (if p.diemSummary != null):
+            // ── GPA Hero ──────────────────────────────────────────
+            // SliverToBoxAdapter(
+            //   child: Padding(
+            //     padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+            //     child: SurfaceCard(  // ← Đổi từ GradientCard sang SurfaceCard
+            //       padding: const EdgeInsets.all(20),
+            //       child: Row(
+            //         children: [
+            //           // ← Bên TRÁI: Chỉ hiển thị số GPA to
+            //           Expanded(
+            //             child: Column(
+            //               crossAxisAlignment: CrossAxisAlignment.start,
+            //               children: [
+            //                 const Text(
+            //                   'GPA TÍCH LŨY',
+            //                   style: TextStyle(
+            //                     fontSize: 10,
+            //                     color: AppTheme.outline,
+            //                     letterSpacing: 1.5,
+            //                     fontWeight: FontWeight.w700,
+            //                   ),
+            //                 ),
+            //                 const SizedBox(height: 12),
+            //                 Text(
+            //                   p.gpa.toStringAsFixed(2),
+            //                   style: GoogleFonts.manrope(
+            //                     fontSize: 56,
+            //                     fontWeight: FontWeight.w800,
+            //                     color: AppTheme.primary,
+            //                     height: 1,
+            //                   ),
+            //                 ),
+            //                 const SizedBox(height: 4),
+            //                 Text(
+            //                   '/ 10.0 hệ điểm',
+            //                   style: TextStyle(
+            //                     color: AppTheme.onSurfaceVariant,
+            //                     fontSize: 13,
+            //                   ),
+            //                 ),
+            //                 const SizedBox(height: 12),
+            //                 Container(
+            //                   padding: const EdgeInsets.symmetric(
+            //                     horizontal: 12,
+            //                     vertical: 6,
+            //                   ),
+            //                   decoration: BoxDecoration(
+            //                     color: AppTheme.primaryFixed,
+            //                     borderRadius: BorderRadius.circular(99),
+            //                   ),
+            //                   child: Text(
+            //                     p.xepLoaiHocLuc,
+            //                     style: const TextStyle(
+            //                       color: AppTheme.primary,
+            //                       fontSize: 12,
+            //                       fontWeight: FontWeight.w700,
+            //                     ),
+            //                   ),
+            //                 ),
+            //               ],
+            //             ),
+            //           ),
+            //           // ← Bên PHẢI: Chỉ giữ vòng tròn
+            //           CircularProgressWidget(
+            //             value: (p.gpa / 10.0).clamp(0.0, 1.0),
+            //             center: p.gpa.toStringAsFixed(1),
+            //             subtitle: '/10',
+            //             size: 110,
+            //           ),
+            //         ],
+            //       ),
+            //     ),
+            //   ),
+            // ),
+            // Sau SliverToBoxAdapter chứa GPA Hero, thêm:
+            // Tìm đoạn hiển thị GPA (SurfaceCard đầu tiên sau toggle), sửa:
+ // Thay SliverToBoxAdapter chứa DiemSummaryCard (if p.diemSummary != null):
 //           if (p.diemSummary != null )
 //             SliverToBoxAdapter(
 //               child: Padding(
@@ -166,172 +195,197 @@ class _GradesScreenState extends State<GradesScreen> {
 //                 ),
 //               ),
 //             ),
-          if (p.diemSummary != null)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
-                child: _DiemSummaryCard(
-                    summary: p.diemSummary!, showHe10: _showHe10),
-              ),
-            ),
-          // ── Line chart — hiện kể cả khi chưa có GPA ──────────
-          // Dùng allKyKeys (tất cả kỳ có môn) thay vì sortedKys (chỉ kỳ có điểm)
-          if (allKyKeys.isNotEmpty || p.diemState == LoadState.loading)
-            SliverToBoxAdapter(
+            if (p.diemSummary != null)
+              SliverToBoxAdapter(
                 child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-              child: p.diemState == LoadState.loading && allKyKeys.isEmpty
-                  ? SkeletonBox(width: double.infinity, height: 220, radius: 24)
-                  : _GpaLineChart(
-                      gpaByKy: _showHe10 ? p.gpaByKy : p.gpaByKyHe4,
-                      allKyKeys: allKyKeys,
-                      sortedKeys:
-                          _showHe10 ? sortedKys : p.gpaByKyHe4.keys.toList()
-                            ..sort(_compareKyKey),
-                      selectedKey: currentKy,
-                      onSelectKy: (key) => setState(() => _selectedKy = key),
-                      isHe10: _showHe10,
-                    ),
-            )),
+                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
+                  child: _DiemSummaryCard(
+                    summary: p.diemSummary!,
+                    showHe10: _showHe10,
+                  ),
+                ),
+              ),
+            // ── Line chart — hiện kể cả khi chưa có GPA ──────────
+            if (allKyKeys.isNotEmpty || p.diemState == LoadState.loading)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 360),
+                    // SỬA 1: Chỉ dùng FadeTransition (hiệu ứng mờ) để loại bỏ hoàn toàn độ nẩy (Slide).
+                    // Khi đổi hệ 10/4 nó sẽ chỉ mờ chuyển nhẹ nhàng.
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: child,
+                      );
+                    },
+                    child: p.diemState == LoadState.loading && allKyKeys.isEmpty
+                        ? KeyedSubtree(
+                            key: const ValueKey('grades_loading'),
+                            child: SkeletonBox(
+                                width: double.infinity, height: 220, radius: 24),
+                          )
+                        : KeyedSubtree(
+                            // SỬA 2 (QUAN TRỌNG NHẤT): Xóa bỏ 'currentKy' ra khỏi ValueKey.
+                            // Nhờ vậy khi user bấm đổi kỳ, biểu đồ sẽ KHÔNG bị tái tạo lại, 
+                            // mà chỉ truyền index mới vào CustomPainter để vẽ chấm tròn.
+                            key: ValueKey('chart_${_showHe10 ? 'he10' : 'he4'}'),
+                            child: _GpaLineChart(
+                              gpaByKy: _showHe10 ? p.gpaByKy : p.gpaByKyHe4,
+                              allKyKeys: allKyKeys,
+                              sortedKeys: _showHe10
+                                  ? sortedKys
+                                  : p.gpaByKyHe4.keys.toList()
+                                ..sort(_compareKyKey),
+                              selectedKey: currentKy,
+                              onSelectKy: (key) => setState(() => _selectedKy = key),
+                              isHe10: _showHe10,
+                            ),
+                          ),
+                  ),
+                ),
+              ),
 
-          // ── Kỳ selector + GPA kỳ ──────────────────────────────
-          if (allKyKeys.isNotEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: Row(children: [
-                  const Icon(Icons.school_outlined,
-                      size: 16, color: AppTheme.primary),
-                  const SizedBox(width: 8),
-                  // Dropdown chọn kỳ
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 4),
+            // ── Kỳ selector + GPA kỳ ──────────────────────────────
+            if (allKyKeys.isNotEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: Row(children: [
+                    const Icon(Icons.school_outlined,
+                        size: 16, color: AppTheme.primary),
+                    const SizedBox(width: 8),
+                    // Dropdown chọn kỳ
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryFixed.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: AppTheme.primary.withOpacity(0.2)),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: currentKy,
+                            isDense: true,
+                            icon: const Icon(Icons.keyboard_arrow_down,
+                                size: 18, color: AppTheme.primary),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppTheme.primary,
+                            ),
+                            items: allKyKeys.reversed.map((ky) {
+                              final parts = ky.split('_');
+                              final label = parts.length == 2
+                                  ? '${parts[1].replaceAll('HK', 'HK ')} · ${parts[0]}'
+                                  : ky;
+                              return DropdownMenuItem(
+                                value: ky,
+                                child: Text(label),
+                              );
+                            }).toList(),
+                            onChanged: (v) => setState(() => _selectedKy = v),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Badge số môn
+                    Container(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryFixed.withOpacity(0.5),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                            color: AppTheme.primary.withOpacity(0.2)),
+                        color: AppTheme.primaryFixed,
+                        borderRadius: BorderRadius.circular(99),
                       ),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value: currentKy,
-                          isDense: true,
-                          icon: const Icon(Icons.keyboard_arrow_down,
-                              size: 18, color: AppTheme.primary),
+                      child: Text('${diemHienThi.length} môn',
                           style: const TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: AppTheme.primary,
+                              fontSize: 11,
+                              color: AppTheme.primary,
+                              fontWeight: FontWeight.w600)),
+                    ),
+                    // GPA kỳ
+                    if (currentKy != null) ...[
+                      // Lấy GPA theo hệ đang chọn
+                      Builder(builder: (context) {
+                        final gpaKy = _showHe10
+                            ? p.gpaByKy[currentKy]
+                            : p.gpaByKyHe4[currentKy];
+                        if (gpaKy == null) return const SizedBox.shrink();
+                        return Row(mainAxisSize: MainAxisSize.min, children: [
+                          const SizedBox(width: 8),
+                          Text(
+                            gpaKy.toStringAsFixed(2),
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: AppTheme.primary,
+                            ),
                           ),
-                          items: allKyKeys.reversed.map((ky) {
-                            final parts = ky.split('_');
-                            final label = parts.length == 2
-                                ? '${parts[1].replaceAll('HK', 'HK ')} · ${parts[0]}'
-                                : ky;
-                            return DropdownMenuItem(
-                              value: ky,
-                              child: Text(label),
-                            );
-                          }).toList(),
-                          onChanged: (v) => setState(() => _selectedKy = v),
+                        ]);
+                      }),
+                    ],
+                  ]),
+                ),
+              ),
+
+            // ── Danh sách điểm ────────────────────────────────────
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
+              sliver: SliverList(
+                delegate: SliverChildListDelegate([
+                  if (p.diemState == LoadState.loading && p.diem.isEmpty)
+                    ...List.generate(
+                        4,
+                        (_) => Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: SkeletonBox(
+                                  width: double.infinity, height: 72, radius: 16),
+                            )),
+
+                  if (p.diem.isEmpty && p.diemState != LoadState.loading)
+                    SurfaceCard(
+                        child: const Center(
+                            child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Column(children: [
+                        Icon(Icons.grade_outlined,
+                            size: 48, color: AppTheme.outlineVariant),
+                        SizedBox(height: 12),
+                        Text('Chưa có dữ liệu điểm',
+                            style: TextStyle(color: AppTheme.onSurfaceVariant)),
+                      ]),
+                    ))),
+
+                  // Chỉ hiện điểm của kỳ đang chọn
+                  if (diemHienThi.isNotEmpty)
+                    ...diemHienThi.map((d) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: _DiemCard(diem: d, showHe10: _showHe10),
+                        ))
+                  else if (currentKy != null &&
+                      p.diem.isNotEmpty &&
+                      p.diemState != LoadState.loading)
+                    SurfaceCard(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Center(
+                          child: Text(
+                            'Không có điểm cho kỳ này',
+                            style: TextStyle(color: AppTheme.onSurfaceVariant),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Badge số môn
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryFixed,
-                      borderRadius: BorderRadius.circular(99),
-                    ),
-                    child: Text('${diemHienThi.length} môn',
-                        style: const TextStyle(
-                            fontSize: 11,
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.w600)),
-                  ),
-                  // GPA kỳ
-                  if (currentKy != null) ...[
-                    // Lấy GPA theo hệ đang chọn
-                    Builder(builder: (context) {
-                      final gpaKy = _showHe10
-                          ? p.gpaByKy[currentKy]
-                          : p.gpaByKyHe4[currentKy];
-                      if (gpaKy == null) return const SizedBox.shrink();
-                      return Row(mainAxisSize: MainAxisSize.min, children: [
-                        const SizedBox(width: 8),
-                        Text(
-                          gpaKy.toStringAsFixed(2),
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: AppTheme.primary,
-                          ),
-                        ),
-                      ]);
-                    }),
-                  ],
                 ]),
               ),
             ),
-
-          // ── Danh sách điểm ────────────────────────────────────
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 12, 20, 100),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate([
-                if (p.diemState == LoadState.loading && p.diem.isEmpty)
-                  ...List.generate(
-                      4,
-                      (_) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: SkeletonBox(
-                                width: double.infinity, height: 72, radius: 16),
-                          )),
-
-                if (p.diem.isEmpty && p.diemState != LoadState.loading)
-                  SurfaceCard(
-                      child: const Center(
-                          child: Padding(
-                    padding: EdgeInsets.all(32),
-                    child: Column(children: [
-                      Icon(Icons.grade_outlined,
-                          size: 48, color: AppTheme.outlineVariant),
-                      SizedBox(height: 12),
-                      Text('Chưa có dữ liệu điểm',
-                          style: TextStyle(color: AppTheme.onSurfaceVariant)),
-                    ]),
-                  ))),
-
-                // Chỉ hiện điểm của kỳ đang chọn
-                if (diemHienThi.isNotEmpty)
-                  ...diemHienThi.map((d) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: _DiemCard(diem: d, showHe10: _showHe10),
-                      ))
-                else if (currentKy != null &&
-                    p.diem.isNotEmpty &&
-                    p.diemState != LoadState.loading)
-                  SurfaceCard(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Center(
-                        child: Text(
-                          'Không có điểm cho kỳ này',
-                          style: TextStyle(color: AppTheme.onSurfaceVariant),
-                        ),
-                      ),
-                    ),
-                  ),
-              ]),
-            ),
-          ),
-        ]),
+          ]),
+        ),
       ),
     );
   }
@@ -790,18 +844,20 @@ class _DiemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     if (diem.canVote) return _VoteCard(diem: diem);
 
-    final displayGrade = showHe10 ? diem.avgGrade : diem.diemTongKet;
+    // Lấy giá trị theo hệ (fallback về 0 nếu null để hiệu ứng đếm không bị lỗi)
+    final displayGrade = showHe10 ? (diem.avgGrade ?? 0.0) : (diem.diemTongKet ?? 0.0);
     final gradeLabel = showHe10 ? '/ 10' : '/ 4';
+    final hasGrade = showHe10 ? diem.avgGrade != null : diem.diemTongKet != null;
 
     return SurfaceCard(
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          GradeBadge(grade: diem.xepLoai!),
+          GradeBadge(grade: diem.xepLoai ?? ''),
           const SizedBox(width: 14),
           Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text(diem.tenMonHoc,
                   style: Theme.of(context)
                       .textTheme
@@ -818,29 +874,38 @@ class _DiemCard extends StatelessWidget {
             ]),
           ),
           const SizedBox(width: 8),
-          if (displayGrade != null)
+          if (hasGrade)
             Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text(
-                displayGrade.toStringAsFixed(1),
+              // CHIÊU BÀI Ở ĐÂY: Dùng AnimatedNumber thay vì Text thường
+              AnimatedNumber(
+                value: displayGrade,
+                fractionDigits: 1,
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.w800, color: AppTheme.primary),
               ),
-              Text(gradeLabel,
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: AppTheme.outline)),
+              // Chuyển đổi mượt chữ "/ 10" thành "/ 4"
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: Text(gradeLabel,
+                    key: ValueKey(gradeLabel),
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: AppTheme.outline)),
+              ),
             ])
           else
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: AppTheme.surfaceContainerHigh,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text('—',
                   style: TextStyle(
-                      color: AppTheme.outline, fontWeight: FontWeight.w700)),
+                      color: AppTheme.outline,
+                      fontWeight: FontWeight.w700)),
             ),
         ]),
         const SizedBox(height: 10),
@@ -864,7 +929,6 @@ class _DiemCard extends StatelessWidget {
                 value: diem.diemTongKet!.toStringAsFixed(0),
                 highlight: !showHe10,
               ),
-            // ✅ FIX: Luôn hiển thị điểm chữ lấy trực tiếp từ API
             if (diem.xepLoai != null && diem.xepLoai!.isNotEmpty)
               _ScoreChip(
                 label: 'Điểm chữ',
@@ -959,32 +1023,30 @@ class _DiemSummaryCard extends StatelessWidget {
         Row(children: [
           _SummaryItem(
             label: showHe10 ? 'TBC tích lũy (Hệ 10)' : 'TBC tích lũy (Hệ 4)',
-            value: showHe10
-                ? (summary.tbcTichLuyHe10?.toStringAsFixed(2) ?? '—')
-                : (summary.tbcTichLuyHe4?.toStringAsFixed(2) ?? '—'),
+            // Truyền trực tiếp số (thay vì chữ) để làm hiệu ứng
+            valueNum: showHe10 ? summary.tbcTichLuyHe10 : summary.tbcTichLuyHe4, 
             highlight: true,
           ),
           _SummaryItem(
             label: showHe10 ? 'TBC học tập (Hệ 10)' : 'TBC học tập (Hệ 4)',
-            value: showHe10
-                ? (summary.tbcHocTapHe10?.toStringAsFixed(2) ?? '—')
-                : (summary.tbcHocTapHe4?.toStringAsFixed(2) ?? '—'),
+            valueNum: showHe10 ? summary.tbcHocTapHe10 : summary.tbcHocTapHe4,
           ),
         ]),
         const SizedBox(height: 8),
         Row(children: [
+          // Cái nào không phải là số để đếm (chữ A, B, C...) thì truyền vào fallbackText
           _SummaryItem(
             label: showHe10 ? 'Xếp loại (Hệ 10)' : 'Xếp loại (Hệ 4)',
-            value: showHe10
+            fallbackText: showHe10
                 ? (summary.xepLoaiHe10.isNotEmpty ? summary.xepLoaiHe10 : '—')
                 : (summary.xepLoaiHe4.isNotEmpty ? summary.xepLoaiHe4 : '—'),
             highlight: true,
           ),
           _SummaryItem(
             label: 'TC tích lũy (A/B)',
-            value: (summary.soTinChiTichLuy != null)
+            fallbackText: (summary.soTinChiTichLuy != null)
                 ? '${summary.soTinChiTichLuy}'
-                    '${summary.soTinChiTichLuyMax != null ? " / ${summary.soTinChiTichLuyMax}" : ""}'
+                  '${summary.soTinChiTichLuyMax != null ? " / ${summary.soTinChiTichLuyMax}" : ""}'
                 : '—',
           ),
         ]),
@@ -992,12 +1054,14 @@ class _DiemSummaryCard extends StatelessWidget {
         Row(children: [
           _SummaryItem(
             label: 'Số TC học tập',
-            value: summary.soTinChiHocTap?.toString() ?? '—',
+            valueNum: summary.soTinChiHocTap?.toDouble(),
+            fractionDigits: 0, // Ẩn phần thập phân cho tín chỉ
           ),
           if (summary.diemKhenThuong != null && summary.diemKhenThuong! >= 0)
             _SummaryItem(
               label: 'Điểm khen thưởng',
-              value: summary.diemKhenThuong!.toStringAsFixed(0),
+              valueNum: summary.diemKhenThuong,
+              fractionDigits: 0,
             )
           else
             const Expanded(child: SizedBox()),
@@ -1009,12 +1073,17 @@ class _DiemSummaryCard extends StatelessWidget {
 
 class _SummaryItem extends StatelessWidget {
   final String label;
-  final String value;
+  final double? valueNum;
+  final String fallbackText;
   final bool highlight;
+  final int fractionDigits;
+
   const _SummaryItem({
     required this.label,
-    required this.value,
+    this.valueNum,
+    this.fallbackText = '—',
     this.highlight = false,
+    this.fractionDigits = 2,
   });
 
   @override
@@ -1023,19 +1092,200 @@ class _SummaryItem extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: const TextStyle(
-                fontSize: 10,
-                color: AppTheme.onSurfaceVariant,
-              )),
+          // Hiệu ứng mờ khi đổi tên nhãn
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 300),
+            child: Text(label,
+                key: ValueKey(label),
+                style: const TextStyle(
+                  fontSize: 10,
+                  color: AppTheme.onSurfaceVariant,
+                )),
+          ),
           const SizedBox(height: 2),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: highlight ? AppTheme.primary : AppTheme.onSurface,
+          if (valueNum != null)
+            AnimatedNumber(
+              value: valueNum!,
+              fractionDigits: fractionDigits,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: highlight ? AppTheme.primary : AppTheme.onSurface,
+              ),
+            )
+          else
+            Text(
+              fallbackText,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: highlight ? AppTheme.primary : AppTheme.onSurface,
+              ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScaleToggle extends StatefulWidget {
+  final bool value; // true = Hệ 10
+  final ValueChanged<bool> onChanged;
+  final double swipeOffset; // <-- Nhận tỷ lệ vuốt từ màn hình cha
+
+  const _ScaleToggle({
+    super.key, 
+    required this.value, 
+    required this.onChanged,
+    this.swipeOffset = 0.0,
+  });
+
+  @override
+  State<_ScaleToggle> createState() => _ScaleToggleState();
+}
+
+class _ScaleToggleState extends State<_ScaleToggle> {
+  double? _dragValue;
+  bool _dragging = false;
+  Offset? _downPosition;
+  bool _dragStarted = false;
+
+  double get _baseValue => widget.value ? 0.0 : 1.0;
+
+  // CÔNG THỨC VÀNG: Kết hợp vị trí hiện tại và lực vuốt ngón tay
+  double get _visualValue {
+    if (_dragValue != null) return _dragValue!.clamp(0.0, 1.0);
+    // Khi màn hình bị vuốt, ô xanh sẽ trượt theo tỷ lệ tương ứng
+    return (_baseValue - widget.swipeOffset).clamp(0.0, 1.0);
+  }
+
+  void _startPointer(PointerDownEvent details) {
+    _downPosition = details.localPosition;
+    _dragStarted = false;
+  }
+
+  void _updatePointer(PointerMoveEvent details, double totalWidth) {
+    final down = _downPosition;
+    if (down == null) return;
+
+    final moved = (details.localPosition.dx - down.dx).abs();
+    if (!_dragStarted && moved > 6) {
+      _dragStarted = true;
+      if (!mounted) return;
+      setState(() => _dragging = true);
+    }
+
+    if (!_dragStarted) return;
+
+    setState(() {
+      // Giúp ô màu xanh bám chính xác vào tâm ngón tay khi vuốt trực tiếp lên thanh chọn
+      final itemWidth = totalWidth / 2;
+      _dragValue = ((details.localPosition.dx - itemWidth / 2) / itemWidth).clamp(0.0, 1.0);
+    });
+  }
+
+  void _endPointer() {
+    if (_dragStarted) {
+      final nextValue = _visualValue < 0.5; // Nhả tay gần bên nào thì chọn bên đó
+      widget.onChanged(nextValue);
+    }
+    _resetPointer();
+  }
+
+  void _cancelPointer() => _resetPointer();
+
+  void _resetPointer() {
+    if (!mounted) return;
+    setState(() {
+      _dragging = false;
+      _dragValue = null;
+      _downPosition = null;
+      _dragStarted = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 176,
+      height: 40,
+      child: Container(
+        padding: const EdgeInsets.all(4),
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceContainerHigh.withOpacity(0.82),
+          borderRadius: BorderRadius.circular(999),
+        ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final totalWidth = constraints.maxWidth;
+            final itemWidth = totalWidth / 2;
+            
+            // Đang có tương tác ngón tay hay không? (vuốt màn hình HOẶC vuốt thanh)
+            final isInteracting = _dragging || widget.swipeOffset != 0.0;
+
+            return Listener(
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: _startPointer,
+              onPointerMove: (details) => _updatePointer(details, totalWidth),
+              onPointerUp: (_) => _endPointer(),
+              onPointerCancel: (_) => _cancelPointer(),
+              child: Stack(
+                children: [
+                  AnimatedPositioned(
+                    // QUAN TRỌNG: Nếu đang kéo ngón tay -> duration = 0 để ô xanh bám sát tức thì (ko độ trễ)
+                    // Nhả ngón tay ra -> duration = 250 để mượt mà trượt nốt vào đúng ô
+                    duration: Duration(milliseconds: isInteracting ? 0 : 250),
+                    curve: Curves.easeOutCubic,
+                    left: _visualValue * itemWidth,
+                    top: 0,
+                    child: _pill(itemWidth, constraints.maxHeight),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _Tab(
+                          label: 'Hệ 10',
+                          active: widget.value,
+                          onTap: () => widget.onChanged(true),
+                        ),
+                      ),
+                      Expanded(
+                        child: _Tab(
+                          label: 'Hệ 4',
+                          active: !widget.value,
+                          onTap: () => widget.onChanged(false),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _pill(double width, double height) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.primary,
+            AppTheme.primary.withOpacity(0.92),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(999),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primary.withOpacity(0.22),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -1043,27 +1293,7 @@ class _SummaryItem extends StatelessWidget {
   }
 }
 
-// Thêm _ScaleToggle widget:
-class _ScaleToggle extends StatelessWidget {
-  final bool value; // true = Hệ 10
-  final ValueChanged<bool> onChanged;
-  const _ScaleToggle({required this.value, required this.onChanged});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 32,
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(99),
-      ),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        _Tab(label: 'Hệ 10', active: value, onTap: () => onChanged(true)),
-        _Tab(label: 'Hệ 4', active: !value, onTap: () => onChanged(false)),
-      ]),
-    );
-  }
-}
+// ... class _Tab giữ nguyên như cũ
 
 class _Tab extends StatelessWidget {
   final String label;
@@ -1074,20 +1304,22 @@ class _Tab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-        decoration: BoxDecoration(
-          color: active ? AppTheme.primary : Colors.transparent,
-          borderRadius: BorderRadius.circular(99),
-        ),
-        child: Text(label,
+      child: SizedBox(
+        height: double.infinity,
+        child: Center(
+          child: AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
             style: TextStyle(
               fontSize: 12,
-              fontWeight: FontWeight.w700,
+              fontWeight: active ? FontWeight.w800 : FontWeight.w700,
               color: active ? Colors.white : AppTheme.onSurfaceVariant,
-            )),
+            ),
+            child: Text(label),
+          ),
+        ),
       ),
     );
   }
@@ -1523,6 +1755,8 @@ class _VoteCardState extends State<_VoteCard> {
           _sel!,
           widget.diem.id!,
           nhanXet: nhanXet,
+          maMonHoc:
+              widget.diem.maMonHoc.isNotEmpty ? widget.diem.maMonHoc : null,
         );
 
     if (!mounted) return;
@@ -1540,5 +1774,37 @@ class _VoteCardState extends State<_VoteCard> {
         behavior: SnackBarBehavior.floating,
       ));
     }
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// ANIMATED NUMBER (Hiệu ứng số chạy)
+// ═══════════════════════════════════════════════════
+class AnimatedNumber extends StatelessWidget {
+  final double value;
+  final int fractionDigits;
+  final TextStyle? style;
+
+  const AnimatedNumber({
+    super.key,
+    required this.value,
+    this.fractionDigits = 1,
+    this.style,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      // Khi 'value' thay đổi, Tween sẽ tự động chạy từ số hiện tại đến số mới
+      tween: Tween<double>(end: value),
+      duration: const Duration(milliseconds: 600),
+      curve: Curves.easeOutCubic, // Số chạy nhanh lúc đầu, chậm dần về cuối
+      builder: (context, val, child) {
+        return Text(
+          val.toStringAsFixed(fractionDigits),
+          style: style,
+        );
+      },
+    );
   }
 }

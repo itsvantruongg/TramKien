@@ -158,7 +158,7 @@ class TermsScreen extends StatelessWidget {
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12), // Bo góc ảnh
                     child: Image.asset(
-                      'assets/qr_contact.png', // Thay đúng với đường dẫn ảnh của bạn
+                      'assets/qrcode_itsvantruongg.github.io.png', // Thay đúng với đường dẫn ảnh của bạn
                       width: 150, // Cố định chiều rộng (tùy chỉnh theo ý thích)
                       height: 150, // Cố định chiều cao
                       fit: BoxFit.cover,

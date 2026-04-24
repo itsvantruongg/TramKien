@@ -4,10 +4,15 @@ import '../hau_api_service.dart';
 import '../database_service.dart';
 import '../mock_data.dart';
 
+typedef LichHocFetchResult = ({List<LichHoc> items, bool success});
+typedef LichHocScanResult = ({List<LichHoc> items, bool complete});
+typedef LichThiFetchResult = ({List<LichThi> items, bool success});
+typedef LichThiScanResult = ({List<LichThi> items, bool complete});
+
 class ScheduleApi {
   // ── LỊCH HỌC — single fetch ────────────────────────────
 
-  static Future<List<LichHoc>> fetchLichHoc({
+  static Future<LichHocFetchResult> fetchLichHocWithStatus({
     required int hocKy,
     required int namHoc,
     int chuyenNganh = 0,
@@ -30,11 +35,15 @@ class ScheduleApi {
           .timeout(const Duration(seconds: 15));
       HauApiService.saveCookies(r);
 
-      if (r.statusCode != 200 || r.body.length < 200) return [];
+      if (r.statusCode != 200 || r.body.length < 200) {
+        return (items: <LichHoc>[], success: false);
+      }
 
       final doc = HauApiService.parseHtml(r.body);
       final tableRows = doc.querySelectorAll('table tbody tr');
-      if (tableRows.length <= 1) return [];
+      if (tableRows.length <= 1) {
+        return (items: <LichHoc>[], success: true);
+      }
 
       // ── Parse với rowspan carry-forward ────────────────────
       // Cột API: STT(0) TenHP(1) TC(2) LopTC(3) ThoiGian(4) Thu(5) Tiet(6) Phong(7) GV(8)
@@ -53,10 +62,11 @@ class ScheduleApi {
           if (carryOver.containsKey(col) && carryOver[col]!.left > 0) {
             cells[col] = carryOver[col]!.val;
             final rem = carryOver[col]!.left - 1;
-            if (rem == 0)
+            if (rem == 0) {
               carryOver.remove(col);
-            else
+            } else {
               carryOver[col] = (val: carryOver[col]!.val, left: rem);
+            }
           } else if (srcIdx < tds.length) {
             final td = tds[srcIdx++];
             final val = td.text.trim();
@@ -99,24 +109,41 @@ class ScheduleApi {
           lastUpdated: DateTime.now(),
         ));
       }
-      return result;
+      return (items: result, success: true);
     } catch (_) {
-      return [];
+      return (items: <LichHoc>[], success: false);
     }
   }
 
-  /// Fetch tất cả đợt × ngành của 1 kỳ song song (giống Python fetchLichHocParallel)
-  /// Chỉ lấy năm học 2025-2026 như yêu cầu
-  static Future<List<LichHoc>> fetchLichHocAllDots({
+  static Future<List<LichHoc>> fetchLichHoc({
     required int hocKy,
     required int namHoc,
-    String? mssv, // ← thêm mssv để log
+    int chuyenNganh = 0,
+    int dotHoc = 1,
   }) async {
+    return (await fetchLichHocWithStatus(
+      hocKy: hocKy,
+      namHoc: namHoc,
+      chuyenNganh: chuyenNganh,
+      dotHoc: dotHoc,
+    ))
+        .items;
+  }
+
+  static Future<LichHocScanResult> fetchLichHocAllDotsWithStatus({
+    required int hocKy,
+    required int namHoc,
+    String? mssv,
+  }) async {
+    if (HauApiService.currentMssv == 'admin' && MockData.isEnabled) {
+      return (items: MockData.getLichHoc(), complete: true);
+    }
+
     // 8 đợt × 2 ngành = 16 request chạy song song
-    final futures = <Future<List<LichHoc>>>[];
+    final futures = <Future<LichHocFetchResult>>[];
     for (int dot = 1; dot <= 8; dot++) {
       for (int cn = 0; cn <= 1; cn++) {
-        futures.add(fetchLichHoc(
+        futures.add(_fetchLichHocWithRetry(
           hocKy: hocKy,
           namHoc: namHoc,
           chuyenNganh: cn,
@@ -132,9 +159,13 @@ class ScheduleApi {
 
     // Log chi tiết từng đợt
     int reqIdx = 0;
+    bool complete = true;
     for (int dot = 1; dot <= 8; dot++) {
       for (int cn = 0; cn <= 1; cn++) {
-        final list = results[reqIdx++];
+        final result = results[reqIdx++];
+        if (!result.success) complete = false;
+
+        final list = result.items;
         if (list.isNotEmpty) {
           final monNames = list.map((l) => l.tenHocPhan).toSet().join(', ');
           print('   ✅ Đợt $dot | CN${cn == 0 ? "Chính" : "Thứ2"}: '
@@ -145,7 +176,7 @@ class ScheduleApi {
       }
     }
 
-    final all = results.expand((r) => r).toList();
+    final all = results.expand((r) => r.items).toList();
     // Deduplicate
     final seen = <String>{};
     final unique = all.where((l) {
@@ -154,14 +185,53 @@ class ScheduleApi {
     }).toList();
 
     print('📚 [LichHoc] HK$hocKy ${namHoc}-${namHoc + 1}: '
-        '${all.length} bản ghi thô → ${unique.length} unique');
+        '${all.length} bản ghi thô → ${unique.length} unique '
+        'complete=$complete');
 
-    return unique;
+    return (items: unique, complete: complete);
   }
 
-  static Future<List<LichHoc>> fetchLichHocFromStart({String? mssv}) async {
+  static Future<List<LichHoc>> fetchLichHocAllDots({
+    required int hocKy,
+    required int namHoc,
+    String? mssv,
+  }) async {
+    return (await fetchLichHocAllDotsWithStatus(
+      hocKy: hocKy,
+      namHoc: namHoc,
+      mssv: mssv,
+    ))
+        .items;
+  }
+
+  static Future<LichHocFetchResult> _fetchLichHocWithRetry({
+    required int hocKy,
+    required int namHoc,
+    required int chuyenNganh,
+    required int dotHoc,
+    int maxAttempts = 2,
+  }) async {
+    LichHocFetchResult last = (items: <LichHoc>[], success: false);
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      last = await fetchLichHocWithStatus(
+        hocKy: hocKy,
+        namHoc: namHoc,
+        chuyenNganh: chuyenNganh,
+        dotHoc: dotHoc,
+      );
+      if (last.success) return last;
+      if (attempt < maxAttempts - 1) {
+        await Future.delayed(Duration(milliseconds: 300 * (attempt + 1)));
+      }
+    }
+    return last;
+  }
+
+  static Future<LichHocScanResult> fetchLichHocFromStartWithStatus({
+    String? mssv,
+  }) async {
     if (HauApiService.currentMssv == 'admin' && MockData.isEnabled) {
-      return MockData.getLichHoc();
+      return (items: MockData.getLichHoc(), complete: true);
     }
 
     final startYear =
@@ -186,34 +256,67 @@ class ScheduleApi {
 
     final allResults = <LichHoc>[];
     final globalSeen = <String>{};
+    bool complete = true;
 
-    for (final k in kyList) {
-      print('\n📖 Đang fetch HK${k.ky} ${k.nam}-${k.nam + 1}...');
-      final kyResults = await fetchLichHocAllDots(
-        hocKy: k.ky,
-        namHoc: k.nam,
-        mssv: mssv,
-      );
+    const batchSize = 2;
+    for (int start = 0; start < kyList.length; start += batchSize) {
+      final end =
+          (start + batchSize < kyList.length) ? start + batchSize : kyList.length;
+      final batch = kyList.sublist(start, end);
+      final results = await Future.wait(batch.map((k) =>
+          _fetchLichHocSemesterWithRetry(hocKy: k.ky, namHoc: k.nam, mssv: mssv)));
 
-      int added = 0;
-      for (final l in kyResults) {
-        final key =
-            '${l.tenHocPhan}_${l.namHoc}_${l.hocKy}_${l.thoiGian}_${l.thu}';
-        if (globalSeen.add(key)) {
-          allResults.add(l);
-          added++;
+      for (int i = 0; i < batch.length; i++) {
+        final k = batch[i];
+        final result = results[i];
+        final kyLabel = 'HK${k.ky} ${k.nam}-${k.nam + 1}';
+
+        if (!result.complete) {
+          complete = false;
+          print('   🔴 $kyLabel: lỗi sau retry');
+        } else if (result.items.isEmpty) {
+          print('   ⚪ $kyLabel: rỗng (chưa có lịch)');
+        } else {
+          final monNames = result.items.map((l) => l.tenHocPhan).toSet().join(', ');
+          print('   🟢 $kyLabel: ${result.items.length} bản ghi → $monNames');
         }
-      }
-      if (added > 0) {
-        print('   → HK${k.ky} ${k.nam}-${k.nam + 1}: thêm $added bản ghi');
-      } else {
-        print('   → HK${k.ky} ${k.nam}-${k.nam + 1}: rỗng (chưa có lịch)');
+
+        for (final l in result.items) {
+          final key =
+              '${l.tenHocPhan}_${l.namHoc}_${l.hocKy}_${l.thoiGian}_${l.thu}_${l.tiet}_${l.dotHoc}_${l.chuyenNganh}';
+          if (globalSeen.add(key)) allResults.add(l);
+        }
       }
     }
 
     print('\n🏁 [LichHoc] Tổng kết: ${allResults.length} bản ghi unique '
-        'từ ${kyList.length} kỳ');
-    return allResults;
+        'từ ${kyList.length} kỳ complete=$complete');
+    return (items: allResults, complete: complete);
+  }
+
+  static Future<List<LichHoc>> fetchLichHocFromStart({String? mssv}) async {
+    return (await fetchLichHocFromStartWithStatus(mssv: mssv)).items;
+  }
+
+  static Future<LichHocScanResult> _fetchLichHocSemesterWithRetry({
+    required int hocKy,
+    required int namHoc,
+    String? mssv,
+    int maxAttempts = 2,
+  }) async {
+    LichHocScanResult last = (items: <LichHoc>[], complete: false);
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      last = await fetchLichHocAllDotsWithStatus(
+        hocKy: hocKy,
+        namHoc: namHoc,
+        mssv: mssv,
+      );
+      if (last.complete) return last;
+      if (attempt < maxAttempts - 1) {
+        await Future.delayed(Duration(milliseconds: 400 * (attempt + 1)));
+      }
+    }
+    return last;
   }
 
   /// Fetch lịch học cho năm 2025-2026, cả 2 học kỳ, song song
@@ -223,13 +326,13 @@ class ScheduleApi {
     const hocKys = [1, 2];
 
     // Chạy cả 2 HK song song
-    final futures = hocKys.map((hk) => fetchLichHocAllDots(
+    final futures = hocKys.map((hk) => fetchLichHocAllDotsWithStatus(
           hocKy: hk,
           namHoc: namHoc,
         ));
 
     final results = await Future.wait(futures);
-    final all = results.expand((r) => r).toList();
+    final all = results.expand((r) => r.items).toList();
 
     print('fetchLichHoc2025: ${all.length} môn tổng cộng');
     return all;
@@ -237,13 +340,15 @@ class ScheduleApi {
 
   // ── LỊCH THI ──────────────────────────────────────────────
 
-  static Future<List<LichThi>> fetchLichThi({
+  static Future<LichThiFetchResult> fetchLichThiWithStatus({
     required int hocKy,
     required int namHoc,
   }) async {
     if (HauApiService.currentMssv == 'admin' && MockData.isEnabled) {
-      if (hocKy == 2 && namHoc == 2024) return MockData.getLichThi();
-      return [];
+      if (hocKy == 2 && namHoc == 2024) {
+        return (items: MockData.getLichThi(), success: true);
+      }
+      return (items: <LichThi>[], success: true);
     }
 
     try {
@@ -268,7 +373,9 @@ class ScheduleApi {
         HauApiService.saveCookies(r);
       }
 
-      if (r.statusCode != 200) return [];
+      if (r.statusCode != 200) {
+        return (items: <LichThi>[], success: false);
+      }
 
       final rows = HauApiService.parseTable(r.body);
       // Sau khi parse, thêm log kiểm tra 1 record đầu:
@@ -280,7 +387,7 @@ class ScheduleApi {
           if (v.isNotEmpty) print('   $k = "$v"');
         });
       }
-      return rows.map((row) {
+      final items = rows.map((row) {
         String col(List<String> keys, String fb) {
           for (final k in keys) {
             final v = row[k];
@@ -328,19 +435,103 @@ class ScheduleApi {
           return false;
         }
         if (RegExp(r'^[0-9\-]+$').hasMatch(l.tenMonHoc)) {
-          print('⚠️ WARN: Skipping invalid lich thi name: \"${l.tenMonHoc}\"');
+          print('⚠️ WARN: Skipping invalid lich thi name: "${l.tenMonHoc}"');
           return false;
         }
         // FILTER: ngayThi must be valid date format
         if (l.ngayThi.isEmpty || !RegExp(r'\d+/\d+/\d+').hasMatch(l.ngayThi)) {
           print(
-              '⚠️ WARN: Skipping lich thi with invalid date: \"${l.ngayThi}\"');
+              '⚠️ WARN: Skipping lich thi with invalid date: "${l.ngayThi}"');
           return false;
         }
         return true;
       }).toList();
+
+      return (items: items, success: true);
     } catch (_) {
-      return [];
+      return (items: <LichThi>[], success: false);
     }
+  }
+
+  static Future<List<LichThi>> fetchLichThi({
+    required int hocKy,
+    required int namHoc,
+  }) async {
+    return (await fetchLichThiWithStatus(hocKy: hocKy, namHoc: namHoc)).items;
+  }
+
+  static Future<LichThiScanResult> fetchLichThiFromStartWithStatus({
+    String? mssv,
+  }) async {
+    if (HauApiService.currentMssv == 'admin' && MockData.isEnabled) {
+      return (items: MockData.getLichThi(), complete: true);
+    }
+
+    final startYear =
+        mssv != null ? HauApiService.getNamBatDauFromMssv(mssv) : 2020;
+    final now = DateTime.now();
+    final currentNamHoc = now.month >= 8 ? now.year : now.year - 1;
+
+    // Fetch TẤT CẢ kỳ, không skip
+    final kyList = <({int ky, int nam})>[];
+    for (int nam = startYear; nam <= currentNamHoc; nam++) {
+      kyList.add((ky: 1, nam: nam));
+      kyList.add((ky: 2, nam: nam));
+    }
+
+    print('🗓️ [LichThi] mssv=$mssv startYear=$startYear '
+        '→ ${kyList.length} kỳ cần fetch (không skip)');
+
+    final allLichThi = <LichThi>[];
+    bool complete = true;
+
+    const batchSize = 4;
+    for (int start = 0; start < kyList.length; start += batchSize) {
+      final end =
+          (start + batchSize < kyList.length) ? start + batchSize : kyList.length;
+      final batch = kyList.sublist(start, end);
+      final results = await Future.wait(batch.map((k) =>
+          _fetchLichThiSemesterWithRetry(hocKy: k.ky, namHoc: k.nam)));
+
+      for (int i = 0; i < batch.length; i++) {
+        final k = batch[i];
+        final result = results[i];
+        final kyLabel = 'HK${k.ky} ${k.nam}-${k.nam + 1}';
+
+        if (!result.success) {
+          complete = false;
+          print('   🔴 $kyLabel: lỗi sau retry');
+        } else if (result.items.isEmpty) {
+          print('   ⚪ $kyLabel: rỗng');
+        } else {
+          print('   🟢 $kyLabel: ${result.items.length} lịch thi → '
+              '${result.items.map((t) => t.tenMonHoc).join(', ')}');
+          allLichThi.addAll(result.items);
+        }
+      }
+    }
+
+    print('🏁 [LichThi] Tổng: ${allLichThi.length} lịch thi complete=$complete');
+    return (items: allLichThi, complete: complete);
+  }
+
+  static Future<List<LichThi>> fetchLichThiFromStart({String? mssv}) async {
+    return (await fetchLichThiFromStartWithStatus(mssv: mssv)).items;
+  }
+
+  static Future<LichThiFetchResult> _fetchLichThiSemesterWithRetry({
+    required int hocKy,
+    required int namHoc,
+    int maxAttempts = 2,
+  }) async {
+    LichThiFetchResult last = (items: <LichThi>[], success: false);
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      last = await fetchLichThiWithStatus(hocKy: hocKy, namHoc: namHoc);
+      if (last.success) return last;
+      if (attempt < maxAttempts - 1) {
+        await Future.delayed(Duration(milliseconds: 300 * (attempt + 1)));
+      }
+    }
+    return last;
   }
 }

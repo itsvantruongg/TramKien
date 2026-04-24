@@ -144,13 +144,19 @@ class ScheduleProvider extends ChangeNotifier {
         return;
       }
 
-      final allLichHoc = await ScheduleApi.fetchLichHocFromStart(mssv: _mssv);
+      final result =
+          await ScheduleApi.fetchLichHocFromStartWithStatus(mssv: _mssv);
 
-      if (allLichHoc.isNotEmpty) {
-        await ScheduleDb.saveLichHoc(allLichHoc);
+      if (result.items.isNotEmpty) {
+        await ScheduleDb.saveLichHoc(result.items);
+        print('📚 [LichHoc] Đã lưu ${result.items.length} bản ghi vào DB');
+      }
+
+      if (result.complete) {
         await DatabaseService.updateCacheMeta(oldCacheKey, 'synced');
         await DatabaseService.updateCacheMeta(currentKey, 'synced');
-        print('📚 [LichHoc] Đã lưu ${allLichHoc.length} bản ghi vào DB');
+      } else {
+        print('⚠️ [LichHoc] Sync chưa đầy đủ, chưa đánh dấu cache synced');
       }
 
       await refreshFromCache();
@@ -182,35 +188,43 @@ class ScheduleProvider extends ChangeNotifier {
       print('🗓️ [LichThi] mssv=$_mssv startYear=$startYear '
           '→ ${kyList.length} kỳ cần fetch (không skip)');
 
-      final allLichThi = <LichThi>[];
-      for (final k in kyList) {
-        final cacheKey = 'lich_thi_${k.ky}_${k.nam}';
-        final isCached = !forceRefresh &&
-            !(await DatabaseService.isStale(cacheKey, _ttlLichThi));
-        if (isCached) {
-          print('   ⏭️ HK${k.ky} ${k.nam}-${k.nam + 1}: dùng cache');
-          continue;
+      bool allCached = !forceRefresh;
+      if (allCached) {
+        for (final k in kyList) {
+          final cacheKey = 'lich_thi_${k.ky}_${k.nam}';
+          final isCached = !(await DatabaseService.isStale(
+              cacheKey, _ttlLichThi));
+          if (!isCached) {
+            allCached = false;
+            break;
+          }
         }
+      }
 
-        final result =
-            await ScheduleApi.fetchLichThi(hocKy: k.ky, namHoc: k.nam);
+      if (allCached) {
+        await refreshFromCache();
+        print('🗓️ [LichThi] Dùng cache, skip fetch API');
+        return;
+      }
 
-        if (result.isNotEmpty) {
-          print('   🟢 HK${k.ky} ${k.nam}-${k.nam + 1}: '
-              '${result.length} lịch thi → '
-              '${result.map((t) => t.tenMonHoc).join(', ')}');
-          allLichThi.addAll(result);
+      final result =
+          await ScheduleApi.fetchLichThiFromStartWithStatus(mssv: _mssv);
+
+      if (result.items.isNotEmpty) {
+        await ScheduleDb.saveLichThi(result.items);
+      }
+
+      if (result.complete) {
+        for (final k in kyList) {
+          final cacheKey = 'lich_thi_${k.ky}_${k.nam}';
           await DatabaseService.updateCacheMeta(cacheKey, 'synced');
-        } else {
-          print('   ⚪ HK${k.ky} ${k.nam}-${k.nam + 1}: rỗng');
         }
+      } else {
+        print('⚠️ [LichThi] Sync chưa đầy đủ, chưa đánh dấu cache synced');
       }
 
-      if (allLichThi.isNotEmpty) {
-        await ScheduleDb.saveLichThi(allLichThi);
-      }
-
-      print('🏁 [LichThi] Tổng: ${allLichThi.length} lịch thi');
+      print('🏁 [LichThi] Tổng: ${result.items.length} lịch thi '
+          'complete=${result.complete}');
       _lichThi = await ScheduleDb.getLichThi();
       notifyListeners();
     } catch (e) {

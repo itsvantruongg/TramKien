@@ -92,6 +92,9 @@ class GradeProvider extends ChangeNotifier {
                 })
             .toList();
         await GradeDb.saveDiem(rawList);
+      }
+
+      if (result.complete) {
         await DatabaseService.updateCacheMeta('diem_all', 'synced');
       }
 
@@ -141,32 +144,99 @@ class GradeProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> voteAndRefreshDiem(String tenMonHoc, int mucDo, dynamic diemId,
-      {String nhanXet = ''}) async {
+  Future<bool> voteAndRefreshDiem(
+    String tenMonHoc,
+    int mucDo,
+    dynamic diemId, {
+    String nhanXet = '',
+    String? maMonHoc,
+  }) async {
     try {
-      // B1: Lấy danh sách môn có thể vote
       final monList = await HauApiService.fetchMonCanVote();
       if (monList.isEmpty) return false;
 
-      // B2: Match tên môn học (case-insensitive, trim)
-      final tenNorm = tenMonHoc.toLowerCase().trim();
-      final matched = monList.firstWhere(
-        (m) =>
-            m['ten']!.toLowerCase().trim().contains(tenNorm) ||
-            tenNorm.contains(m['ten']!.toLowerCase().trim()),
-        orElse: () => monList.first, // fallback môn đầu
-      );
-      final idMonTC = matched['id']!;
+      String normalize(String value) =>
+          value.toLowerCase().replaceAll(RegExp(r'\s+'), ' ').trim();
 
-      // B3: Lấy IDLopTC
+      Map<String, String> parseOption(String text) {
+        final raw = text.trim();
+        final idx = raw.lastIndexOf(' - ');
+        if (idx >= 0) {
+          return {
+            'ten': raw.substring(0, idx).trim(),
+            'ma': raw.substring(idx + 3).trim(),
+          };
+        }
+        return {'ten': raw, 'ma': ''};
+      }
+
+      final expectedTen = normalize(tenMonHoc);
+      final expectedMa = normalize(maMonHoc ?? '');
+      final expectedDisplay = normalize(
+        maMonHoc != null && maMonHoc.trim().isNotEmpty
+            ? '$tenMonHoc - $maMonHoc'
+            : tenMonHoc,
+      );
+
+      final parsedOptions = monList
+          .map((m) {
+            final parsed = parseOption(m['ten'] ?? '');
+            return <String, String>{
+              'id': m['id'] ?? '',
+              'rawText': m['ten'] ?? '',
+              'ten': parsed['ten'] ?? '',
+              'ma': parsed['ma'] ?? '',
+            };
+          })
+          .toList();
+
+      Map<String, String>? matched;
+
+      final exactDisplayMatches = parsedOptions
+          .where((o) => normalize(o['rawText'] ?? '') == expectedDisplay)
+          .toList();
+      if (exactDisplayMatches.length == 1) {
+        matched = exactDisplayMatches.first;
+      } else if (expectedMa.isNotEmpty) {
+        final codeMatches = parsedOptions
+            .where((o) => normalize(o['ma'] ?? '') == expectedMa)
+            .toList();
+        if (codeMatches.length == 1) {
+          matched = codeMatches.first;
+        } else if (codeMatches.length > 1) {
+          final bothMatches = codeMatches
+              .where((o) => normalize(o['ten'] ?? '') == expectedTen)
+              .toList();
+          if (bothMatches.length == 1) {
+            matched = bothMatches.first;
+          }
+        }
+      }
+
+      if (matched == null) {
+        final nameMatches = parsedOptions
+            .where((o) => normalize(o['ten'] ?? '') == expectedTen)
+            .toList();
+        if (nameMatches.length == 1) {
+          matched = nameMatches.first;
+        }
+      }
+
+      if (matched == null || (matched['id'] ?? '').isEmpty) {
+        debugPrint(
+          'voteAndRefreshDiem: không xác định được môn cần vote '
+          'cho "$tenMonHoc" (${maMonHoc ?? ''})',
+        );
+        return false;
+      }
+
+      final idMonTC = matched['id']!;
       final idLop = await HauApiService.fetchIdLopTC(idMonTC);
       if (idLop == null || idLop.isEmpty) return false;
 
-      // B4: Lấy thông tin tiêu chí
       final info = await HauApiService.fetchTieuChiInfo(idMonTC, idLop);
       if (info == null) return false;
 
-      // B5: Gửi kết quả
       final ok = await HauApiService.submitVote(
         idMonTC: idMonTC,
         idLopTC: idLop,
@@ -177,10 +247,8 @@ class GradeProvider extends ChangeNotifier {
       );
       if (!ok) return false;
 
-      // B6: Đánh dấu đã vote trong DB
       if (diemId is int) await GradeDb.markDaVote(diemId);
 
-      // Reload danh sách từ DB
       _diem = await GradeDb.getDiem();
       _diemByKy = {};
       for (final d in _diem) {

@@ -36,8 +36,8 @@ class DashboardScreen extends StatelessWidget {
                         await Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (_) => NotificationsScreen(
-                                onNavigate: onNavigate),
+                            builder: (_) =>
+                                NotificationsScreen(onNavigate: onNavigate),
                           ),
                         );
                         // Trigger rebuild để cập nhật badge
@@ -46,9 +46,11 @@ class DashboardScreen extends StatelessWidget {
                     ),
                     if (p.unreadNotifCount > 0)
                       Positioned(
-                        right: 8, top: 8,
+                        right: 8,
+                        top: 8,
                         child: Container(
-                          width: 16, height: 16,
+                          width: 16,
+                          height: 16,
                           decoration: const BoxDecoration(
                             color: AppTheme.error,
                             shape: BoxShape.circle,
@@ -56,7 +58,8 @@ class DashboardScreen extends StatelessWidget {
                           child: Center(
                             child: Text(
                               p.unreadNotifCount > 9
-                                  ? '9+' : '${p.unreadNotifCount}',
+                                  ? '9+'
+                                  : '${p.unreadNotifCount}',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 9,
@@ -71,16 +74,18 @@ class DashboardScreen extends StatelessWidget {
                 IconButton(
                   icon: p.isSyncing
                       ? const SizedBox(
-                          width: 20, height: 20,
+                          width: 20,
+                          height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.sync_outlined, color: AppTheme.primary),
+                      : const Icon(Icons.sync_outlined,
+                          color: AppTheme.primary),
                   onPressed: () => p.syncAll(forceRefresh: true),
                 ),
               ],
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 const SizedBox(height: 16),
