@@ -184,15 +184,17 @@ class _MainShellState extends State<MainShell> {
     // Lấy index dựa trên vị trí kéo thực tế (để đổi màu icon ngay khi đang vuốt)
     final currentVisualIdx = _navVisualValue.round().clamp(0, 4);
 
+    // Lấy bottom safe area padding (home indicator trên iPhone hoặc gesture bar trên Android)
+    // Đây là nguyên nhân chính gây lỗi nav bar trên iOS
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
     return Container(
-      // 1. Sửa Margin (Khoảng cách từ thanh Nav đến 2 cạnh bên và đáy màn hình)
-      // Gốc: (14, 0, 14, 12). Giảm số 14 và 12 xuống để Nav bar phình to ra và sát đáy hơn
-      margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-      // 2. Sửa Padding (Khoảng cách giữa viền ngoài cùng và nội dung kính mờ bên trong)
-      // Gốc: (10, 10, 10, 10). Giảm xuống để lớp bên trong phình sát ra lớp viền ngoài, làm mất cảm giác "2 cái grid"
+      // Margin: thêm bottomPadding vào đáy để nav bar nằm trên home indicator
+      // Thay vì dùng SafeArea bên trong ClipRRect (gây lỗi tính toán chiều cao)
+      margin: EdgeInsets.fromLTRB(14, 0, 14, 12 + bottomPadding),
       padding: const EdgeInsets.fromLTRB(3, 3, 3, 3),
       decoration: BoxDecoration(
-        // 1. Tạo độ bóng 3D cho bề mặt kính bằng Gradient (thay vì dùng màu trơn)
+        // Tạo độ bóng 3D cho bề mặt kính bằng Gradient (thay vì dùng màu trơn)
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -203,15 +205,13 @@ class _MainShellState extends State<MainShell> {
         ),
         borderRadius: BorderRadius.circular(24),
 
-        // 2. NÂNG CẤP VIỀN: Dùng màu trắng mờ để tạo hiệu ứng ánh sáng đập vào mép kính
+        // Viền trắng mờ để tạo hiệu ứng ánh sáng đập vào mép kính
         border: Border.all(
-          // Nếu bạn dùng Light Theme, dùng Colors.white.withOpacity(0.8) hoặc 0.9
-          // Nếu có cả Dark Theme, nên dùng AppTheme.surface.withOpacity(0.8)
           color: Colors.white.withOpacity(0.4),
-          width: 1.2, // Tăng độ dày lên 1.5 để viền bắt sáng rõ hơn
+          width: 1.2,
         ),
 
-        // 3. Giữ nguyên bóng đổ để tách biệt khỏi nền app
+        // Bóng đổ để tách biệt khỏi nền app
         boxShadow: [
           BoxShadow(
             color: AppTheme.onSurface.withOpacity(0.08),
@@ -225,87 +225,82 @@ class _MainShellState extends State<MainShell> {
         borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          child: SafeArea(
-            top: false,
-            child: SizedBox(
-              height: 64, // SỬA: Giảm chiều cao thanh Nav từ 70 xuống 64
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final itemWidth = constraints.maxWidth / 5;
-                  return GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    // Dùng onPan thay vì onHorizontalDrag
-                    onPanDown: (details) =>
-                        _startNavDrag(details.localPosition.dx, itemWidth),
-                    onPanUpdate: (details) =>
-                        _updateNavDrag(details.localPosition.dx, itemWidth),
-                    onPanEnd: (_) => _endNavDrag(),
-                    onPanCancel: () => _endNavDrag(),
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          left: _navVisualValue * itemWidth, // SỬA: Ô xanh tràn sát lề
-                          top: 0, // SỬA: Ô xanh tràn sát đỉnh
-                          child: AnimatedContainer(
-                            duration:
-                                Duration(milliseconds: _navDragging ? 0 : 220),
-                            curve: Curves.easeOutCubic,
-                            width: itemWidth, // SỬA: Rộng bằng đúng 1 ô
-                            height: 64, // SỬA: Cao bằng đúng phần Nav (xóa gap)
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryFixed.withOpacity(0.8),
-                              borderRadius: BorderRadius.circular(24),
-                              // Bạn có thể bỏ boxShadow của ô xanh đi cho gọn nếu muốn
-                            ),
+          // KHÔNG dùng SafeArea bên trong ClipRRect vì nó gây ra lỗi tính chiều cao trên iOS.
+          // Thay vào đó, bottomPadding đã được xử lý ở margin bên ngoài.
+          child: SizedBox(
+            height: 64, // Chiều cao nội dung nav, không đổi trên mọi thiết bị
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final itemWidth = constraints.maxWidth / 5;
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onPanDown: (details) =>
+                      _startNavDrag(details.localPosition.dx, itemWidth),
+                  onPanUpdate: (details) =>
+                      _updateNavDrag(details.localPosition.dx, itemWidth),
+                  onPanEnd: (_) => _endNavDrag(),
+                  onPanCancel: () => _endNavDrag(),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: _navVisualValue * itemWidth,
+                        top: 0,
+                        child: AnimatedContainer(
+                          duration:
+                              Duration(milliseconds: _navDragging ? 0 : 220),
+                          curve: Curves.easeOutCubic,
+                          width: itemWidth,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryFixed.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(24),
                           ),
                         ),
-                        Row(
-                          // SỬA: Kéo dãn Row để chiếm trọn chiều cao 64
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _navItem(
-                              icon: Icons.dashboard_outlined,
-                              activeIcon: Icons.dashboard,
-                              label: 'Dashboard',
-                              idx: 0,
-                              currentActiveIdx:
-                                  currentVisualIdx, // Truyền index đang kéo vào
-                            ),
-                            _navItem(
-                              icon: Icons.calendar_today_outlined,
-                              activeIcon: Icons.calendar_today,
-                              label: 'Lịch',
-                              idx: 1,
-                              currentActiveIdx: currentVisualIdx,
-                            ),
-                            _navItem(
-                              icon: Icons.grade_outlined,
-                              activeIcon: Icons.grade,
-                              label: 'Điểm',
-                              idx: 2,
-                              currentActiveIdx: currentVisualIdx,
-                            ),
-                            _navItem(
-                              icon: Icons.payments_outlined,
-                              activeIcon: Icons.payments,
-                              label: 'Tài chính',
-                              idx: 3,
-                              currentActiveIdx: currentVisualIdx,
-                            ),
-                            _navItem(
-                              icon: Icons.person_outline,
-                              activeIcon: Icons.person,
-                              label: 'Profile',
-                              idx: 4,
-                              currentActiveIdx: currentVisualIdx,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                      ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _navItem(
+                            icon: Icons.dashboard_outlined,
+                            activeIcon: Icons.dashboard,
+                            label: 'Dashboard',
+                            idx: 0,
+                            currentActiveIdx: currentVisualIdx,
+                          ),
+                          _navItem(
+                            icon: Icons.calendar_today_outlined,
+                            activeIcon: Icons.calendar_today,
+                            label: 'Lịch',
+                            idx: 1,
+                            currentActiveIdx: currentVisualIdx,
+                          ),
+                          _navItem(
+                            icon: Icons.grade_outlined,
+                            activeIcon: Icons.grade,
+                            label: 'Điểm',
+                            idx: 2,
+                            currentActiveIdx: currentVisualIdx,
+                          ),
+                          _navItem(
+                            icon: Icons.payments_outlined,
+                            activeIcon: Icons.payments,
+                            label: 'Tài chính',
+                            idx: 3,
+                            currentActiveIdx: currentVisualIdx,
+                          ),
+                          _navItem(
+                            icon: Icons.person_outline,
+                            activeIcon: Icons.person,
+                            label: 'Profile',
+                            idx: 4,
+                            currentActiveIdx: currentVisualIdx,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
         ),
@@ -337,7 +332,7 @@ class _MainShellState extends State<MainShell> {
               child: Icon(
                 activeIcon, // SỬA: Hiển thị icon đã active ngay cả khi đang kéo qua nó
                 color: active ? AppTheme.primary : AppTheme.onPrimaryFixed,
-                size: 28,
+                size: 24,
               ),
             ),
             const SizedBox(height: 4), // Khoảng cách giữa icon và chữ
@@ -345,7 +340,7 @@ class _MainShellState extends State<MainShell> {
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 10,
                 fontWeight: FontWeight.w600,
                 color: active ? AppTheme.primary : AppTheme.onSurfaceVariant,
                 letterSpacing: -0.1,
