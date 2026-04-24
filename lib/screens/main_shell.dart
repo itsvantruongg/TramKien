@@ -78,7 +78,7 @@ class _MainShellState extends State<MainShell>
           _navDragging = true;
           _navDragValue = _pendingNavDragValue;
         });
-        HapticFeedback.selectionClick();
+        //HapticFeedback.selectionClick();
       }
     });
   }
@@ -258,8 +258,7 @@ class _MainShellState extends State<MainShell>
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
-      // Margin cố định — KHÔNG cộng bottomPadding vào margin (sẽ làm nav bar nổi quá cao).
-      // bottomPadding được xử lý bên trong bằng cách mở rộng chiều cao xuống phía dưới.
+      // Giữ margin đáy cố định là 12px theo thiết kế gốc
       margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
       padding: const EdgeInsets.fromLTRB(3, 3, 3, 3),
       decoration: BoxDecoration(
@@ -294,11 +293,8 @@ class _MainShellState extends State<MainShell>
         borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          // Mở rộng SizedBox xuống thêm bottomPadding (home indicator area),
-          // nhưng nội dung icon/label CHỈ chiếm 64px phía trên — giống App Store iOS.
           child: SizedBox(
-            height:
-                52 + bottomPadding, // 64px nav content + khoảng home indicator
+            height: 52, // Chiều cao cố định 52px cho tất cả các nền tảng
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final itemWidth = constraints.maxWidth / 5;
@@ -415,7 +411,7 @@ class _MainShellState extends State<MainShell>
                 size: 24,
               ),
             ),
-            const SizedBox(height: 3), // Khoảng cách giữa icon và chữ
+            const SizedBox(height: 2), // Khoảng cách giữa icon và chữ
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,

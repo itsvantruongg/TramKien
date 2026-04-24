@@ -14,27 +14,37 @@ class TermsScreen extends StatelessWidget {
             child: Container(
           color: AppTheme.surface.withOpacity(0.7),
           child: SafeArea(
+              top: true,
+              bottom: false,
               child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(children: [
-              IconButton(
-                  icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
-                  onPressed: () => Navigator.pop(context)),
-              const SizedBox(width: 4),
-              Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    Text('Điều khoản & Dịch vụ',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.w800)),
-                    Text('TERMS OF SERVICE',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AppTheme.outline, letterSpacing: 1.5)),
-                  ])),
-            ]),
-          )),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(children: [
+                  IconButton(
+                      icon:
+                          const Icon(Icons.arrow_back, color: AppTheme.primary),
+                      onPressed: () => Navigator.pop(context)),
+                  const SizedBox(width: 4),
+                  Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Text('Điều khoản & Dịch vụ',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                    color: AppTheme.primary,
+                                    fontWeight: FontWeight.w800)),
+                        Text('TERMS OF SERVICE',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                    color: AppTheme.outline,
+                                    letterSpacing: 1.5)),
+                      ])),
+                ]),
+              )),
         )),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),

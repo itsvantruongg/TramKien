@@ -89,33 +89,42 @@ class _CurriculumScreenState extends State<CurriculumScreen> {
             child: Container(
           color: AppTheme.surface.withOpacity(0.7),
           child: SafeArea(
+              top: true,
+              bottom: false,
               child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
-                onPressed: () => Navigator.pop(context),
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    Text('Chương trình đào tạo',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.w800)),
-                    Text('CHUYÊN NGÀNH CHÍNH',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AppTheme.outline, letterSpacing: 1.5)),
-                  ])),
-              IconButton(
-                icon:
-                    const Icon(Icons.refresh_rounded, color: AppTheme.primary),
-                onPressed: _load,
-              ),
-            ]),
-          )),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Text('Chương trình đào tạo',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                    color: AppTheme.primary,
+                                    fontWeight: FontWeight.w800)),
+                        Text('CHUYÊN NGÀNH CHÍNH',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                    color: AppTheme.outline,
+                                    letterSpacing: 1.5)),
+                      ])),
+                  IconButton(
+                    icon: const Icon(Icons.refresh_rounded,
+                        color: AppTheme.primary),
+                    onPressed: _load,
+                  ),
+                ]),
+              )),
         )),
         if (_loading)
           const SliverFillRemaining(

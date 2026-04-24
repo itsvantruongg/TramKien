@@ -309,32 +309,42 @@ class StudentInfoScreen extends StatelessWidget {
             child: Container(
           color: AppTheme.surface.withOpacity(0.7),
           child: SafeArea(
+              top: true,
+              bottom: false,
               child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-            child: Row(children: [
-              IconButton(
-                icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
-                onPressed: () => Navigator.pop(context),
-              ),
-              const SizedBox(width: 4),
-              Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    Text('Thông tin sinh viên',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: AppTheme.primary,
-                            fontWeight: FontWeight.w800)),
-                    Text('STUDENT PROFILE',
-                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: AppTheme.outline, letterSpacing: 1.5)),
-                  ])),
-              IconButton(
-                icon: const Icon(Icons.sync_outlined, color: AppTheme.primary),
-                onPressed: () => p.syncAll(forceRefresh: true),
-              ),
-            ]),
-          )),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                child: Row(children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const SizedBox(width: 4),
+                  Expanded(
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Text('Thông tin sinh viên',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                    color: AppTheme.primary,
+                                    fontWeight: FontWeight.w800)),
+                        Text('STUDENT PROFILE',
+                            style: Theme.of(context)
+                                .textTheme
+                                .labelSmall
+                                ?.copyWith(
+                                    color: AppTheme.outline,
+                                    letterSpacing: 1.5)),
+                      ])),
+                  IconButton(
+                    icon: const Icon(Icons.sync_outlined,
+                        color: AppTheme.primary),
+                    onPressed: () => p.syncAll(forceRefresh: true),
+                  ),
+                ]),
+              )),
         )),
 
         SliverPadding(
