@@ -228,7 +228,7 @@ class _MainShellState extends State<MainShell> {
           // KHÔNG dùng SafeArea bên trong ClipRRect vì nó gây ra lỗi tính chiều cao trên iOS.
           // Thay vào đó, bottomPadding đã được xử lý ở margin bên ngoài.
           child: SizedBox(
-            height: 64, // Chiều cao nội dung nav, không đổi trên mọi thiết bị
+            height: 54, // Chiều cao nội dung nav, không đổi trên mọi thiết bị
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final itemWidth = constraints.maxWidth / 5;
@@ -250,7 +250,7 @@ class _MainShellState extends State<MainShell> {
                               Duration(milliseconds: _navDragging ? 0 : 220),
                           curve: Curves.easeOutCubic,
                           width: itemWidth,
-                          height: 64,
+                          height: 54,
                           decoration: BoxDecoration(
                             color: AppTheme.primaryFixed.withOpacity(0.8),
                             borderRadius: BorderRadius.circular(24),
