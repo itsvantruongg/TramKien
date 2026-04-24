@@ -157,7 +157,7 @@ class _CurriculumScreenState extends State<CurriculumScreen> {
           // Legend
           SliverToBoxAdapter(
               child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+            padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
             child: Row(children: [
               _LegendChip(color: AppTheme.primary, label: 'Bắt buộc'),
               const SizedBox(width: 8),
@@ -169,7 +169,7 @@ class _CurriculumScreenState extends State<CurriculumScreen> {
 
           // Grouped list
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
             sliver: SliverList(
                 delegate: SliverChildListDelegate([
               for (final khoiEntry in _grouped.entries) ...[
