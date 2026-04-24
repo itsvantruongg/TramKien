@@ -258,8 +258,8 @@ class _MainShellState extends State<MainShell>
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
-      // Giữ margin đáy cố định là 12px theo thiết kế gốc
-      margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+      // Giữ margin đáy cố định là 20px theo thiết kế mới
+      margin: const EdgeInsets.fromLTRB(14, 0, 14, 20),
       padding: const EdgeInsets.fromLTRB(3, 3, 3, 3),
       decoration: BoxDecoration(
         // Tạo độ bóng 3D cho bề mặt kính bằng Gradient (thay vì dùng màu trơn)
