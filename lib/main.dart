@@ -1,13 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'theme/app_theme.dart';
-import 'providers/app_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'firebase_options.dart';
+
+import 'providers/app_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/notifications_screen.dart';
+import 'services/analytics_service.dart';
 import 'services/local_notification_service.dart';
+import 'theme/app_theme.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -16,9 +23,17 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
   // Bỏ qua nếu chạy background (nếu cần thiết có thể log)
 }
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // --- THÊM ĐOẠN KHỞI TẠO FIREBASE VÀO ĐÂY ---
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
   await initializeDateFormatting('vi_VN', null);
+  await AnalyticsService.initialize();
   await LocalNotificationService.init(
     onDidReceiveNotificationResponse: (response) {
       if (navigatorKey.currentState != null) {
@@ -39,6 +54,8 @@ void main() async {
 
 class SchedifyApp extends StatelessWidget {
   const SchedifyApp({super.key});
+  // --- KHAI BÁO BIẾN ANALYTICS ---
+  static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -46,6 +63,42 @@ class SchedifyApp extends StatelessWidget {
         title: 'Trạm Kiến',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
+        // --- THÊM OBSERVER ĐỂ THEO DÕI CHUYỂN TRANG ---
+        navigatorObservers: [
+          FirebaseAnalyticsObserver(analytics: analytics),
+        ],
+        builder: (context, child) {
+          final mediaQuery = MediaQuery.of(context);
+          final size = mediaQuery.size;
+          final shortestSide = size.shortestSide;
+
+          final maxContentWidth = shortestSide >= 840
+              ? 600.0
+              : shortestSide >= 600
+                  ? 520.0
+                  : size.width;
+
+          final contentWidth = size.width < maxContentWidth
+              ? size.width
+              : maxContentWidth;
+
+          final adjustedMediaQuery = mediaQuery.copyWith(
+            size: Size(contentWidth, size.height),
+          );
+
+          return ColoredBox(
+            color: AppTheme.surface,
+            child: Center(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: contentWidth),
+                child: MediaQuery(
+                  data: adjustedMediaQuery,
+                  child: child ?? const SizedBox.shrink(),
+                ),
+              ),
+            ),
+          );
+        },
         home: const AppRouter(),
       );
 }
@@ -84,15 +137,21 @@ class _SplashScreen extends StatelessWidget {
                 child: const Icon(Icons.school, color: Colors.white, size: 40),
               ),
               const SizedBox(height: 20),
-              Text('Trạm Kiến',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: AppTheme.primary, fontWeight: FontWeight.w800)),
+              Text(
+                'Trạm Kiến',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: AppTheme.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
               const SizedBox(height: 32),
               const SizedBox(
                 width: 32,
                 height: 32,
                 child: CircularProgressIndicator(
-                    strokeWidth: 3, color: AppTheme.primary),
+                  strokeWidth: 3,
+                  color: AppTheme.primary,
+                ),
               ),
             ],
           ),

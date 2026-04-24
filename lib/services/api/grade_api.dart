@@ -1,10 +1,9 @@
 import 'package:http/http.dart' as http;
 import '../../models/models.dart';
 import '../hau_api_service.dart';
-import '../database_service.dart';
 import '../mock_data.dart';
 
-typedef DiemResult = ({List<DiemMonHoc> diem, DiemSummary? summary});
+typedef DiemResult = ({List<DiemMonHoc> diem, DiemSummary? summary, bool success});
 
 class GradeApi {
   // ── ĐIỂM ──────────────────────────────────────────────────
@@ -40,7 +39,8 @@ class GradeApi {
 
         return DiemMonHoc(
           tenMonHoc: col(['Tên học phần', 'Môn học', '_col1'], ''),
-          maMonHoc: col(['Mã HP', 'Mã môn', '_col0'], ''),
+          // Bảng điểm hiện tại dùng cột "Ký hiệu" cho mã học phần
+          maMonHoc: col(['Ký hiệu', 'Mã HP', 'Mã môn', '_col1', '_col0'], ''),
           soTinChi: int.tryParse(col(['TC', 'Số TC', '_col2'], '0')) ?? 0,
           componentScore:
               (double.tryParse(col(['CC', 'Chuyên cần', '_col3'], '')) ?? 0.0)
@@ -182,15 +182,15 @@ class GradeApi {
 
       HauApiService.saveCookies(r);
       if (r.statusCode != 200 || r.body.length < 200) {
-        return (diem: <DiemMonHoc>[], summary: null);
+        return (diem: <DiemMonHoc>[], summary: null, success: false);
       }
 
       final summary = _parseDiemSummary(r.body);
       final rows = HauApiService.parseTable(r.body);
       final diem = _mapRowsToDiem(rows, hocKy: hocKy, namHoc: namHoc);
-      return (diem: diem, summary: summary);
+      return (diem: diem, summary: summary, success: true);
     } catch (_) {
-      return (diem: <DiemMonHoc>[], summary: null);
+      return (diem: <DiemMonHoc>[], summary: null, success: false);
     }
   }
 
@@ -261,6 +261,23 @@ class GradeApi {
     }).toList();
   }
 
+  static Future<DiemResult> _fetchDiemSemesterWithRetry({
+    required int hocKy,
+    required int namHoc,
+    int maxAttempts = 2,
+  }) async {
+    DiemResult last =
+        (diem: <DiemMonHoc>[], summary: null, success: false);
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      last = await fetchDiemWithSummary(hocKy: hocKy, namHoc: namHoc);
+      if (last.success) return last;
+      if (attempt < maxAttempts - 1) {
+        await Future.delayed(Duration(milliseconds: 300 * (attempt + 1)));
+      }
+    }
+    return last;
+  }
+
   /// Fetch TẤT CẢ điểm không giới hạn năm (dùng cho admin/debug)
   static Future<List<DiemMonHoc>> fetchDiemAllKyFull({
     int startYear = 2018,
@@ -272,7 +289,8 @@ class GradeApi {
         futures.add(fetchDiemWithSummary(hocKy: ky, namHoc: nam));
       }
     }
-    futures.add(fetchDiem().then((d) => (diem: d, summary: null))); // fallback
+    futures.add(fetchDiem().then(
+        (d) => (diem: d, summary: null, success: true))); // fallback
 
     final results = await Future.wait(futures);
     final seen = <String>{};
@@ -287,12 +305,19 @@ class GradeApi {
   }
 
   /// Fetch điểm theo kỳ dựa vào MSSV (chỉ từ năm nhập học → hiện tại)
-  static Future<({List<DiemMonHoc> diem, DiemSummary? latestSummary})>
+  ///
+  /// Luồng sync:
+  /// 1) Fetch lần 1 theo từng kỳ
+  /// 2) Chỉ những kỳ bị lỗi mới được đưa vào danh sách retry
+  /// 3) Retry riêng các kỳ thiếu ở lần 2
+  /// 4) Chỉ trả complete=true khi không còn kỳ nào lỗi sau retry
+  static Future<({List<DiemMonHoc> diem, DiemSummary? latestSummary, bool complete})>
       fetchDiemAllKyWithSummary({String? mssv}) async {
     if (HauApiService.currentMssv == 'admin' && MockData.isEnabled) {
       return (
         diem: MockData.getDiem(),
-        latestSummary: MockData.getDiemSummary()
+        latestSummary: MockData.getDiemSummary(),
+        complete: true,
       );
     }
 
@@ -304,41 +329,28 @@ class GradeApi {
     // Năm học hiện tại = tháng >= 8 ? now.year : now.year - 1
     final currentNamHoc = now.month >= 8 ? now.year : now.year - 1;
 
-    // Kỳ hiện tại trong năm học đó
-    // Tháng 8-1 (học kỳ 1: tháng 8 → tháng 1 năm sau)
-    // Tháng 2-7 (học kỳ 2)
     // Kỳ đang học (chưa có điểm) = không tính
-    // Logic: tháng 8-12 → đang HK1 → chỉ fetch đến HK2 của năm trước
-    //         tháng 1    → đang cuối HK1 → fetch đến HK2 của năm trước
-    //         tháng 2-7  → đang HK2 → fetch đến HK1 của năm hiện tại
-    //
-    // Đơn giản hơn: fetch TẤT CẢ từ startYear → currentNamHoc,
-    // kỳ nào API trả rỗng = chưa có điểm, bỏ qua tự nhiên
-    // Chỉ SKIP kỳ đang học hiện tại (chắc chắn rỗng, không cần fetch)
+    // Logic:
+    // - tháng 8-12 → đang HK1 → skip HK1 của năm hiện tại
+    // - tháng 2-7  → đang HK2 → skip HK2 của năm hiện tại
+    // - tháng 1    → vẫn có thể đang chốt điểm HK1 → không skip gì cả
 
-    // Xác định kỳ đang học để skip
     final int skipNam;
     final int skipKy;
     if (now.month >= 8) {
-      // Đang HK1 của currentNamHoc
       skipNam = currentNamHoc;
       skipKy = 1;
     } else if (now.month >= 2) {
-      // Đang HK2 của currentNamHoc
       skipNam = currentNamHoc;
       skipKy = 2;
     } else {
-      // Tháng 1: vẫn đang HK1 (thi cuối kỳ), có thể đã có điểm
-      // Không skip gì cả
       skipNam = -1;
       skipKy = -1;
     }
 
-    // Build danh sách kỳ: startYear → currentNamHoc, HK1 rồi HK2
     final kyList = <({int ky, int nam})>[];
     for (int nam = startYear; nam <= currentNamHoc; nam++) {
       for (int ky = 1; ky <= 2; ky++) {
-        // Skip kỳ đang học (chưa có điểm tổng kết)
         if (nam == skipNam && ky == skipKy) continue;
         kyList.add((ky: ky, nam: nam));
       }
@@ -354,6 +366,9 @@ class GradeApi {
     final seen = <String>{};
     final all = <DiemMonHoc>[];
     DiemSummary? latestSummary;
+    bool complete = true;
+    final pendingKyList = <({int ky, int nam})>[];
+    final unresolvedKyList = <({int ky, int nam})>[];
 
     // Fetch trang Index để lấy summary TỔNG (tích lũy toàn khóa)
     try {
@@ -374,48 +389,106 @@ class GradeApi {
       print('⚠️ Fetch Index summary lỗi: $e');
     }
 
-    // Fetch TUẦN TỰ từng kỳ + retry 1 lần nếu rỗng
+    const batchSize = 3;
     int totalFound = 0;
-    for (final k in kyList) {
-      DiemResult result;
-      try {
-        result = await fetchDiemWithSummary(hocKy: k.ky, namHoc: k.nam);
 
-        // Retry 1 lần nếu rỗng (tránh network flaky)
-        if (result.diem.isEmpty) {
-          await Future.delayed(const Duration(milliseconds: 400));
-          result = await fetchDiemWithSummary(hocKy: k.ky, namHoc: k.nam);
+    // Pass 1: chỉ fetch từng kỳ một lần
+    for (int start = 0; start < kyList.length; start += batchSize) {
+      final end = (start + batchSize < kyList.length)
+          ? start + batchSize
+          : kyList.length;
+      final batch = kyList.sublist(start, end);
+      final results = await Future.wait(
+        batch.map((k) => fetchDiemWithSummary(hocKy: k.ky, namHoc: k.nam)),
+      );
+
+      for (int i = 0; i < batch.length; i++) {
+        final k = batch[i];
+        final result = results[i];
+        final kyLabel = 'HK${k.ky} ${k.nam}-${k.nam + 1}';
+
+        if (!result.success) {
+          pendingKyList.add(k);
+          complete = false;
+          print('   🟠 $kyLabel: lỗi lần 1, sẽ retry riêng');
+          continue;
         }
-      } catch (e) {
-        print('❌ Fetch HK${k.ky} ${k.nam}-${k.nam + 1} lỗi: $e');
-        result = (diem: <DiemMonHoc>[], summary: null);
-      }
 
-      final kyLabel = 'HK${k.ky} ${k.nam}-${k.nam + 1}';
-      if (result.diem.isEmpty) {
-        print('   ⚪ $kyLabel: rỗng (chưa có điểm hoặc chưa học)');
-      } else {
-        final monNames = result.diem.map((d) => d.tenMonHoc).join(', ');
-        print('   🟢 $kyLabel: ${result.diem.length} môn → $monNames');
-        totalFound += result.diem.length;
-      }
+        if (result.diem.isEmpty) {
+          print('   ⚪ $kyLabel: rỗng (chưa có điểm hoặc chưa học)');
+        } else {
+          final monNames = result.diem.map((d) => d.tenMonHoc).join(', ');
+          print('   🟢 $kyLabel: ${result.diem.length} môn → $monNames');
+          totalFound += result.diem.length;
+        }
 
-      for (final d in result.diem) {
-        final key = '${d.tenMonHoc}_${d.namHoc}_${d.hocKy}';
-        if (seen.add(key)) all.add(d);
-      }
+        for (final d in result.diem) {
+          final key = '${d.tenMonHoc}_${d.namHoc}_${d.hocKy}';
+          if (seen.add(key)) all.add(d);
+        }
 
-      // Lấy summary từ kỳ mới nhất có data (fallback nếu Index không có)
-      if (latestSummary == null &&
-          result.summary != null &&
-          (result.summary!.tbcTichLuyHe4 != null ||
-              result.summary!.tbcTichLuyHe10 != null)) {
-        latestSummary = result.summary;
+        // Lấy summary từ kỳ mới nhất có data (fallback nếu Index không có)
+        if (latestSummary == null &&
+            result.summary != null &&
+            (result.summary!.tbcTichLuyHe4 != null ||
+                result.summary!.tbcTichLuyHe10 != null)) {
+          latestSummary = result.summary;
+        }
       }
     }
 
+    // Pass 2: chỉ retry các kỳ bị lỗi ở pass 1
+    if (pendingKyList.isNotEmpty) {
+      print('🔁 Retry riêng ${pendingKyList.length} kỳ bị thiếu...');
+      const retryBatchSize = 2;
+      for (int start = 0; start < pendingKyList.length; start += retryBatchSize) {
+        final end = (start + retryBatchSize < pendingKyList.length)
+            ? start + retryBatchSize
+            : pendingKyList.length;
+        final retryBatch = pendingKyList.sublist(start, end);
+        final retryResults = await Future.wait(retryBatch.map((k) =>
+            _fetchDiemSemesterWithRetry(hocKy: k.ky, namHoc: k.nam)));
+
+        for (int i = 0; i < retryBatch.length; i++) {
+          final k = retryBatch[i];
+          final retry = retryResults[i];
+          final kyLabel = 'HK${k.ky} ${k.nam}-${k.nam + 1}';
+
+          if (!retry.success) {
+            unresolvedKyList.add(k);
+            print('   🔴 $kyLabel: vẫn lỗi sau retry');
+            continue;
+          }
+
+          if (retry.diem.isEmpty) {
+            print('   ⚪ $kyLabel: retry trả rỗng');
+          } else {
+            final monNames = retry.diem.map((d) => d.tenMonHoc).join(', ');
+            print('   🟢 $kyLabel: retry ${retry.diem.length} môn → $monNames');
+            totalFound += retry.diem.length;
+          }
+
+          for (final d in retry.diem) {
+            final key = '${d.tenMonHoc}_${d.namHoc}_${d.hocKy}';
+            if (seen.add(key)) all.add(d);
+          }
+
+          if (latestSummary == null &&
+              retry.summary != null &&
+              (retry.summary!.tbcTichLuyHe4 != null ||
+                  retry.summary!.tbcTichLuyHe10 != null)) {
+            latestSummary = retry.summary;
+          }
+        }
+      }
+    }
+
+    final unresolvedCount = unresolvedKyList.length;
+    complete = complete && unresolvedCount == 0;
+
     print('🏁 Tổng kết: $totalFound môn (${all.length} unique) '
-        'từ ${kyList.length} kỳ đã fetch');
-    return (diem: all, latestSummary: latestSummary);
+        'từ ${kyList.length} kỳ đã fetch complete=$complete '
+        'pending=${pendingKyList.length} unresolved=$unresolvedCount');
+    return (diem: all, latestSummary: latestSummary, complete: complete);
   }
 }
