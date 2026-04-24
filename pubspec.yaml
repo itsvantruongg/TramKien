@@ -1,7 +1,7 @@
 name: Tram_Kien
 description: Cổng thông tin sinh viên HAU
 publish_to: 'none'
-version: 1.0.0+2
+version: 1.0.1+2
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

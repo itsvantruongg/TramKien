@@ -94,7 +94,7 @@ class ProfileScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
               Center(
-                  child: Text('Version 1.0.0',
+                  child: Text('Version 1.0.1',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: AppTheme.outlineVariant, letterSpacing: 1.5))),
             ]),
