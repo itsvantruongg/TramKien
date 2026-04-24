@@ -122,7 +122,8 @@ class HauApiService {
   }
 
   static bool get isLoggedIn =>
-      (_currentMssv == 'admin') || (_cookies.containsKey('ASP.NET_SessionId') && _currentMssv != null);
+      (_currentMssv == 'admin') ||
+      (_cookies.containsKey('ASP.NET_SessionId') && _currentMssv != null);
 
   static void logout() {
     _cookies.clear();

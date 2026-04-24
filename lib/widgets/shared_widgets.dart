@@ -65,24 +65,24 @@ class AcademicAppBar extends StatelessWidget implements PreferredSizeWidget {
                               color: AppTheme.primary,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.5,
-                              height: 1.2, // Tăng nhẹ từ 1.1 lên 1.2 để chữ thoáng hơn
+                              height:
+                                  1.2, // Tăng nhẹ từ 1.1 lên 1.2 để chữ thoáng hơn
                             ),
                       ),
-                      
-                      // Thêm dòng này để tạo khoảng cách giữa title và subtitle
-                      const SizedBox(height: 4), 
-
-                      if (subtitle != null)
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 4),
                         Text(
                           subtitle!,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                color: AppTheme.outline,
-                                letterSpacing: 1.2,
-                                height: 1.2, // Tăng nhẹ từ 1.0 lên 1.2
-                              ),
+                          style:
+                              Theme.of(context).textTheme.labelSmall?.copyWith(
+                                    color: AppTheme.outline,
+                                    letterSpacing: 1.2,
+                                    height: 1.2, // Tăng nhẹ từ 1.0 lên 1.2
+                                  ),
                         ),
+                      ],
                     ],
                   ),
                 ),
@@ -201,33 +201,36 @@ class CircularProgressWidget extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => SizedBox(
-        width: size,
-        height: size,
-        child: Stack(alignment: Alignment.center, children: [
-          SizedBox(
-              width: size,
-              height: size,
-              child: CircularProgressIndicator(
-                value: value,
-                strokeWidth: 8,
-                backgroundColor: AppTheme.surfaceContainerHighest,
-                valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
-                strokeCap: StrokeCap.round,
-              )),
-          Column(mainAxisSize: MainAxisSize.min, children: [
-            Text(center,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w800)),
-            Text(subtitle,
-                style: Theme.of(context)
-                    .textTheme
-                    .labelSmall
-                    ?.copyWith(color: AppTheme.onSurfaceVariant)),
+  Widget build(BuildContext context) => AspectRatio(
+        aspectRatio: 1,
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Stack(alignment: Alignment.center, children: [
+            SizedBox(
+                width: size,
+                height: size,
+                child: CircularProgressIndicator(
+                  value: value,
+                  strokeWidth: 8,
+                  backgroundColor: AppTheme.surfaceContainerHighest,
+                  valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
+                  strokeCap: StrokeCap.round,
+                )),
+            Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(center,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w800)),
+              Text(subtitle,
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelSmall
+                      ?.copyWith(color: AppTheme.onSurfaceVariant)),
+            ]),
           ]),
-        ]),
+        ),
       );
 }
 

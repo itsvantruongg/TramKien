@@ -179,7 +179,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           )),
         )),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
           sliver: SliverList(
               delegate: SliverChildListDelegate([
             GradientCard(

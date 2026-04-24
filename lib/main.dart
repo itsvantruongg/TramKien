@@ -78,12 +78,19 @@ class SchedifyApp extends StatelessWidget {
                   ? 520.0
                   : size.width;
 
-          final contentWidth = size.width < maxContentWidth
-              ? size.width
-              : maxContentWidth;
+          final contentWidth =
+              size.width < maxContentWidth ? size.width : maxContentWidth;
+
+          // Clamp text scale: ngăn user tăng cỡ chữ hệ thống làm vỡ layout
+          // Max 1.15 để vẫn hỗ trợ accessibility nhẹ nhưng không vỡ UI
+          final clampedTextScaler = mediaQuery.textScaler.clamp(
+            minScaleFactor: 1.0,
+            maxScaleFactor: 1.15,
+          );
 
           final adjustedMediaQuery = mediaQuery.copyWith(
             size: Size(contentWidth, size.height),
+            textScaler: clampedTextScaler,
           );
 
           return ColoredBox(

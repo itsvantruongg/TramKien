@@ -121,105 +121,119 @@ class DashboardScreen extends StatelessWidget {
                 const SizedBox(height: 24),
 
                 // GPA + Credits bento row
-                Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  // GPA gradient — tap → Grades
-                  Expanded(
-                      flex: 2,
-                      child: PressScale(
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // GPA gradient — tap → Grades
+                      Expanded(
+                          flex: 2,
+                          child: PressScale(
+                            onTap: () => onNavigate?.call(2),
+                            child: GradientCard(
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('ĐIỂM HIỆN TẠI',
+                                        style: GoogleFonts.inter(
+                                          fontSize: 10,
+                                          letterSpacing: 1.5,
+                                          color: Colors.white70,
+                                          fontWeight: FontWeight.w700,
+                                        )),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                              (p.diemSummary?.tbcTichLuyHe4 ??
+                                                      0.0)
+                                                  .toStringAsFixed(2),
+                                              style: GoogleFonts.manrope(
+                                                fontSize: 52,
+                                                fontWeight: FontWeight.w800,
+                                                color: Colors.white,
+                                                height: 1,
+                                              )),
+                                          const Padding(
+                                            padding: EdgeInsets.only(
+                                                bottom: 8, left: 4),
+                                            child: Text('/ 4.0',
+                                                style: TextStyle(
+                                                    fontSize: 16,
+                                                    color: Colors.white70)),
+                                          ),
+                                        ]),
+                                    const SizedBox(height: 16),
+                                    const Text('Tiến độ học tập',
+                                        style: TextStyle(
+                                            fontSize: 11,
+                                            color: Colors.white70)),
+                                    const SizedBox(height: 6),
+                                    LinearProgressIndicator(
+                                      value: (p.totalCredits /
+                                              p.curriculumTotalCredits)
+                                          .clamp(0.0, 1.0),
+                                      backgroundColor: Colors.white24,
+                                      valueColor: const AlwaysStoppedAnimation(
+                                          Colors.white),
+                                      minHeight: 6,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                        '${p.totalCredits} / ${p.curriculumTotalCredits} tín chỉ',
+                                        style: const TextStyle(
+                                          fontSize: 11,
+                                          color: Colors.white70,
+                                          fontWeight: FontWeight.w600,
+                                        )),
+                                  ]),
+                            ),
+                          )),
+                      const SizedBox(width: 12),
+
+                      // Credits circular — tap → Grades
+                      Expanded(
+                          child: PressScale(
                         onTap: () => onNavigate?.call(2),
-                        child: GradientCard(
+                        child: SurfaceCard(
+                          padding: const EdgeInsets.all(16),
                           child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text('ĐIỂM HIỆN TẠI',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 10,
-                                      letterSpacing: 1.5,
-                                      color: Colors.white70,
-                                      fontWeight: FontWeight.w700,
-                                    )),
-                                const SizedBox(height: 8),
-                                Row(
-                                    crossAxisAlignment: CrossAxisAlignment.end,
-                                    children: [
-                                      Text(
-                                          (p.diemSummary?.tbcTichLuyHe4 ?? 0.0)
-                                              .toStringAsFixed(2),
-                                          style: GoogleFonts.manrope(
-                                            fontSize: 52,
-                                            fontWeight: FontWeight.w800,
-                                            color: Colors.white,
-                                            height: 1,
-                                          )),
-                                      const Padding(
-                                        padding:
-                                            EdgeInsets.only(bottom: 8, left: 4),
-                                        child: Text('/ 4.0',
-                                            style: TextStyle(
-                                                fontSize: 16,
-                                                color: Colors.white70)),
-                                      ),
-                                    ]),
-                                const SizedBox(height: 16),
-                                const Text('Tiến độ học tập',
-                                    style: TextStyle(
-                                        fontSize: 11, color: Colors.white70)),
-                                const SizedBox(height: 6),
-                                LinearProgressIndicator(
+                                Text('TÍN CHỈ',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                            color: AppTheme.onSurfaceVariant)),
+                                const SizedBox(height: 12),
+                                CircularProgressWidget(
                                   value: (p.totalCredits /
                                           p.curriculumTotalCredits)
                                       .clamp(0.0, 1.0),
-                                  backgroundColor: Colors.white24,
-                                  valueColor: const AlwaysStoppedAnimation(
-                                      Colors.white),
-                                  minHeight: 6,
-                                  borderRadius: BorderRadius.circular(4),
+                                  center: '${p.totalCredits}',
+                                  subtitle: 'của ${p.curriculumTotalCredits}',
+                                  size: 88,
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(height: 12),
                                 Text(
-                                    '${p.totalCredits} / ${p.curriculumTotalCredits} tín chỉ',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      color: Colors.white70,
-                                      fontWeight: FontWeight.w600,
-                                    )),
+                                    'Còn ${(p.curriculumTotalCredits - p.totalCredits).clamp(0, p.curriculumTotalCredits)} TC',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(
+                                            color: AppTheme.onSurfaceVariant),
+                                    textAlign: TextAlign.center),
                               ]),
                         ),
                       )),
-                  const SizedBox(width: 12),
+                    ],
+                  ),
+                ),
 
-                  // Credits circular — tap → Grades
-                  Expanded(
-                      child: PressScale(
-                    onTap: () => onNavigate?.call(2),
-                    child: SurfaceCard(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(children: [
-                        Text('TÍN CHỈ',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(color: AppTheme.onSurfaceVariant)),
-                        const SizedBox(height: 12),
-                        CircularProgressWidget(
-                          value: (p.totalCredits / p.curriculumTotalCredits)
-                              .clamp(0.0, 1.0),
-                          center: '${p.totalCredits}',
-                          subtitle: 'của ${p.curriculumTotalCredits}',
-                          size: 88,
-                        ),
-                        const SizedBox(height: 12),
-                        Text(
-                            'Còn ${(p.curriculumTotalCredits - p.totalCredits).clamp(0, p.curriculumTotalCredits)} TC',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: AppTheme.onSurfaceVariant),
-                            textAlign: TextAlign.center),
-                      ]),
-                    ),
-                  )),
-                ]),
                 const SizedBox(height: 20),
 
                 // Lịch hôm nay

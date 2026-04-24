@@ -26,7 +26,7 @@ class ProfileScreen extends StatelessWidget {
       body: CustomScrollView(slivers: [
         const SliverToBoxAdapter(child: AcademicAppBar(subtitle: 'PROFILE')),
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               // Hero
@@ -49,7 +49,7 @@ class ProfileScreen extends StatelessWidget {
                     color: AppTheme.secondary,
                   ),
               ]),
-              const SizedBox(height: 28),
+              const SizedBox(height: 16),
 
               // Settings list
               SurfaceCard(
@@ -338,7 +338,7 @@ class StudentInfoScreen extends StatelessWidget {
         )),
 
         SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               // Identity card
@@ -384,15 +384,17 @@ class StudentInfoScreen extends StatelessWidget {
                       ]),
                     ])),
               ])),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
               // Academic grid
               _SectionTitle('Thông tin học tập'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               GridView.count(
                 crossAxisCount: 2,
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
+                padding: EdgeInsets
+                    .zero, // xóa ambient padding mặc định gây khoảng trắng thừa
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
                 childAspectRatio: 1.6,
@@ -407,11 +409,11 @@ class StudentInfoScreen extends StatelessWidget {
                       'Khóa học', s?.khoaHoc ?? '—', Icons.bookmark_outlined),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 12),
 
               // Personal info
               _SectionTitle('Thông tin cá nhân'),
-              const SizedBox(height: 12),
+              const SizedBox(height: 8),
               SurfaceCard(
                   child: Column(children: [
                 _Row(Icons.cake_outlined, 'Ngày sinh', s?.ngaySinh ?? '—'),

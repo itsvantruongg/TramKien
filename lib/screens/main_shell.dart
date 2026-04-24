@@ -18,12 +18,16 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
-class _MainShellState extends State<MainShell> {
+class _MainShellState extends State<MainShell>
+    with SingleTickerProviderStateMixin {
   int _idx = 0;
   int _navDirection = 1;
   DateTime? _lastBackPress;
   double? _navDragValue;
   bool _navDragging = false;
+  late final List<Widget> _screens;
+  int _prevIdx = 0;
+  late final AnimationController _animController;
 
   String _screenNameForIndex(int idx) => switch (idx) {
         0 => 'Dashboard',
@@ -45,16 +49,21 @@ class _MainShellState extends State<MainShell> {
 
   void _navigate(int idx) {
     if (idx == _idx) return;
+    if (_animController.isAnimating) {
+      _animController.stop();
+    }
     setState(() {
-      _navDirection = idx > _idx ? 1 : -1;
+      _prevIdx = _idx;
       _idx = idx;
     });
     _logCurrentScreen();
+    _animController.forward(from: 0.0);
   }
 
   double get _navBaseValue => _idx.toDouble();
 
-  double get _navVisualValue => (_navDragValue ?? _navBaseValue).clamp(0.0, 4.0);
+  double get _navVisualValue =>
+      (_navDragValue ?? _navBaseValue).clamp(0.0, 4.0);
 
   void _startNavDrag(double dx, double itemWidth) {
     setState(() {
@@ -93,7 +102,30 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
+    _screens = [
+      DashboardScreen(onNavigate: _navigate),
+      const ScheduleScreen(),
+      const GradesScreen(),
+      const FinanceScreen(),
+      const ProfileScreen(),
+    ];
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 350),
+    )..addStatusListener((status) {
+        if (status == AnimationStatus.completed) {
+          setState(() {
+            _prevIdx = _idx;
+          });
+        }
+      });
     _logCurrentScreen();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
   }
 
   @override
@@ -112,11 +144,7 @@ class _MainShellState extends State<MainShell> {
         if (didPop) return;
         // Nếu đang ở tab khác Dashboard → về Dashboard
         if (_idx != 0) {
-          setState(() {
-            _navDirection = -1;
-            _idx = 0;
-          });
-          _logCurrentScreen();
+          _navigate(0);
           return;
         }
         // Đang ở Dashboard → double-press để thoát
@@ -149,31 +177,62 @@ class _MainShellState extends State<MainShell> {
       },
       child: Scaffold(
         extendBody: true,
-        body: Stack(
-          children: List.generate(screens.length, (i) {
-            final active = i == _idx;
-            return AnimatedOpacity(
-              duration: const Duration(milliseconds: 260),
-              curve: Curves.easeOutCubic,
-              opacity: active ? 1.0 : 0.0,
-              child: AnimatedSlide(
-                duration: const Duration(milliseconds: 260),
-                curve: Curves.easeOutCubic,
-                offset: active
-                    ? Offset.zero
-                    : Offset(0, _navDirection > 0 ? 0.02 : -0.02),
-                child: AnimatedScale(
-                  duration: const Duration(milliseconds: 260),
-                  curve: Curves.easeOutCubic,
-                  scale: active ? 1.0 : 0.985,
-                  child: IgnorePointer(
-                    ignoring: !active,
-                    child: screens[i],
+        body: AnimatedBuilder(
+          animation: _animController,
+          builder: (context, child) {
+            final isMovingRight = _idx > _prevIdx;
+            return Stack(
+              children: List.generate(_screens.length, (i) {
+                final bool isCurrent = i == _idx;
+                final bool isPrevious = i == _prevIdx;
+
+                // TRƯỜNG HỢP TĨNH (Vừa vào app hoặc đã chuyển xong): Chỉ render trang hiện tại
+                if (_idx == _prevIdx) {
+                  if (isCurrent) {
+                    return RepaintBoundary(
+                      child: TickerMode(enabled: true, child: _screens[i]),
+                    );
+                  }
+                  return const Offstage(offstage: true);
+                }
+
+                // Nếu không phải trang hiện tại hoặc trang cũ đang trượt ra -> Ẩn hoàn toàn
+                if (!isCurrent && !isPrevious) {
+                  return const Offstage(offstage: true);
+                }
+
+                // Tính toán vị trí trượt
+                Offset offset;
+                if (isCurrent) {
+                  // Trang mới trượt vào
+                  final double startX = isMovingRight ? 1.0 : -1.0;
+                  offset = Offset(
+                      startX *
+                          (1.0 -
+                              Curves.easeOutCubic
+                                  .transform(_animController.value)),
+                      0);
+                } else {
+                  // Trang cũ trượt ra
+                  final double endX = isMovingRight ? -1.0 : 1.0;
+                  offset = Offset(
+                      endX *
+                          Curves.easeOutCubic.transform(_animController.value),
+                      0);
+                }
+
+                return FractionalTranslation(
+                  translation: offset,
+                  child: RepaintBoundary(
+                    child: TickerMode(
+                      enabled: isCurrent,
+                      child: _screens[i],
+                    ),
                   ),
-                ),
-              ),
+                );
+              }),
             );
-          }),
+          },
         ),
         bottomNavigationBar: _buildNav(),
       ),
@@ -189,9 +248,9 @@ class _MainShellState extends State<MainShell> {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
-      // Margin: thêm bottomPadding vào đáy để nav bar nằm trên home indicator
-      // Thay vì dùng SafeArea bên trong ClipRRect (gây lỗi tính toán chiều cao)
-      margin: EdgeInsets.fromLTRB(14, 0, 14, 12 + bottomPadding),
+      // Margin cố định — KHÔNG cộng bottomPadding vào margin (sẽ làm nav bar nổi quá cao).
+      // bottomPadding được xử lý bên trong bằng cách mở rộng chiều cao xuống phía dưới.
+      margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
       padding: const EdgeInsets.fromLTRB(3, 3, 3, 3),
       decoration: BoxDecoration(
         // Tạo độ bóng 3D cho bề mặt kính bằng Gradient (thay vì dùng màu trơn)
@@ -225,10 +284,11 @@ class _MainShellState extends State<MainShell> {
         borderRadius: BorderRadius.circular(24),
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-          // KHÔNG dùng SafeArea bên trong ClipRRect vì nó gây ra lỗi tính chiều cao trên iOS.
-          // Thay vào đó, bottomPadding đã được xử lý ở margin bên ngoài.
+          // Mở rộng SizedBox xuống thêm bottomPadding (home indicator area),
+          // nhưng nội dung icon/label CHỈ chiếm 64px phía trên — giống App Store iOS.
           child: SizedBox(
-            height: 54, // Chiều cao nội dung nav, không đổi trên mọi thiết bị
+            height:
+                52 + bottomPadding, // 64px nav content + khoảng home indicator
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final itemWidth = constraints.maxWidth / 5;
@@ -250,52 +310,58 @@ class _MainShellState extends State<MainShell> {
                               Duration(milliseconds: _navDragging ? 0 : 220),
                           curve: Curves.easeOutCubic,
                           width: itemWidth,
-                          height: 54,
+                          height:
+                              52, // chỉ có 64px — không tràn xuống vng home indicator
                           decoration: BoxDecoration(
                             color: AppTheme.primaryFixed.withOpacity(0.8),
                             borderRadius: BorderRadius.circular(24),
                           ),
                         ),
                       ),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          _navItem(
-                            icon: Icons.dashboard_outlined,
-                            activeIcon: Icons.dashboard,
-                            label: 'Dashboard',
-                            idx: 0,
-                            currentActiveIdx: currentVisualIdx,
-                          ),
-                          _navItem(
-                            icon: Icons.calendar_today_outlined,
-                            activeIcon: Icons.calendar_today,
-                            label: 'Lịch',
-                            idx: 1,
-                            currentActiveIdx: currentVisualIdx,
-                          ),
-                          _navItem(
-                            icon: Icons.grade_outlined,
-                            activeIcon: Icons.grade,
-                            label: 'Điểm',
-                            idx: 2,
-                            currentActiveIdx: currentVisualIdx,
-                          ),
-                          _navItem(
-                            icon: Icons.payments_outlined,
-                            activeIcon: Icons.payments,
-                            label: 'Tài chính',
-                            idx: 3,
-                            currentActiveIdx: currentVisualIdx,
-                          ),
-                          _navItem(
-                            icon: Icons.person_outline,
-                            activeIcon: Icons.person,
-                            label: 'Profile',
-                            idx: 4,
-                            currentActiveIdx: currentVisualIdx,
-                          ),
-                        ],
+                      // Giới hạn Row chỉ chiếm 64px (icon zone).
+                      // Phần bên dưới là khoảng trống trong suốt dành cho home indicator.
+                      SizedBox(
+                        height: 52,
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            _navItem(
+                              icon: Icons.dashboard_outlined,
+                              activeIcon: Icons.dashboard,
+                              label: 'Dashboard',
+                              idx: 0,
+                              currentActiveIdx: currentVisualIdx,
+                            ),
+                            _navItem(
+                              icon: Icons.calendar_today_outlined,
+                              activeIcon: Icons.calendar_today,
+                              label: 'Lịch',
+                              idx: 1,
+                              currentActiveIdx: currentVisualIdx,
+                            ),
+                            _navItem(
+                              icon: Icons.grade_outlined,
+                              activeIcon: Icons.grade,
+                              label: 'Điểm',
+                              idx: 2,
+                              currentActiveIdx: currentVisualIdx,
+                            ),
+                            _navItem(
+                              icon: Icons.payments_outlined,
+                              activeIcon: Icons.payments,
+                              label: 'Tài chính',
+                              idx: 3,
+                              currentActiveIdx: currentVisualIdx,
+                            ),
+                            _navItem(
+                              icon: Icons.person_outline,
+                              activeIcon: Icons.person,
+                              label: 'Profile',
+                              idx: 4,
+                              currentActiveIdx: currentVisualIdx,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -335,7 +401,7 @@ class _MainShellState extends State<MainShell> {
                 size: 24,
               ),
             ),
-            const SizedBox(height: 4), // Khoảng cách giữa icon và chữ
+            const SizedBox(height: 3), // Khoảng cách giữa icon và chữ
             AnimatedDefaultTextStyle(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutCubic,

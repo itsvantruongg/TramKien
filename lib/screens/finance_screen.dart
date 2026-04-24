@@ -266,18 +266,11 @@ class FinanceScreen extends StatelessWidget {
 
                 // Group by so_phieu
                 ...(() {
-                  print('📋 FeeDetails count: ${p.feeDetails.length}');
                   final grouped = <String, List<Map<String, Object?>>>{};
-                  int filtered = 0;
                   for (final d in p.feeDetails) {
-                    // KHÔNG filter - hiển thị tất cả 43 dòng
-                    final tenHoc = d['ten_hoc_phan']?.toString() ?? '';
-
                     final key = '${d['so_phieu']} · ${d['ngay_nop']}';
                     grouped.putIfAbsent(key, () => []).add(d);
                   }
-                  print(
-                      '📋 After filter: grouped=${grouped.length}, filtered=$filtered');
                   return grouped.entries
                       .map((entry) => Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
