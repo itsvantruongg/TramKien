@@ -48,7 +48,7 @@ Tải file `.ipa` từ repo hoặc link tải về, bạn có thể cài đặt 
 ### Bước 1: Chuẩn bị trên Máy tính (Windows/Mac)
 Bạn cần tải và cài đặt các công cụ sau:
 1. **iTunes:** [Tải bản Win64](https://www.apple.com/itunes/download/win64) | [Tải bản Win32](https://www.apple.com/itunes/download/win32) (Lưu ý: **KHÔNG** dùng bản từ Microsoft Store).
-2. **iCloud:** [Tải về tại đây](https://updates.cdn-apple.com/2020/windows/001-39935-20200921-3212D271-CA30-44D3-9646-590C05773839/iCloudSetup.exe).
+2. **iCloud:** [Tải về tại đây](https://updates.cdn-apple.com/2020/windows/001-39935-20200911-1A70AA56-F448-11EA-8CC0-99D41950005E/iCloudSetup.exe).
 3. **AltServer:** Truy cập [altstore.io](https://altstore.io/) để tải bản cài đặt cho Windows hoặc macOS.
 
 ### Bước 2: Cài đặt AltStore lên iPhone
