@@ -81,11 +81,13 @@ class SchedifyApp extends StatelessWidget {
           final contentWidth =
               size.width < maxContentWidth ? size.width : maxContentWidth;
 
-          // Clamp text scale: ngăn user tăng cỡ chữ hệ thống làm vỡ layout
-          // Max 1.15 để vẫn hỗ trợ accessibility nhẹ nhưng không vỡ UI
+          // Tự động tính toán scale factor toàn cục dựa trên chiều rộng màn hình (Reference: 390px)
+          final scaleFactor = (size.width / 390).clamp(0.8, 1.1);
+
+          // Cập nhật textScaler dựa trên scaleFactor
           final clampedTextScaler = mediaQuery.textScaler.clamp(
-            minScaleFactor: 1.0,
-            maxScaleFactor: 1.15,
+            minScaleFactor: scaleFactor,
+            maxScaleFactor: scaleFactor * 1.15,
           );
 
           final adjustedMediaQuery = mediaQuery.copyWith(
@@ -93,14 +95,17 @@ class SchedifyApp extends StatelessWidget {
             textScaler: clampedTextScaler,
           );
 
-          return ColoredBox(
-            color: AppTheme.surface,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: contentWidth),
-                child: MediaQuery(
-                  data: adjustedMediaQuery,
-                  child: child ?? const SizedBox.shrink(),
+          return Theme(
+            data: AppTheme.lightWithScale(scaleFactor),
+            child: ColoredBox(
+              color: AppTheme.surface,
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(maxWidth: contentWidth),
+                  child: MediaQuery(
+                    data: adjustedMediaQuery,
+                    child: child ?? const SizedBox.shrink(),
+                  ),
                 ),
               ),
             ),

@@ -31,8 +31,11 @@ class ProfileScreen extends StatelessWidget {
             delegate: SliverChildListDelegate([
               // Hero
               Text(s?.hoTen ?? 'Sinh viên',
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      fontWeight: FontWeight.w800, letterSpacing: -0.5)),
+                  style: (MediaQuery.of(context).size.width < 360
+                          ? Theme.of(context).textTheme.headlineMedium
+                          : Theme.of(context).textTheme.displaySmall)
+                      ?.copyWith(
+                          fontWeight: FontWeight.w800, letterSpacing: -0.5)),
               const SizedBox(height: 4),
               Text(p.currentMssv ?? '',
                   style: Theme.of(context)
@@ -407,7 +410,8 @@ class StudentInfoScreen extends StatelessWidget {
                     .zero, // xóa ambient padding mặc định gây khoảng trắng thừa
                 crossAxisSpacing: 10,
                 mainAxisSpacing: 10,
-                childAspectRatio: 1.6,
+                childAspectRatio:
+                    MediaQuery.of(context).size.width < 360 ? 1.15 : 1.3,
                 children: [
                   _GridCard('Chuyên ngành', s?.chuyenNganh ?? '—',
                       Icons.school_outlined),
@@ -465,27 +469,54 @@ class _GridCard extends StatelessWidget {
   final String label, value;
   final IconData icon;
   const _GridCard(this.label, this.value, this.icon);
+
   @override
-  Widget build(BuildContext ctx) => SurfaceCard(
-        padding: const EdgeInsets.all(16),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Icon(icon, size: 15, color: AppTheme.primary),
-          const Spacer(),
-          Text(label,
-              style: Theme.of(ctx)
-                  .textTheme
-                  .labelSmall
-                  ?.copyWith(color: AppTheme.outline, letterSpacing: 1.5)),
+  Widget build(BuildContext ctx) {
+    final isSmall = MediaQuery.of(ctx).size.width < 360;
+    final theme = Theme.of(ctx);
+
+    return SurfaceCard(
+      padding: EdgeInsets.all(isSmall ? 12 : 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Icon Box
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(
+              icon,
+              size: isSmall ? 18 : 20,
+              color: AppTheme.primary,
+            ),
+          ),
+          const Spacer(), // Đẩy phần chữ xuống dưới để tạo cảm giác cân bằng kiểu bento
+          Text(
+            label.toUpperCase(),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: AppTheme.outline,
+              fontWeight: FontWeight.w800,
+              fontSize: isSmall ? 8 : 9,
+              letterSpacing: 1.2,
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(value,
-              style: Theme.of(ctx)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w700),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis),
-        ]),
-      );
+          Text(
+            value,
+            style: theme.textTheme.titleSmall?.copyWith(
+              height: 1.2,
+              color: AppTheme.onSurface,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _Row extends StatelessWidget {

@@ -58,7 +58,7 @@ class AcademicAppBar extends StatelessWidget implements PreferredSizeWidget {
                     children: [
                       Text(
                         'Đại học Kiến trúc Hà Nội',
-                        maxLines: 1,
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontSize: 18,
@@ -128,7 +128,10 @@ class SurfaceCard extends StatelessWidget {
               )
             ],
           ),
-          padding: padding ?? const EdgeInsets.all(20),
+          padding: padding ??
+              (MediaQuery.of(context).size.width < 360
+                  ? const EdgeInsets.all(16)
+                  : const EdgeInsets.all(20)),
           child: child,
         ),
       );
@@ -155,7 +158,10 @@ class GradientCard extends StatelessWidget {
             )
           ],
         ),
-        padding: padding ?? const EdgeInsets.all(24),
+        padding: padding ??
+            (MediaQuery.of(context).size.width < 360
+                ? const EdgeInsets.all(16)
+                : const EdgeInsets.all(24)),
         child: child,
       );
 }
