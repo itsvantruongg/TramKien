@@ -269,25 +269,32 @@ class DashboardScreen extends StatelessWidget {
                       child: Column(children: [
                     Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
-                          Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text('TỔNG ĐÃ NỘP',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: Colors.white70,
-                                      letterSpacing: 1.5,
-                                      fontWeight: FontWeight.w700,
-                                    )),
-                                const SizedBox(height: 4),
-                                Text(_fmt(p.tongHocPhiAllDaDong),
-                                    style: GoogleFonts.manrope(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w800,
-                                      color: Colors.white,
-                                    )),
-                              ]),
+                          Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text('TỔNG ĐÃ NỘP',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        color: Colors.white70,
+                                        letterSpacing: 1.5,
+                                        fontWeight: FontWeight.w700,
+                                      )),
+                                  const SizedBox(height: 4),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Text(_fmt(p.tongHocPhiAllDaDong),
+                                        style: GoogleFonts.manrope(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                        )),
+                                  ),
+                                ]),
+                          ),
                           Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 6),
@@ -312,14 +319,17 @@ class DashboardScreen extends StatelessWidget {
                       borderRadius: BorderRadius.circular(4),
                     ),
                     const SizedBox(height: 12),
-                    Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          _FinStat('Phải nộp', _fmt(p.tongHocPhiAllPhaiDong),
-                              Colors.white),
-                          _FinStat('Còn lại', _fmt(p.tongHocPhiAllConLai),
-                              Colors.white70),
-                        ]),
+                    Row(children: [
+                      Expanded(
+                        child: _FinStat('Phải nộp',
+                            _fmt(p.tongHocPhiAllPhaiDong), Colors.white),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _FinStat('Còn lại', _fmt(p.tongHocPhiAllConLai),
+                            Colors.white.withOpacity(0.8)),
+                      ),
+                    ]),
                   ])),
                 ),
               ]),
@@ -375,17 +385,22 @@ class _FinStat extends StatelessWidget {
   final Color color;
   const _FinStat(this.label, this.value, this.color);
   @override
-  Widget build(BuildContext ctx) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: const TextStyle(
-                  fontSize: 10, color: Colors.white70, letterSpacing: 1)),
-          Text(value,
-              style: TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w700, color: color)),
-        ],
-      );
+  Widget build(BuildContext ctx) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
+                color: Colors.white.withOpacity(0.7), letterSpacing: 1)),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(value,
+              style: Theme.of(ctx).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700, color: color, height: 1.2)),
+        ),
+      ],
+    );
+  }
 }
 
 class _EmptyCard extends StatelessWidget {

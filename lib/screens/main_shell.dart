@@ -259,7 +259,7 @@ class _MainShellState extends State<MainShell>
 
     return Container(
       // Giữ margin đáy cố định là 20px theo thiết kế mới
-      margin: const EdgeInsets.fromLTRB(14, 0, 14, 20),
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
       padding: const EdgeInsets.fromLTRB(3, 3, 3, 3),
       decoration: BoxDecoration(
         // Tạo độ bóng 3D cho bề mặt kính bằng Gradient (thay vì dùng màu trơn)
