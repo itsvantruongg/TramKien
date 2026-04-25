@@ -23,7 +23,7 @@ Dự án sử dụng **Flutter** để phát triển, đảm bảo chạy mượ
 - **Mật khẩu:** `admin@123` 
 
 > [!NOTE]
-> Tài khoản này được cung cấp cho mục đích demo tính năng. Mọi thông tin trong tài khoản này đều là dữ liệu giả lập.
+> Tài khoản này được cung cấp cho mục đích demo tính năng. Mọi thông tin trong tài khoản này đều là dữ liệu mô phỏng, không phải tài khoản thật.
 
 ## 🚀 Tính năng chính
 
@@ -92,14 +92,14 @@ lib/
 ### Yêu cầu
 - Flutter 3.0.0+
 - Dart 3.0.0+
-- Android SDK / iOS 11+
+- Android SDK / iOS 15+
 
 ### Setup
 
 ```bash
 # 1. Clone repo và dependencies
-git clone <repo-url>
-cd demo
+git clone https://github.com/itsvantruongg/TramKien.git
+cd TramKien
 flutter pub get
 
 # 2. Chạy app
@@ -154,14 +154,13 @@ Sau khi đăng nhập, bạn sẽ thấy trang chủ với:
    - Phương thức thanh toán
 4. **Tính toán còn nợ**: Tổng học phí - Đã nộp = Còn nợ
 
-### 👤 Bước 6: Cập nhật Thông tin
+### 👤 Bước 6: Xem Thông tin
 **Tab "Thông tin"** (phần tử 5):
-1. Xem **thông tin cá nhân**:
+- Xem **thông tin cá nhân**:
    - MSSV, họ tên, ngày sinh
    - Giới tính, chuyên ngành, khoá
    - Email, số điện thoại
-2. Tap **"Chỉnh sửa"** để cập nhật (nếu có)
-3. Lưu lại
+
 
 ### 🔔 Bước 7: Bật Thông báo
 1. Tap biểu tượng **🔔 Bell** ở góc trên phải
@@ -169,17 +168,14 @@ Sau khi đăng nhập, bạn sẽ thấy trang chủ với:
    - 📅 Thông báo lịch học và lịch thi (20h ngày hôm trước và 1tiếng trước khi học/thi)
    - 📝 Kết quả thi (ngay khi có)
    - 💳 Học phí (1 tuần trước deadline)
-   - 🔗 Thông báo khác từ trường
-3. Có thể tắt từng loại notification riêng biệt
 
 ### 🔄 Bước 8: Làm mới dữ liệu
-- **Auto-refresh**: App tự cập nhật mỗi 1-3 ngày (tùy loại dữ liệu)
+- **Auto-refresh**: App tự cập nhật mỗi 12 tiếng (chỉ cập nhật khi vào app)
 - **Manual refresh**: Kéo từ trên xuống (pull-to-refresh) để cập nhật ngay
 
 ### 🔗 Bước 9: Các chức năng khác
 - **Feedback** - Góp ý cho đội phát triển
 - **Logout** - Đăng xuất tài khoản (trong Settings)
-- **Dark mode** - Tự động theo cài đặt hệ thống
 
 > **📌 Tip Pro:** Dữ liệu được lưu offline, nên bạn vẫn có thể xem lịch/điểm ngay cả khi không có internet. Khi online, app sẽ tự cập nhật lại.
 
@@ -219,8 +215,8 @@ Theo "Editorial Academic Fluidity":
 
 | Vấn đề | Giải pháp |
 |---|---|
-| Lỗi scraping data | Kiểm tra kết nối internet, website HAU có thay đổi HTML? |
-| Cache không cập nhật | Xóa app data, clear SQLite |
+| Lỗi scraping data bị thiếu | Kiểm tra kết nối internet, Kéo từ trên xuống (pull-to-refresh) để cập nhật lại |
+| Cache không cập nhật | Logout để xoá dữ liệu hiện tại và login lại |
 | Notification không hiện | Check permission Android 12+, iOS notification settings |
 | Build error | `flutter clean && flutter pub get && flutter run` |
 
@@ -236,4 +232,4 @@ Theo "Editorial Academic Fluidity":
 
 - Session HAU hết hạn ~20-30 phút, app tự re-login bằng secure storage-> bạn ko cần phải nhập lại mssv+pass (nếu như đã ấn lưu)
 - Data nhạy cảm (mk) lưu trong FlutterSecureStorage (Keychain/Keystore)
-- SQLite chỉ lưu data cá nhân của user trên thiết bị của họ
+- SQLite chỉ lưu data cá nhân của user trên thiết bị của họ,app không đồng bộ lên server, app không chia sẻ cho người khác
