@@ -14,7 +14,7 @@ export 'db/finance_db.dart';
 
 class DatabaseService {
   static Database? _db;
-  static const _version = 9;
+  static const _version = 11;
   static String _currentMssv = '';
   static int _currentUserId = -1;
 
@@ -115,6 +115,22 @@ class DatabaseService {
           await db.delete('student_grades');
           await db.delete('cache_meta', where: "key = 'diem_all'");
         }
+        if (oldV < 10) {
+          await db.execute(
+              'ALTER TABLE student_grades ADD COLUMN raw_avg_grade TEXT');
+          await db.execute(
+              'ALTER TABLE student_grades ADD COLUMN raw_numeric_grade TEXT');
+          await db.execute(
+              'ALTER TABLE student_grades ADD COLUMN raw_letter_grade TEXT');
+          await db.execute(
+              'ALTER TABLE student_grades ADD COLUMN is_overview INTEGER DEFAULT 0');
+        }
+        if (oldV < 11) {
+          await db.execute(
+              'ALTER TABLE student_grades ADD COLUMN raw_component_score TEXT');
+          await db.execute(
+              'ALTER TABLE student_grades ADD COLUMN raw_exam_score TEXT');
+        }
       },
     );
   }
@@ -173,6 +189,14 @@ class DatabaseService {
         avg_grade REAL,                 -- TBCHP (mới thêm)
         numeric_grade REAL,             -- Điểm số (đã quy đổi)
         letter_grade TEXT,              -- Điểm chữ (A, B, C...)
+        
+        -- Dữ liệu gốc (hỗ trợ hiển thị 'F | B')
+        raw_avg_grade TEXT,
+        raw_numeric_grade TEXT,
+        raw_letter_grade TEXT,
+        is_overview INTEGER DEFAULT 0,  -- Điểm từ trang Tổng quan
+        raw_component_score TEXT,       -- Điểm thành phần gốc
+        raw_exam_score TEXT,            -- Điểm thi gốc
         
         -- Phân loại & Trạng thái
         is_elective INTEGER DEFAULT 0,  -- Môn tự chọn

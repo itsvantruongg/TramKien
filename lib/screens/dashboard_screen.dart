@@ -25,52 +25,7 @@ class DashboardScreen extends StatelessWidget {
             child: AcademicAppBar(
               subtitle: 'DASHBOARD',
               actions: [
-                // Bell icon với badge số thông báo chưa đọc
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.notifications_outlined,
-                          color: AppTheme.primary),
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                NotificationsScreen(onNavigate: onNavigate),
-                          ),
-                        );
-                        // Trigger rebuild để cập nhật badge
-                        (context as Element).markNeedsBuild();
-                      },
-                    ),
-                    if (p.unreadNotifCount > 0)
-                      Positioned(
-                        right: 8,
-                        top: 8,
-                        child: Container(
-                          width: 16,
-                          height: 16,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.error,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              p.unreadNotifCount > 9
-                                  ? '9+'
-                                  : '${p.unreadNotifCount}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 9,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
+                NotificationBell(onNavigate: onNavigate),
                 IconButton(
                   icon: p.isSyncing
                       ? const SizedBox(

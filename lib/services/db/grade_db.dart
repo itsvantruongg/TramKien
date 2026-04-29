@@ -31,8 +31,12 @@ class GradeDb {
 
         if (resolvedCourseName.isEmpty || resolvedNamHoc.isEmpty) continue;
 
-        final isPendingVote =
-            raw['canVote'] == true || raw['status'] == 'pending_vote';
+        final isPendingVote = raw['canVote'] == true ||
+            raw['status'] == 'pending_vote' ||
+            (raw['letter_grade']?.toString().toLowerCase().contains('vote') ??
+                false) ||
+            (raw['avg_grade']?.toString().toLowerCase().contains('vote') ??
+                false);
         final resolvedStatus = isPendingVote ? 'pending_vote' : 'completed';
 
         final item = <String, Object?>{
@@ -59,6 +63,20 @@ class GradeDb {
           'letter_grade': raw['letter_grade']?.toString() ??
               raw['xepLoai']?.toString() ??
               raw['Điểm chữ']?.toString(),
+          'raw_avg_grade':
+              raw['raw_avg_grade']?.toString() ?? raw['TBCHP']?.toString(),
+          'raw_numeric_grade': raw['raw_numeric_grade']?.toString() ??
+              raw['Điểm số']?.toString(),
+          'raw_letter_grade': raw['raw_letter_grade']?.toString() ??
+              raw['Điểm chữ']?.toString(),
+          'raw_component_score': raw['raw_component_score']?.toString() ??
+              raw[' Điểm thành phần']?.toString() ??
+              raw['_col5']?.toString(),
+          'raw_exam_score': raw['raw_exam_score']?.toString() ??
+              raw['Điểm thi']?.toString() ??
+              raw['_col6']?.toString(),
+          'is_overview':
+              raw['is_overview'] == true || raw['is_overview'] == 1 ? 1 : 0,
           'is_elective':
               (raw['is_elective'] == 1 || raw['Môn tự chọn'] == '*') ? 1 : 0,
           'notes': raw['notes']?.toString() ?? raw['Ghi chú']?.toString(),
@@ -115,12 +133,39 @@ class GradeDb {
     return null;
   }
 
-  static Future<List<DiemMonHoc>> getDiem({int? hocKy, String? namHoc}) async {
+  static Future<List<DiemMonHoc>> getDiem({
+    int? hocKy,
+    String? namHoc,
+    bool? isOverview, // thêm param
+  }) async {
     final d = await DatabaseService.db;
-    final rows = await d.query('student_grades',
-        where: hocKy != null ? 'hoc_ky = ? AND nam_hoc = ?' : null,
-        whereArgs: hocKy != null ? [hocKy, namHoc] : null,
-        orderBy: 'nam_hoc DESC, hoc_ky DESC');
+
+    String? where;
+    List<Object?>? whereArgs;
+
+    if (isOverview == true) {
+      where = 'is_overview = 1';
+      whereArgs = null;
+    } else if (isOverview == false) {
+      where = 'is_overview = 0';
+      if (hocKy != null && namHoc != null) {
+        where += ' AND hoc_ky = ? AND nam_hoc = ?';
+        whereArgs = [hocKy, namHoc];
+      }
+    } else {
+      // isOverview == null → lấy tất cả (hành vi cũ)
+      if (hocKy != null && namHoc != null) {
+        where = 'hoc_ky = ? AND nam_hoc = ?';
+        whereArgs = [hocKy, namHoc];
+      }
+    }
+
+    final rows = await d.query(
+      'student_grades',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'nam_hoc DESC, hoc_ky DESC',
+    );
     return rows.map(DiemMonHoc.fromMap).toList();
   }
 
@@ -348,5 +393,14 @@ class GradeDb {
             conflictAlgorithm: ConflictAlgorithm.replace);
       }
     });
+  }
+
+  static Future<void> clearOverview(String mssv) async {
+    final d = await DatabaseService.db;
+    await d.delete(
+      'student_grades',
+      where: 'is_overview = 1 AND mssv = ?',
+      whereArgs: [mssv],
+    );
   }
 }

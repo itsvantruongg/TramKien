@@ -7,7 +7,8 @@ import '../models/models.dart';
 import '../widgets/shared_widgets.dart';
 
 class ScheduleScreen extends StatefulWidget {
-  const ScheduleScreen({super.key});
+  final void Function(int)? onNavigate;
+  const ScheduleScreen({super.key, this.onNavigate});
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
 }
@@ -38,6 +39,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
         AcademicAppBar(
           subtitle: 'LỊCH HỌC & THI',
           actions: [
+            NotificationBell(onNavigate: widget.onNavigate),
             IconButton(
               icon: (p.lichHocState == LoadState.loading ||
                       p.lichThiState == LoadState.loading)

@@ -176,7 +176,8 @@ class AppProvider extends ChangeNotifier {
       await prefs.setBool(_kRemember, false);
 
       // Xóa thông báo đã lên lịch
-      await LocalNotificationService.setNotificationEnabled(mssvToDelete, false);
+      await LocalNotificationService.setNotificationEnabled(
+          mssvToDelete, false);
 
       _authState = AuthState.loggedOut;
       _currentMssv = '';
@@ -466,11 +467,13 @@ class AppProvider extends ChangeNotifier {
   LoadState get diemState =>
       gradeProvider.diemLoading ? LoadState.loading : LoadState.idle;
   double get gpa => gradeProvider.gpa;
+  double get gpaHe4 => gradeProvider.gpaHe4;
   int get totalCredits => gradeProvider.totalCredits;
   Map<String, double> get gpaByKy => gradeProvider.gpaByKy;
   Map<String, List<DiemMonHoc>> get diemByKy => gradeProvider.diemByKy;
   Map<String, double> get gpaByKyHe4 => gradeProvider.gpaByKyHe4;
   List<DiemMonHoc> get diem => gradeProvider.diem;
+  List<DiemMonHoc> get diemOverview => gradeProvider.diemOverview;
   DiemSummary? get diemSummary => gradeProvider.diemSummary;
 
   // Finance

@@ -11,6 +11,7 @@ class GradeProvider extends ChangeNotifier {
 
   // ── State ────────────────────────────────
   List<DiemMonHoc> _diem = [];
+  List<DiemMonHoc> _diemOverview = []; // Điểm lấy từ trang Index (rút gọn)
   DiemSummary? _diemSummary;
   bool _diemState = false; // loading
 
@@ -22,10 +23,12 @@ class GradeProvider extends ChangeNotifier {
 
   // ── Getters ─────────────────────────────
   List<DiemMonHoc> get diem => _diem;
+  List<DiemMonHoc> get diemOverview => _diemOverview;
   DiemSummary? get diemSummary => _diemSummary;
   bool get diemLoading => _diemState;
 
   double get gpa => _gpa;
+  double get gpaHe4 => _diemSummary?.tbcTichLuyHe4 ?? 0.0;
   int get totalCredits => _totalCredits;
   Map<String, double> get gpaByKy => _gpaByKy;
   Map<String, List<DiemMonHoc>> get diemByKy => _diemByKy;
@@ -57,6 +60,7 @@ class GradeProvider extends ChangeNotifier {
     _gpaByKy = {};
     _diemByKy = {};
     _gpaByKyHe4 = {};
+    _diemOverview = [];
     _mssv = null;
     notifyListeners();
   }
@@ -76,22 +80,26 @@ class GradeProvider extends ChangeNotifier {
 
       final result = await GradeApi.fetchDiemAllKyWithSummary(mssv: _mssv);
       if (result.diem.isNotEmpty) {
-        final rawList = result.diem
-            .map((d) => {
-                  'tenMonHoc': d.tenMonHoc,
-                  'maMonHoc': d.maMonHoc,
-                  'soTinChi': d.soTinChi,
-                  'componentScore': d.componentScore,
-                  'examScore': d.examScore,
-                  'avgGrade': d.avgGrade,
-                  'diemTongKet': d.diemTongKet,
-                  'xepLoai': d.xepLoai,
-                  'hocKy': d.hocKy,
-                  'namHoc': d.namHoc,
-                  'canVote': d.canVote,
-                })
-            .toList();
+        final rawList = result.diem.map((d) => d.toMap()).toList();
         await GradeDb.saveDiem(rawList);
+      }
+
+      // SAU: xóa cache overview cũ trước khi lưu mới, đảm bảo mssv đúng
+      // Thay đoạn lưu diemOverview cũ bằng:
+      if (result.diemOverview.isNotEmpty) {
+        await GradeDb.clearOverview(_mssv ?? '');
+        await GradeDb.saveDiem(
+          result.diemOverview.map((e) {
+            final map = e.toMap();
+            map['is_overview'] = 1;
+            map['mssv'] = _mssv ?? '';
+            map['nam_hoc'] = 'Overview';
+            map['hoc_ky'] = 0;
+            map['attempt'] = 1;
+            // Giữ nguyên canVote và status từ data thực tế
+            return map;
+          }).toList(),
+        );
       }
 
       if (result.complete) {
@@ -99,17 +107,19 @@ class GradeProvider extends ChangeNotifier {
       }
 
       // ── Load lại từ DB để đảm bảo data nhất quán ──
-      _diem = await GradeDb.getDiem(); // ← Đọc từ DB thay vì result.diem
+      _diem = await GradeDb.getDiem();
+      _diemOverview = await GradeDb.getDiem(isOverview: true);
 
+      _diemSummary = result.latestSummary ?? await GradeDb.loadDiemSummary();
       if (result.latestSummary != null) {
-        _diemSummary = result.latestSummary;
         await GradeDb.saveDiemSummary(result.latestSummary!);
-      } else {
-        _diemSummary = await GradeDb.loadDiemSummary();
       }
 
-      _gpa = await GradeDb.calculateGPA();
-      _totalCredits = await GradeDb.totalCreditsEarned();
+      // Ưu tiên lấy GPA và Tổng tín chỉ từ API summary (không cần tính toán)
+      _gpa = _diemSummary?.tbcTichLuyHe10 ?? await GradeDb.calculateGPA();
+      _totalCredits =
+          _diemSummary?.soTinChiTichLuy ?? await GradeDb.totalCreditsEarned();
+
       _gpaByKy = await GradeDb.getGPAByKy();
       _gpaByKyHe4 = await GradeDb.getGPAByKyHe4();
 
@@ -178,17 +188,15 @@ class GradeProvider extends ChangeNotifier {
             : tenMonHoc,
       );
 
-      final parsedOptions = monList
-          .map((m) {
-            final parsed = parseOption(m['ten'] ?? '');
-            return <String, String>{
-              'id': m['id'] ?? '',
-              'rawText': m['ten'] ?? '',
-              'ten': parsed['ten'] ?? '',
-              'ma': parsed['ma'] ?? '',
-            };
-          })
-          .toList();
+      final parsedOptions = monList.map((m) {
+        final parsed = parseOption(m['ten'] ?? '');
+        return <String, String>{
+          'id': m['id'] ?? '',
+          'rawText': m['ten'] ?? '',
+          'ten': parsed['ten'] ?? '',
+          'ma': parsed['ma'] ?? '',
+        };
+      }).toList();
 
       Map<String, String>? matched;
 
@@ -265,20 +273,30 @@ class GradeProvider extends ChangeNotifier {
   }
 
   Future<void> refreshFromCache() async {
-    _diem = await GradeDb.getDiem();
-    _diemSummary = await GradeDb.loadDiemSummary(); // ← restore từ DB
-    _gpa = await GradeDb.calculateGPA();
-    _totalCredits = await GradeDb.totalCreditsEarned();
-    _gpaByKy = await GradeDb.getGPAByKy(); // hệ 10
-    _gpaByKyHe4 = await GradeDb.getGPAByKyHe4(); // hệ 4
-
-    _diemByKy = {};
-    for (final d in _diem) {
-      final key = '${d.namHoc}_HK${d.hocKy}';
-      _diemByKy.putIfAbsent(key, () => []).add(d);
-    }
-
+    _diemState = true;
     notifyListeners();
+    try {
+      _diem =
+          await GradeDb.getDiem(isOverview: false); // ← thêm isOverview: false
+      _diemOverview = await GradeDb.getDiem(isOverview: true);
+      _diemSummary = await GradeDb.loadDiemSummary();
+
+      _gpa = _diemSummary?.tbcTichLuyHe10 ?? await GradeDb.calculateGPA();
+      _totalCredits =
+          _diemSummary?.soTinChiTichLuy ?? await GradeDb.totalCreditsEarned();
+
+      _gpaByKy = await GradeDb.getGPAByKy();
+      _gpaByKyHe4 = await GradeDb.getGPAByKyHe4();
+
+      _diemByKy = {};
+      for (final d in _diem) {
+        final key = '${d.namHoc}_HK${d.hocKy}';
+        _diemByKy.putIfAbsent(key, () => []).add(d);
+      }
+    } finally {
+      _diemState = false; // ← THÊM DÒNG NÀY
+      notifyListeners();
+    }
   }
 
   // ── Initialization ──────────────────────

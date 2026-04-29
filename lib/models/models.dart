@@ -346,6 +346,11 @@ class DiemMonHoc {
   final double? avgGrade; // TBCHP (mới)
   final double? diemTongKet; // Điểm số (quy đổi)
   final String? xepLoai; // Điểm chữ
+  final String? rawAvgGrade; // TBCHP gốc (ví dụ: '1.4 | 8')
+  final String? rawDiemSo; // Điểm số gốc (ví dụ: '3 | 4')
+  final String? rawXepLoai; // Điểm chữ gốc (ví dụ: 'F | B')
+  final String? rawComponentScore; // Điểm thành phần gốc (ví dụ: 'QT: 7 | 9')
+  final String? rawExamScore;      // Điểm thi gốc (ví dụ: '5 | 8')
   final int hocKy;
   final String namHoc;
   final bool isElective; // Môn tự chọn
@@ -363,6 +368,11 @@ class DiemMonHoc {
     this.avgGrade,
     this.diemTongKet,
     this.xepLoai,
+    this.rawAvgGrade,
+    this.rawDiemSo,
+    this.rawXepLoai,
+    this.rawComponentScore,
+    this.rawExamScore,
     required this.hocKy,
     required this.namHoc,
     this.isElective = false,
@@ -393,6 +403,11 @@ class DiemMonHoc {
                 ? double.tryParse(m['numeric_grade'].toString())
                 : null),
         xepLoai: m['letter_grade'],
+        rawAvgGrade: m['raw_avg_grade'],
+        rawDiemSo: m['raw_numeric_grade'],
+        rawXepLoai: m['raw_letter_grade'],
+        rawComponentScore: m['raw_component_score'],
+        rawExamScore: m['raw_exam_score'],
         hocKy: m['hoc_ky'] is int
             ? m['hoc_ky']
             : int.tryParse(m['hoc_ky'].toString()) ?? 1,
@@ -415,6 +430,11 @@ class DiemMonHoc {
         'avg_grade': avgGrade,
         'numeric_grade': diemTongKet,
         'letter_grade': xepLoai,
+        'raw_avg_grade': rawAvgGrade,
+        'raw_numeric_grade': rawDiemSo,
+        'raw_letter_grade': rawXepLoai,
+        'raw_component_score': rawComponentScore,
+        'raw_exam_score': rawExamScore,
         'is_elective': isElective ? 1 : 0,
         'status': canVote ? 'pending_vote' : 'completed',
         'hoc_ky': hocKy,

@@ -136,9 +136,9 @@ class _MainShellState extends State<MainShell>
     super.initState();
     _screens = [
       DashboardScreen(onNavigate: _navigate),
-      const ScheduleScreen(),
-      const GradesScreen(),
-      const FinanceScreen(),
+      ScheduleScreen(onNavigate: _navigate),
+      GradesScreen(onNavigate: _navigate),
+      FinanceScreen(onNavigate: _navigate),
       const ProfileScreen(),
     ];
     _animController = AnimationController(
