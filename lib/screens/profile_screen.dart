@@ -14,7 +14,8 @@ import '../services/local_notification_service.dart';
 // ════════════════════════════════════════════════════════════
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  final void Function(int)? onNavigate;
+  const ProfileScreen({super.key, this.onNavigate});
 
   @override
   Widget build(BuildContext context) {

@@ -3,7 +3,11 @@ import '../../models/models.dart';
 import '../hau_api_service.dart';
 import '../mock_data.dart';
 
-typedef DiemResult = ({List<DiemMonHoc> diem, DiemSummary? summary, bool success});
+typedef DiemResult = ({
+  List<DiemMonHoc> diem,
+  DiemSummary? summary,
+  bool success
+});
 
 class GradeApi {
   // ── ĐIỂM ──────────────────────────────────────────────────
@@ -32,38 +36,66 @@ class GradeApi {
           return fb;
         }
 
-        final tongKetStr = col(['TK', 'Tổng kết', 'Điểm TK', '_col6'], '');
-        final canVote = tongKetStr.toLowerCase().contains('vote') ||
-            tongKetStr.contains('*') ||
-            tongKetStr.isEmpty;
+        // Lấy giá trị cuối nếu có "|" (cho logic App hiện tại)
+        double? parseLast(String raw) {
+          if (raw.isEmpty) return null;
+          final parts = raw.split('|').map((e) => e.trim()).toList();
+          for (final p in parts.reversed) {
+            final v = double.tryParse(p);
+            if (v != null) return v;
+          }
+          return null;
+        }
+
+        String lastPart(String raw) {
+          if (!raw.contains('|')) return raw;
+          return raw.split('|').last.trim();
+        }
+
+        // Cập nhật mapping theo ảnh mới nhất:
+        // _col1: Ký hiệu, _col2: Tên học phần, _col3: Số tín chỉ, _col4: Hệ số,
+        // _col5: Điểm thành phần, _col6: Điểm thi, _col7: TBCHP, _col8: Điểm số, _col9: Điểm chữ
+        final maHp = col(['Ký hiệu', '_col1'], '');
+        final tenHp = col(['Tên học phần', '_col2'], '');
+        final soTc = int.tryParse(col(['Số tín chỉ', 'TC', '_col3'], '0')) ?? 0;
+        final compRaw = col(['Điểm thành phần', '_col5'], '');
+        final examRaw = col(['Điểm thi', '_col6'], '');
+        final tbchpRaw = col(['TBCHP', '_col7'], '');
+        final diemSoRaw = col(['Điểm số', '_col8'], '');
+        final diemChuRaw = col(['Điểm chữ', '_col9'], '');
+
+        final canVote = tbchpRaw.toLowerCase().contains('vote') ||
+            diemSoRaw.toLowerCase().contains('vote') ||
+            diemChuRaw.toLowerCase().contains('vote') ||
+            diemChuRaw.contains('*') ||
+            diemChuRaw.isEmpty;
 
         return DiemMonHoc(
-          tenMonHoc: col(['Tên học phần', 'Môn học', '_col1'], ''),
-          // Bảng điểm hiện tại dùng cột "Ký hiệu" cho mã học phần
-          maMonHoc: col(['Ký hiệu', 'Mã HP', 'Mã môn', '_col1', '_col0'], ''),
-          soTinChi: int.tryParse(col(['TC', 'Số TC', '_col2'], '0')) ?? 0,
-          componentScore:
-              (double.tryParse(col(['CC', 'Chuyên cần', '_col3'], '')) ?? 0.0)
-                  .toString(),
-          examScore:
-              (double.tryParse(col(['CK', 'Cuối kỳ', '_col5'], '')) ?? 0.0)
-                  .toString(),
-          avgGrade: double.tryParse(tongKetStr),
-          diemTongKet: double.tryParse(tongKetStr),
-          xepLoai: col(['XL', 'Xếp loại', '_col7'], ''),
-          hocKy: int.tryParse(col(['HK', '_col8'], '1')) ?? 1,
-          namHoc: col(['Năm học', '_col9'], ''),
+          tenMonHoc: tenHp,
+          maMonHoc: maHp,
+          soTinChi: soTc,
+          componentScore: lastPart(compRaw),
+          examScore: lastPart(examRaw),
+          avgGrade: parseLast(tbchpRaw),
+          diemTongKet: parseLast(diemSoRaw),
+          xepLoai: lastPart(diemChuRaw),
+          // Lưu dữ liệu gốc để hiển thị "F | B"
+          rawAvgGrade: tbchpRaw,
+          rawDiemSo: diemSoRaw,
+          rawXepLoai: diemChuRaw,
+          rawComponentScore: compRaw,
+          rawExamScore: examRaw,
+          hocKy: 0, // 0 = Overview
+          namHoc: 'Overview',
           canVote: canVote,
           lastUpdated: DateTime.now(),
         );
       }).where((d) {
         if (d.tenMonHoc.isEmpty) return false;
-        // Lọc các dòng tổng kết/chú thích
         final name = d.tenMonHoc.toLowerCase();
-        if (name.contains('tổng số tín chỉ')) return false;
-        if (name.contains('số tín chỉ tích lũy')) return false;
-        if (name.contains('điểm trung bình')) return false;
-        if (name.startsWith('a:') || name.startsWith('b:')) return false;
+        if (name.contains('tổng số tín chỉ') ||
+            name.contains('số tín chỉ tích lũy') ||
+            name.contains('điểm trung bình')) return false;
         if (d.soTinChi == 0 && d.maMonHoc.isEmpty) return false;
         return true;
       }).toList();
@@ -239,11 +271,16 @@ class GradeApi {
         tenMonHoc: col(['Tên học phần', '_col2'], ''),
         maMonHoc: col(['Ký hiệu', '_col1'], ''),
         soTinChi: int.tryParse(col(['Số tín chỉ', '_col3'], '0')) ?? 0,
-        componentScore: lastPart(compRaw), // lấy lần thi cuối
+        componentScore: lastPart(compRaw),
         examScore: lastPart(examRaw),
-        avgGrade: parseLast(tbchpRaw), // "1.4 | 8" → 8.0
+        avgGrade: parseLast(tbchpRaw),
         diemTongKet: parseLast(diemSoRaw),
         xepLoai: lastPart(diemChuRaw),
+        rawAvgGrade: tbchpRaw,
+        rawDiemSo: diemSoRaw,
+        rawXepLoai: diemChuRaw,
+        rawComponentScore: compRaw,
+        rawExamScore: examRaw,
         hocKy: hocKy,
         namHoc: '$namHoc-${namHoc + 1}',
         canVote: canVote,
@@ -266,8 +303,7 @@ class GradeApi {
     required int namHoc,
     int maxAttempts = 2,
   }) async {
-    DiemResult last =
-        (diem: <DiemMonHoc>[], summary: null, success: false);
+    DiemResult last = (diem: <DiemMonHoc>[], summary: null, success: false);
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       last = await fetchDiemWithSummary(hocKy: hocKy, namHoc: namHoc);
       if (last.success) return last;
@@ -289,8 +325,8 @@ class GradeApi {
         futures.add(fetchDiemWithSummary(hocKy: ky, namHoc: nam));
       }
     }
-    futures.add(fetchDiem().then(
-        (d) => (diem: d, summary: null, success: true))); // fallback
+    futures.add(fetchDiem()
+        .then((d) => (diem: d, summary: null, success: true))); // fallback
 
     final results = await Future.wait(futures);
     final seen = <String>{};
@@ -311,11 +347,17 @@ class GradeApi {
   /// 2) Chỉ những kỳ bị lỗi mới được đưa vào danh sách retry
   /// 3) Retry riêng các kỳ thiếu ở lần 2
   /// 4) Chỉ trả complete=true khi không còn kỳ nào lỗi sau retry
-  static Future<({List<DiemMonHoc> diem, DiemSummary? latestSummary, bool complete})>
-      fetchDiemAllKyWithSummary({String? mssv}) async {
+  static Future<
+      ({
+        List<DiemMonHoc> diem,
+        List<DiemMonHoc> diemOverview,
+        DiemSummary? latestSummary,
+        bool complete
+      })> fetchDiemAllKyWithSummary({String? mssv}) async {
     if (HauApiService.currentMssv == 'admin' && MockData.isEnabled) {
       return (
         diem: MockData.getDiem(),
+        diemOverview: MockData.getDiemOverview(),
         latestSummary: MockData.getDiemSummary(),
         complete: true,
       );
@@ -369,8 +411,12 @@ class GradeApi {
     bool complete = true;
     final pendingKyList = <({int ky, int nam})>[];
     final unresolvedKyList = <({int ky, int nam})>[];
+    List<DiemMonHoc> diemOverview = [];
 
-    // Fetch trang Index để lấy summary TỔNG (tích lũy toàn khóa)
+    // Fetch trang Index để lấy summary TỔNG (tích lũy toàn khóa) và danh sách điểm Overview
+    // Trong fetchDiemAllKyWithSummary, thay đoạn fetch Index:
+
+// Fetch trang Index để lấy summary TỔNG
     try {
       final indexResp = await http
           .get(
@@ -382,11 +428,114 @@ class GradeApi {
       if (indexResp.statusCode == 200 &&
           !indexResp.body.contains('name="Password"')) {
         latestSummary = _parseDiemSummary(indexResp.body);
-        print('📊 Index summary: tbc10=${latestSummary?.tbcTichLuyHe10} '
-            'tbc4=${latestSummary?.tbcTichLuyHe4}');
+        print('📊 Index summary: tbc10=${latestSummary?.tbcTichLuyHe10}');
       }
     } catch (e) {
       print('⚠️ Fetch Index summary lỗi: $e');
+    }
+
+// Fetch overview riêng bằng ThongTinDiemSinhVien không tham số
+    try {
+      final overviewUrl =
+          Uri.parse('${HauApiService.base}/TraCuuDiem/ThongTinDiemSinhVien')
+              .replace(queryParameters: {
+        'HocKy': '0',
+        'NamHoc': '0',
+        'ChuyenNganh': '0',
+      });
+
+      final overviewResp = await http.get(overviewUrl, headers: {
+        ...HauApiService.authHeaders,
+        'Accept': 'text/html, */*; q=0.01',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': '${HauApiService.base}/TraCuuDiem/Index',
+      }).timeout(const Duration(seconds: 20));
+
+      HauApiService.saveCookies(overviewResp);
+
+      if (overviewResp.statusCode == 200 &&
+          overviewResp.body.length > 200 &&
+          !overviewResp.body.contains('name="Password"')) {
+        // Cập nhật summary từ overview nếu chưa có
+        final overviewSummary = _parseDiemSummary(overviewResp.body);
+        latestSummary ??= overviewSummary;
+
+        final rows = HauApiService.parseTable(overviewResp.body);
+        print('📋 [Overview] parseTable → ${rows.length} dòng thô');
+
+        diemOverview = rows.map((row) {
+          String col(List<String> keys, String fb) {
+            for (final k in keys) {
+              final v = row[k];
+              if (v != null && v.isNotEmpty) return v;
+            }
+            return fb;
+          }
+
+          double? parseLast(String raw) {
+            if (raw.isEmpty) return null;
+            final parts = raw.split('|').map((e) => e.trim()).toList();
+            for (final p in parts.reversed) {
+              final v = double.tryParse(p);
+              if (v != null) return v;
+            }
+            return null;
+          }
+
+          String lastPart(String raw) {
+            if (!raw.contains('|')) return raw;
+            return raw.split('|').last.trim();
+          }
+
+          final maHp = col(['Ký hiệu', '_col1'], '');
+          final tenHp = col(['Tên học phần', '_col2'], '');
+          final soTc =
+              int.tryParse(col(['Số tín chỉ', 'TC', '_col3'], '0')) ?? 0;
+          final compRaw = col(['Điểm thành phần', '_col5'], '');
+          final examRaw = col(['Điểm thi', '_col6'], '');
+          final tbchpRaw = col(['TBCHP', '_col7'], '');
+          final diemSoRaw = col(['Điểm số', '_col8'], '');
+          final diemChuRaw = col(['Điểm chữ', '_col9'], '');
+
+          return DiemMonHoc(
+            tenMonHoc: tenHp,
+            maMonHoc: maHp,
+            soTinChi: soTc,
+            componentScore: lastPart(compRaw),
+            examScore: lastPart(examRaw),
+            avgGrade: parseLast(tbchpRaw),
+            diemTongKet: parseLast(diemSoRaw),
+            xepLoai: lastPart(diemChuRaw),
+            rawAvgGrade: tbchpRaw,
+            rawDiemSo: diemSoRaw,
+            rawXepLoai: diemChuRaw,
+            rawComponentScore: compRaw,
+            rawExamScore: examRaw,
+            hocKy: 0,
+            namHoc: 'Overview',
+            canVote: tbchpRaw.toLowerCase().contains('vote') ||
+                diemSoRaw.toLowerCase().contains('vote') ||
+                diemChuRaw.toLowerCase().contains('vote') ||
+                examRaw.toLowerCase().contains('vote'),
+            lastUpdated: DateTime.now(),
+          );
+        }).where((d) {
+          if (d.tenMonHoc.isEmpty) return false;
+          if (d.soTinChi == 0) return false;
+          final name = d.tenMonHoc.toLowerCase();
+          if (name.contains('tổng') || name.contains('trung bình'))
+            return false;
+          return true;
+        }).toList();
+
+        print('📊 Overview: ${diemOverview.length} môn');
+        if (diemOverview.isNotEmpty) {
+          print(
+              '📋 [Overview] Các môn: ${diemOverview.map((d) => d.tenMonHoc).join(', ')}');
+        }
+      }
+    } catch (e) {
+      print('⚠️ Fetch Overview riêng lỗi: $e');
     }
 
     const batchSize = 3;
@@ -441,13 +590,15 @@ class GradeApi {
     if (pendingKyList.isNotEmpty) {
       print('🔁 Retry riêng ${pendingKyList.length} kỳ bị thiếu...');
       const retryBatchSize = 2;
-      for (int start = 0; start < pendingKyList.length; start += retryBatchSize) {
+      for (int start = 0;
+          start < pendingKyList.length;
+          start += retryBatchSize) {
         final end = (start + retryBatchSize < pendingKyList.length)
             ? start + retryBatchSize
             : pendingKyList.length;
         final retryBatch = pendingKyList.sublist(start, end);
-        final retryResults = await Future.wait(retryBatch.map((k) =>
-            _fetchDiemSemesterWithRetry(hocKy: k.ky, namHoc: k.nam)));
+        final retryResults = await Future.wait(retryBatch.map(
+            (k) => _fetchDiemSemesterWithRetry(hocKy: k.ky, namHoc: k.nam)));
 
         for (int i = 0; i < retryBatch.length; i++) {
           final k = retryBatch[i];
@@ -489,6 +640,11 @@ class GradeApi {
     print('🏁 Tổng kết: $totalFound môn (${all.length} unique) '
         'từ ${kyList.length} kỳ đã fetch complete=$complete '
         'pending=${pendingKyList.length} unresolved=$unresolvedCount');
-    return (diem: all, latestSummary: latestSummary, complete: complete);
+    return (
+      diem: all,
+      diemOverview: diemOverview,
+      latestSummary: latestSummary,
+      complete: complete
+    );
   }
 }

@@ -381,7 +381,121 @@ class MockData {
           xepLoai: 'A',
           hocKy: 2,
           namHoc: '2024-2025'),
+
+      // ===== HK1 2023-2024 =====
+      DiemMonHoc(
+          maMonHoc: 'TC2611',
+          tenMonHoc: 'Toán Đại số',
+          soTinChi: 3,
+          coefficient: 1,
+          componentScore: '8',
+          examScore: '7.5',
+          avgGrade: 7.7,
+          diemTongKet: 3,
+          xepLoai: 'B',
+          hocKy: 1,
+          namHoc: '2023-2024'),
+      DiemMonHoc(
+          maMonHoc: 'CT3901.1',
+          tenMonHoc: 'Triết học Mác - LêNin',
+          soTinChi: 3,
+          coefficient: 1,
+          componentScore: '7',
+          examScore: '8.0',
+          avgGrade: 7.6,
+          diemTongKet: 3,
+          xepLoai: 'B',
+          hocKy: 1,
+          namHoc: '2023-2024'),
+      DiemMonHoc(
+          maMonHoc: 'TC2701',
+          tenMonHoc: 'Vật lý P1',
+          soTinChi: 2,
+          coefficient: 1,
+          componentScore: '6',
+          examScore: '6.5',
+          avgGrade: 6.3,
+          diemTongKet: 2,
+          xepLoai: 'C',
+          hocKy: 1,
+          namHoc: '2023-2024'),
+
+      // ===== HK2 2023-2024 =====
+      DiemMonHoc(
+          maMonHoc: 'CT3902.1',
+          tenMonHoc: 'Kinh tế chính trị Mác - Lênin',
+          soTinChi: 2,
+          coefficient: 1,
+          componentScore: '9',
+          examScore: '8.0',
+          avgGrade: 8.4,
+          diemTongKet: 3,
+          xepLoai: 'B',
+          hocKy: 2,
+          namHoc: '2023-2024'),
+      DiemMonHoc(
+          maMonHoc: 'TC2612',
+          tenMonHoc: 'Giải tích 1',
+          soTinChi: 3,
+          coefficient: 1,
+          componentScore: '7.5',
+          examScore: '7.0',
+          avgGrade: 7.2,
+          diemTongKet: 3,
+          xepLoai: 'B',
+          hocKy: 2,
+          namHoc: '2023-2024'),
+
+      // ===== HK2 2022-2023 =====
+      DiemMonHoc(
+          maMonHoc: 'TC2610',
+          tenMonHoc: 'Toán cao cấp 1',
+          soTinChi: 3,
+          coefficient: 1,
+          componentScore: '6.5',
+          examScore: '7.0',
+          avgGrade: 6.8,
+          diemTongKet: 2,
+          xepLoai: 'C',
+          hocKy: 2,
+          namHoc: '2022-2023'),
+      DiemMonHoc(
+          maMonHoc: 'TH3101',
+          tenMonHoc: 'Tin học đại cương',
+          soTinChi: 2,
+          coefficient: 1,
+          componentScore: '8.5',
+          examScore: '9.0',
+          avgGrade: 8.8,
+          diemTongKet: 4,
+          xepLoai: 'A',
+          hocKy: 2,
+          namHoc: '2022-2023'),
     ];
+  }
+
+  static List<DiemMonHoc> getDiemOverview() {
+    return getDiem().map((d) {
+      return DiemMonHoc(
+        maMonHoc: d.maMonHoc,
+        tenMonHoc: d.tenMonHoc,
+        soTinChi: d.soTinChi,
+        coefficient: d.coefficient,
+        componentScore: d.componentScore,
+        examScore: d.examScore,
+        avgGrade: d.avgGrade,
+        diemTongKet: d.diemTongKet,
+        xepLoai: d.xepLoai,
+        hocKy: 0,
+        namHoc: 'Overview',
+        rawAvgGrade: d.rawAvgGrade,
+        rawDiemSo: d.rawDiemSo,
+        rawXepLoai: d.rawXepLoai,
+        rawComponentScore: d.rawComponentScore,
+        rawExamScore: d.rawExamScore,
+        lastUpdated: d.lastUpdated,
+      );
+    }).toList();
   }
 
   static Future<void> populateFinance() async {

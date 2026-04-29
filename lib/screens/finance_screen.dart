@@ -7,7 +7,8 @@ import '../providers/app_provider.dart';
 import '../widgets/shared_widgets.dart';
 
 class FinanceScreen extends StatelessWidget {
-  const FinanceScreen({super.key});
+  final void Function(int)? onNavigate;
+  const FinanceScreen({super.key, this.onNavigate});
 
   String _fmt(double v, NumberFormat f) => v >= 1000000000
       ? '${(v / 1000000000).toStringAsFixed(1)}B\nVNĐ'
@@ -27,6 +28,7 @@ class FinanceScreen extends StatelessWidget {
               child: AcademicAppBar(
             subtitle: 'TÀI CHÍNH',
             actions: [
+              NotificationBell(onNavigate: onNavigate),
               IconButton(
                 icon: p.hocPhiState == LoadState.loading
                     ? const SizedBox(

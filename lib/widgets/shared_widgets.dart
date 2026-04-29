@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
+import '../providers/app_provider.dart';
+import '../screens/notifications_screen.dart';
 
 // ── AcademicAppBar ────────────────────────────────────────────
 
@@ -92,6 +95,62 @@ class AcademicAppBar extends StatelessWidget implements PreferredSizeWidget {
           ),
         ),
       );
+}
+
+// ── NotificationBell ──────────────────────────────────────────
+
+class NotificationBell extends StatelessWidget {
+  final void Function(int)? onNavigate;
+  const NotificationBell({super.key, this.onNavigate});
+
+  @override
+  Widget build(BuildContext context) {
+    final p = context.watch<AppProvider>();
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          icon:
+              const Icon(Icons.notifications_outlined, color: AppTheme.primary),
+          onPressed: () async {
+            await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => NotificationsScreen(onNavigate: onNavigate),
+              ),
+            );
+            // Trigger rebuild để cập nhật badge
+            if (context.mounted) {
+              (context as Element).markNeedsBuild();
+            }
+          },
+        ),
+        if (p.unreadNotifCount > 0)
+          Positioned(
+            right: 8,
+            top: 8,
+            child: Container(
+              width: 16,
+              height: 16,
+              decoration: const BoxDecoration(
+                color: AppTheme.error,
+                shape: BoxShape.circle,
+              ),
+              child: Center(
+                child: Text(
+                  p.unreadNotifCount > 9 ? '9+' : '${p.unreadNotifCount}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 // ── SurfaceCard ───────────────────────────────────────────────
