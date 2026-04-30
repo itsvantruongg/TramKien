@@ -13,6 +13,7 @@ class GradeProvider extends ChangeNotifier {
   List<DiemMonHoc> _diem = [];
   List<DiemMonHoc> _diemOverview = []; // Điểm lấy từ trang Index (rút gọn)
   DiemSummary? _diemSummary;
+  Map<String, DiemSummary> _semesterSummaries = {};
   bool _diemState = false; // loading
 
   double _gpa = 0.0;
@@ -25,6 +26,7 @@ class GradeProvider extends ChangeNotifier {
   List<DiemMonHoc> get diem => _diem;
   List<DiemMonHoc> get diemOverview => _diemOverview;
   DiemSummary? get diemSummary => _diemSummary;
+  Map<String, DiemSummary> get semesterSummaries => _semesterSummaries;
   bool get diemLoading => _diemState;
 
   double get gpa => _gpa;
@@ -81,7 +83,7 @@ class GradeProvider extends ChangeNotifier {
       final result = await GradeApi.fetchDiemAllKyWithSummary(mssv: _mssv);
       if (result.diem.isNotEmpty) {
         final rawList = result.diem.map((d) => d.toMap()).toList();
-        await GradeDb.saveDiem(rawList);
+        await GradeDb.saveDiem(rawList, mssv: _mssv);
       }
 
       // SAU: xóa cache overview cũ trước khi lưu mới, đảm bảo mssv đúng
@@ -116,9 +118,8 @@ class GradeProvider extends ChangeNotifier {
       }
 
       // Ưu tiên lấy GPA và Tổng tín chỉ từ API summary (không cần tính toán)
-      _gpa = _diemSummary?.tbcTichLuyHe10 ?? await GradeDb.calculateGPA();
-      _totalCredits =
-          _diemSummary?.soTinChiTichLuy ?? await GradeDb.totalCreditsEarned();
+      _gpa = _diemSummary?.tbcTichLuyHe10 ?? 0.0;
+      _totalCredits = _diemSummary?.soTinChiTichLuy ?? 0;
 
       _gpaByKy = await GradeDb.getGPAByKy();
       _gpaByKyHe4 = await GradeDb.getGPAByKyHe4();
@@ -129,6 +130,8 @@ class GradeProvider extends ChangeNotifier {
         final key = '${d.namHoc}_HK${d.hocKy}';
         _diemByKy.putIfAbsent(key, () => []).add(d);
       }
+
+      _semesterSummaries = await GradeDb.getSemesterSummaries();
 
       notifyListeners();
     } finally {
@@ -280,12 +283,9 @@ class GradeProvider extends ChangeNotifier {
           await GradeDb.getDiem(isOverview: false); // ← thêm isOverview: false
       _diemOverview = await GradeDb.getDiem(isOverview: true);
       _diemSummary = await GradeDb.loadDiemSummary();
-
-      _gpa = _diemSummary?.tbcTichLuyHe10 ?? await GradeDb.calculateGPA();
-      _totalCredits =
-          _diemSummary?.soTinChiTichLuy ?? await GradeDb.totalCreditsEarned();
-
-      _gpaByKy = await GradeDb.getGPAByKy();
+      _gpa = _diemSummary?.tbcTichLuyHe10 ?? 0.0;
+      _totalCredits = _diemSummary?.soTinChiTichLuy ?? 0;
+      _semesterSummaries = await GradeDb.getSemesterSummaries();
       _gpaByKyHe4 = await GradeDb.getGPAByKyHe4();
 
       _diemByKy = {};
@@ -293,6 +293,7 @@ class GradeProvider extends ChangeNotifier {
         final key = '${d.namHoc}_HK${d.hocKy}';
         _diemByKy.putIfAbsent(key, () => []).add(d);
       }
+      _semesterSummaries = await GradeDb.getSemesterSummaries();
     } finally {
       _diemState = false; // ← THÊM DÒNG NÀY
       notifyListeners();

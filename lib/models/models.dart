@@ -91,6 +91,8 @@ class LichHoc {
   final int dotHoc;
   final String chuyenNganh;
   final DateTime? lastUpdated;
+  final String note;
+  final bool isManual;
 
   const LichHoc({
     this.id,
@@ -107,6 +109,8 @@ class LichHoc {
     required this.dotHoc,
     required this.chuyenNganh,
     this.lastUpdated,
+    this.note = '',
+    this.isManual = false,
   });
 
   factory LichHoc.fromMap(Map<String, dynamic> m) => LichHoc(
@@ -132,6 +136,8 @@ class LichHoc {
         lastUpdated: m['last_updated'] != null
             ? DateTime.tryParse(m['last_updated'])
             : null,
+        note: m['note'] ?? '',
+        isManual: (m['is_manual'] as int?) == 1,
       );
 
   Map<String, dynamic> toMap() => {
@@ -150,6 +156,8 @@ class LichHoc {
         'chuyen_nganh': chuyenNganh,
         'last_updated':
             lastUpdated?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'note': note,
+        'is_manual': isManual ? 1 : 0,
       };
 
   // Lấy thứ số (2-8) từ chuỗi "Thứ 4"
@@ -202,6 +210,27 @@ class LichHoc {
 // Hiển thị đầy đủ "06:55 - 09:20"
   String get gioHocFull =>
       gioKetThuc.isNotEmpty ? '$gioHoc - $gioKetThuc' : gioHoc;
+
+  LichHoc copyWith({String? note}) {
+    return LichHoc(
+      id: id,
+      tenHocPhan: tenHocPhan,
+      soTinChi: soTinChi,
+      tenLopTinChi: tenLopTinChi,
+      thoiGian: thoiGian,
+      thu: thu,
+      tiet: tiet,
+      phong: phong,
+      giaoVien: giaoVien,
+      hocKy: hocKy,
+      namHoc: namHoc,
+      dotHoc: dotHoc,
+      chuyenNganh: chuyenNganh,
+      lastUpdated: lastUpdated,
+      note: note ?? this.note,
+      isManual: isManual,
+    );
+  }
 }
 
 // ════════════════════════════════════════
@@ -226,6 +255,8 @@ class LichThi {
   final int hocKy;
   final String namHoc;
   final DateTime? lastUpdated;
+  final String note;
+  final bool isManual;
 
   const LichThi({
     this.id,
@@ -245,6 +276,8 @@ class LichThi {
     required this.hocKy,
     required this.namHoc,
     this.lastUpdated,
+    this.note = '',
+    this.isManual = false,
   });
 
   factory LichThi.fromMap(Map<String, dynamic> m) => LichThi(
@@ -275,6 +308,8 @@ class LichThi {
         lastUpdated: m['last_updated'] != null
             ? DateTime.tryParse(m['last_updated'])
             : null,
+        note: m['note'] ?? '',
+        isManual: (m['is_manual'] as int?) == 1,
       );
 
 // "15H00-17H00" → "15:00"
@@ -311,9 +346,36 @@ class LichThi {
         'nam_hoc': namHoc,
         'last_updated':
             lastUpdated?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'note': note,
+        'is_manual': isManual ? 1 : 0,
       };
 
+  LichThi copyWith({String? note}) {
+    return LichThi(
+      id: id,
+      tenMonHoc: tenMonHoc,
+      maMonHoc: maMonHoc,
+      soTinChi: soTinChi,
+      ngayThi: ngayThi,
+      caThi: caThi,
+      gioBatDau: gioBatDau,
+      gioKetThuc: gioKetThuc,
+      lanThi: lanThi,
+      dotThi: dotThi,
+      sooBaoDanh: sooBaoDanh,
+      phong: phong,
+      hinhThucThi: hinhThucThi,
+      hoanThi: hoanThi,
+      hocKy: hocKy,
+      namHoc: namHoc,
+      lastUpdated: lastUpdated,
+      note: note ?? this.note,
+      isManual: isManual,
+    );
+  }
+
   DateTime? get ngayThiDate {
+
     try {
       final parts = ngayThi.split('/');
       if (parts.length == 3) {

@@ -14,7 +14,7 @@ export 'db/finance_db.dart';
 
 class DatabaseService {
   static Database? _db;
-  static const _version = 11;
+  static const _version = 12;
   static String _currentMssv = '';
   static int _currentUserId = -1;
 
@@ -131,6 +131,25 @@ class DatabaseService {
           await db.execute(
               'ALTER TABLE student_grades ADD COLUMN raw_exam_score TEXT');
         }
+        if (oldV < 12) {
+          await db.execute('ALTER TABLE lich_hoc ADD COLUMN note TEXT DEFAULT ""');
+          await db.execute('ALTER TABLE lich_hoc ADD COLUMN is_manual INTEGER DEFAULT 0');
+          await db.execute('ALTER TABLE lich_thi ADD COLUMN note TEXT DEFAULT ""');
+          await db.execute('ALTER TABLE lich_thi ADD COLUMN is_manual INTEGER DEFAULT 0');
+
+          await db.execute('''
+            CREATE TABLE semester_summaries (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              mssv TEXT,
+              nam_hoc TEXT,
+              hoc_ky INTEGER,
+              tbc_he10 REAL,
+              tbc_he4 REAL,
+              so_tc_dat INTEGER,
+              UNIQUE(mssv, nam_hoc, hoc_ky)
+            )
+          ''');
+        }
       },
     );
   }
@@ -155,7 +174,8 @@ class DatabaseService {
         ten_lop_tin_chi TEXT, thoi_gian TEXT,
         thu TEXT, tiet TEXT, phong TEXT, giao_vien TEXT,
         hoc_ky INTEGER, nam_hoc TEXT, dot_hoc INTEGER,
-        chuyen_nganh TEXT, last_updated TEXT
+        chuyen_nganh TEXT, last_updated TEXT,
+        note TEXT DEFAULT "", is_manual INTEGER DEFAULT 0
       )
     ''');
 
@@ -167,7 +187,21 @@ class DatabaseService {
       ngay_thi TEXT, ca_thi TEXT, gio_thi TEXT,
       lan_thi INTEGER, dot_thi INTEGER,
       so_bao_danh TEXT, phong_thi TEXT, hinh_thuc TEXT, hoan_thi TEXT,
-      hoc_ky INTEGER, nam_hoc TEXT, last_updated TEXT
+      hoc_ky INTEGER, nam_hoc TEXT, last_updated TEXT,
+      note TEXT DEFAULT "", is_manual INTEGER DEFAULT 0
+    )
+  ''');
+
+    await db.execute('''
+    CREATE TABLE semester_summaries (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      mssv TEXT,
+      nam_hoc TEXT,
+      hoc_ky INTEGER,
+      tbc_he10 REAL,
+      tbc_he4 REAL,
+      so_tc_dat INTEGER,
+      UNIQUE(mssv, nam_hoc, hoc_ky)
     )
   ''');
 
