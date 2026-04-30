@@ -121,17 +121,21 @@ class GradeProvider extends ChangeNotifier {
       _gpa = _diemSummary?.tbcTichLuyHe10 ?? 0.0;
       _totalCredits = _diemSummary?.soTinChiTichLuy ?? 0;
 
+      // Nếu là MockData (admin), cần tự tính lại semester_summaries vì fetchAllKyWithSummary trả về 1 cục
+      if (HauApiService.currentMssv == 'admin') {
+        await GradeDb.recalculateSemesterSummaries(_mssv ?? '');
+      }
+
+      _semesterSummaries = await GradeDb.getSemesterSummaries();
       _gpaByKy = await GradeDb.getGPAByKy();
       _gpaByKyHe4 = await GradeDb.getGPAByKyHe4();
 
-      // ← BUILD _diemByKy (bị thiếu hoàn toàn!)
+      // ── BUILD _diemByKy ──
       _diemByKy = {};
       for (final d in _diem) {
         final key = '${d.namHoc}_HK${d.hocKy}';
         _diemByKy.putIfAbsent(key, () => []).add(d);
       }
-
-      _semesterSummaries = await GradeDb.getSemesterSummaries();
 
       notifyListeners();
     } finally {
@@ -286,6 +290,7 @@ class GradeProvider extends ChangeNotifier {
       _gpa = _diemSummary?.tbcTichLuyHe10 ?? 0.0;
       _totalCredits = _diemSummary?.soTinChiTichLuy ?? 0;
       _semesterSummaries = await GradeDb.getSemesterSummaries();
+      _gpaByKy = await GradeDb.getGPAByKy();
       _gpaByKyHe4 = await GradeDb.getGPAByKyHe4();
 
       _diemByKy = {};

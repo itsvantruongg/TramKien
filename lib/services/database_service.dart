@@ -14,7 +14,7 @@ export 'db/finance_db.dart';
 
 class DatabaseService {
   static Database? _db;
-  static const _version = 12;
+  static const _version = 13;
   static String _currentMssv = '';
   static int _currentUserId = -1;
 
@@ -132,10 +132,14 @@ class DatabaseService {
               'ALTER TABLE student_grades ADD COLUMN raw_exam_score TEXT');
         }
         if (oldV < 12) {
-          await db.execute('ALTER TABLE lich_hoc ADD COLUMN note TEXT DEFAULT ""');
-          await db.execute('ALTER TABLE lich_hoc ADD COLUMN is_manual INTEGER DEFAULT 0');
-          await db.execute('ALTER TABLE lich_thi ADD COLUMN note TEXT DEFAULT ""');
-          await db.execute('ALTER TABLE lich_thi ADD COLUMN is_manual INTEGER DEFAULT 0');
+          await db
+              .execute('ALTER TABLE lich_hoc ADD COLUMN note TEXT DEFAULT ""');
+          await db.execute(
+              'ALTER TABLE lich_hoc ADD COLUMN is_manual INTEGER DEFAULT 0');
+          await db
+              .execute('ALTER TABLE lich_thi ADD COLUMN note TEXT DEFAULT ""');
+          await db.execute(
+              'ALTER TABLE lich_thi ADD COLUMN is_manual INTEGER DEFAULT 0');
 
           await db.execute('''
             CREATE TABLE semester_summaries (
@@ -465,11 +469,21 @@ class DatabaseService {
   }
 
   // ── SEED ADMIN DATA (nạp mock data vào DB admin nếu chưa có) ──
-  // Gọi được nhiều lần (idempotent) — chỉ insert nếu bảng student rỗng
+  // Dùng SharedPreferences để đánh dấu cho chắc chắn
   static Future<bool> isAdminSeeded() async {
+    final prefs = await SharedPreferences.getInstance();
+    final seeded = prefs.getBool('admin_data_seeded_v2') ?? false;
+    if (!seeded) return false;
+
+    // Check thêm thực tế trong DB
     final d = await db;
     final rows = await d.query('student', limit: 1);
     return rows.isNotEmpty;
+  }
+
+  static Future<void> setAdminSeeded(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('admin_data_seeded_v2', value);
   }
 
   // ── KẾT QUẢ ĐĂNG KÝ ──────────────────────

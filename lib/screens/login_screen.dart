@@ -360,7 +360,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const Icon(Icons.verified_user_outlined,
                       size: 14, color: AppTheme.outline),
                   const SizedBox(width: 6),
-                  Text('Trợ Lý Học Tập HAU v1.0.1',
+                  Text('Trợ Lý Học Tập HAU v1.0.2',
                       style: Theme.of(context)
                           .textTheme
                           .labelSmall

@@ -95,6 +95,35 @@ class LocalNotificationService {
     }
   }
 
+  static Future<void> showImmediate(
+      {required int id, required String title, required String body}) async {
+    try {
+      await _plugin.show(
+        id,
+        title,
+        body,
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'update_channel',
+            'Thông báo cập nhật',
+            channelDescription: 'Thông báo khi có điểm, lịch mới',
+            importance: Importance.max,
+            priority: Priority.max,
+            showWhen: true,
+            icon: '@mipmap/ic_launcher',
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+      );
+    } catch (e) {
+      print('Lỗi khi showImmediate: $e');
+    }
+  }
+
   static Future<void> showTestNotification() async {
     try {
       await _plugin.show(
