@@ -261,17 +261,15 @@ class GradeProvider extends ChangeNotifier {
         nhanXet: nhanXet,
       );
       if (!ok) return false;
-
+      
+      // Đánh dấu đã vote trong DB cục bộ để UI cập nhật ngay lập tức
       if (diemId is int) await GradeDb.markDaVote(diemId);
 
-      _diem = await GradeDb.getDiem();
-      _diemByKy = {};
-      for (final d in _diem) {
-        final key = '${d.namHoc}_HK${d.hocKy}';
-        _diemByKy.putIfAbsent(key, () => []).add(d);
-      }
-      _gpa = await GradeDb.calculateGPA();
-      notifyListeners();
+      // TỰ ĐỘNG ĐỒNG BỘ LẠI ĐIỂM: 
+      // Việc này sẽ fetch lại điểm từ web (lúc này web đã hiện điểm số thay vì nút Vote)
+      // và cập nhật vào Database cục bộ + UI.
+      await syncDiem(forceRefresh: true);
+      
       return true;
     } catch (e) {
       debugPrint('voteAndRefreshDiem error: $e');
