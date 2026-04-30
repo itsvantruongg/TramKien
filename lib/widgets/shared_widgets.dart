@@ -503,6 +503,34 @@ class ScheduleCard extends StatelessWidget {
             if (lichHoc.giaoVien.isNotEmpty)
               _InfoChip(Icons.person_outline, lichHoc.giaoVien),
           ]),
+          if (lichHoc.note != null && lichHoc.note!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.lightbulb_outline_rounded,
+                      size: 14, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      lichHoc.note!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.brown,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ]),
       );
 }
@@ -605,7 +633,35 @@ class ExamCard extends StatelessWidget {
               color: AppTheme.onSurfaceVariant,
             ),
           ),
-        ],
+          if (lichThi.note != null && lichThi.note!.isNotEmpty) ...[
+            const Divider(height: 24),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.lightbulb_outline_rounded,
+                      size: 14, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      lichThi.note!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.brown,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ]
       ]),
     );
   }

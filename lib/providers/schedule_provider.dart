@@ -322,4 +322,46 @@ class ScheduleProvider extends ChangeNotifier {
     await syncLichHoc();
     await syncLichThi();
   }
+
+  // ── Manual Entries & Notes ───────────────
+
+  Future<void> addManualLichHoc(LichHoc item) async {
+    await ScheduleDb.insertManualLichHoc(item);
+    await refreshFromCache();
+  }
+
+  Future<void> addManualLichThi(LichThi item) async {
+    await ScheduleDb.insertManualLichThi(item);
+    await refreshFromCache();
+  }
+
+  Future<void> updateNoteLichHoc(int id, String note) async {
+    await ScheduleDb.updateLichHocNote(id, note);
+    // Cập nhật local state nhanh
+    final idx = _lichHoc.indexWhere((l) => l.id == id);
+    if (idx != -1) {
+      _lichHoc[idx] = _lichHoc[idx].copyWith(note: note);
+      notifyListeners();
+    }
+  }
+
+  Future<void> updateNoteLichThi(int id, String note) async {
+    await ScheduleDb.updateLichThiNote(id, note);
+    // Cập nhật local state nhanh
+    final idx = _lichThi.indexWhere((l) => l.id == id);
+    if (idx != -1) {
+      _lichThi[idx] = _lichThi[idx].copyWith(note: note);
+      notifyListeners();
+    }
+  }
+
+  Future<void> deleteManualLichHoc(int id) async {
+    await ScheduleDb.deleteManualLichHoc(id);
+    await refreshFromCache();
+  }
+
+  Future<void> deleteManualLichThi(int id) async {
+    await ScheduleDb.deleteManualLichThi(id);
+    await refreshFromCache();
+  }
 }

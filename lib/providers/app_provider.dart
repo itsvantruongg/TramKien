@@ -475,6 +475,7 @@ class AppProvider extends ChangeNotifier {
   List<DiemMonHoc> get diem => gradeProvider.diem;
   List<DiemMonHoc> get diemOverview => gradeProvider.diemOverview;
   DiemSummary? get diemSummary => gradeProvider.diemSummary;
+  Map<String, DiemSummary> get semesterSummaries => gradeProvider.semesterSummaries;
 
   // Finance
   LoadState get hocPhiState =>

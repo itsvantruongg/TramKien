@@ -87,6 +87,17 @@ class ScheduleDb {
     return rows.map(LichHoc.fromMap).toList();
   }
 
+  static Future<void> updateLichHocNote(int id, String note) async {
+    final d = await DatabaseService.db;
+    await d.update('lich_hoc', {'note': note}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  static Future<void> insertManualLichHoc(LichHoc item) async {
+    final d = await DatabaseService.db;
+    await d.insert('lich_hoc', item.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
   // ── LỊCH THI ─────────────────────────────
 
   static Future<void> saveLichThi(List<LichThi> list,
@@ -131,5 +142,26 @@ class ScheduleDb {
         whereArgs: hocKy != null ? [hocKy, namHoc] : null,
         orderBy: 'ngay_thi ASC');
     return rows.map(LichThi.fromMap).toList();
+  }
+
+  static Future<void> updateLichThiNote(int id, String note) async {
+    final d = await DatabaseService.db;
+    await d.update('lich_thi', {'note': note}, where: 'id = ?', whereArgs: [id]);
+  }
+
+  static Future<void> insertManualLichThi(LichThi item) async {
+    final d = await DatabaseService.db;
+    await d.insert('lich_thi', item.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  static Future<void> deleteManualLichHoc(int id) async {
+    final d = await DatabaseService.db;
+    await d.delete('lich_hoc', where: 'id = ? AND is_manual = 1', whereArgs: [id]);
+  }
+
+  static Future<void> deleteManualLichThi(int id) async {
+    final d = await DatabaseService.db;
+    await d.delete('lich_thi', where: 'id = ? AND is_manual = 1', whereArgs: [id]);
   }
 }

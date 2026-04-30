@@ -229,7 +229,7 @@ class _GradesScreenState extends State<GradesScreen> {
                 ),
               ),
             // ── Line chart — hiện kể cả khi chưa có GPA ──────────
-            if (allKyKeys.isNotEmpty || p.diemState == LoadState.loading)
+            if (true) // Hiện card chart luôn để giữ layout ổn định
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
@@ -278,7 +278,7 @@ class _GradesScreenState extends State<GradesScreen> {
               ),
 
             // ── Kỳ selector + GPA kỳ ──────────────────────────────
-            if (allKyKeys.isNotEmpty)
+            if (allKyKeys.isNotEmpty || currentKy == 'overview')
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
@@ -458,7 +458,25 @@ class _GpaLineChart extends StatelessWidget {
   Widget build(BuildContext context) {
     // Dùng allKyKeys để hiện đủ trục X, dùng sortedKeys để vẽ đường
     final displayKeys = allKyKeys.isNotEmpty ? allKyKeys : sortedKeys;
-    if (displayKeys.isEmpty) return const SizedBox.shrink();
+    if (displayKeys.isEmpty) {
+      return Container(
+        height: 220,
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.3)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.show_chart, size: 40, color: AppTheme.outlineVariant),
+            const SizedBox(height: 8),
+            Text('Chưa có dữ liệu biểu đồ',
+                style: TextStyle(color: AppTheme.outline, fontSize: 13)),
+          ],
+        ),
+      );
+    }
 
     const chartH = 200.0;
     const dotR = 6.0;
@@ -676,7 +694,7 @@ class _GpaLineChart extends StatelessWidget {
                           )
                         ],
                       ),
-                      child: Text(v.toStringAsFixed(1),
+                      child: Text(v.toStringAsFixed(2),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 11,
@@ -1110,8 +1128,8 @@ class _DiemSummaryCard extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('TỔNG KẾT HỌC TẬP',
-                style: TextStyle(
+            Text('TỔNG KẾT HỌC TẬP',
+                style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5,

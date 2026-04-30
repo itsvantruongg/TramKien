@@ -2,6 +2,8 @@ import 'package:http/http.dart' as http;
 import '../../models/models.dart';
 import '../hau_api_service.dart';
 import '../mock_data.dart';
+import '../db/grade_db.dart';
+
 
 typedef DiemResult = ({
   List<DiemMonHoc> diem,
@@ -116,7 +118,7 @@ class GradeApi {
         if (idx < 0) return null;
         final sub = plainText.substring(idx + label.length);
         // Bỏ qua dấu ":" và khoảng trắng, lấy số đầu tiên
-        final m = RegExp(r':\s*([\d]+[.,][\d]+)')
+        final m = RegExp(r':\s*(\d+(?:[.,]\d+)?)')
             .firstMatch(sub.substring(0, sub.length.clamp(0, 50)));
         return m != null
             ? double.tryParse(m.group(1)!.replaceAll(',', '.'))
@@ -174,8 +176,8 @@ class GradeApi {
       return DiemSummary(
         tbcTichLuyHe4: tbc4,
         tbcTichLuyHe10: tbc10,
-        tbcHocTapHe4: ht4,
-        tbcHocTapHe10: ht10,
+        tbcHocTapHe4: ht4 ?? tbc4,
+        tbcHocTapHe10: ht10 ?? tbc10,
         xepLoaiHe4: xl4,
         xepLoaiHe10: xl10,
         soTinChiTichLuy: tcA,
@@ -377,18 +379,9 @@ class GradeApi {
     // - tháng 2-7  → đang HK2 → skip HK2 của năm hiện tại
     // - tháng 1    → vẫn có thể đang chốt điểm HK1 → không skip gì cả
 
-    final int skipNam;
-    final int skipKy;
-    if (now.month >= 8) {
-      skipNam = currentNamHoc;
-      skipKy = 1;
-    } else if (now.month >= 2) {
-      skipNam = currentNamHoc;
-      skipKy = 2;
-    } else {
-      skipNam = -1;
-      skipKy = -1;
-    }
+    // Fetch toàn bộ kỳ, không bỏ qua kỳ nào của năm hiện tại
+    const int skipNam = -1;
+    const int skipKy = -1;
 
     final kyList = <({int ky, int nam})>[];
     for (int nam = startYear; nam <= currentNamHoc; nam++) {
@@ -583,6 +576,17 @@ class GradeApi {
                 result.summary!.tbcTichLuyHe10 != null)) {
           latestSummary = result.summary;
         }
+        // Lưu summary học kỳ vào DB
+        if (result.summary != null) {
+          await GradeDb.saveSemesterSummary(
+            mssv: mssv ?? '',
+            namHoc: '${k.nam}-${k.nam + 1}',
+            hocKy: k.ky,
+            tbc10: result.summary!.tbcHocTapHe10,
+            tbc4: result.summary!.tbcHocTapHe4,
+            tc: result.summary!.soTinChiHocTap,
+          );
+        }
       }
     }
 
@@ -629,6 +633,16 @@ class GradeApi {
               (retry.summary!.tbcTichLuyHe4 != null ||
                   retry.summary!.tbcTichLuyHe10 != null)) {
             latestSummary = retry.summary;
+          }
+          if (retry.summary != null) {
+            await GradeDb.saveSemesterSummary(
+              mssv: mssv ?? '',
+              namHoc: '${k.nam}-${k.nam + 1}',
+              hocKy: k.ky,
+              tbc10: retry.summary!.tbcHocTapHe10,
+              tbc4: retry.summary!.tbcHocTapHe4,
+              tc: retry.summary!.soTinChiHocTap,
+            );
           }
         }
       }

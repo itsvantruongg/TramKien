@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'schedule_manage_screen.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../models/models.dart';
@@ -34,7 +35,17 @@ class _ScheduleScreenState extends State<ScheduleScreen>
   Widget build(BuildContext context) {
     final p = context.watch<AppProvider>();
     return Scaffold(
-      backgroundColor: AppTheme.surface,
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 80),
+        child: FloatingActionButton(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const ScheduleManageScreen()),
+          ),
+          backgroundColor: AppTheme.primary,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
+      ),
       body: Column(children: [
         AcademicAppBar(
           subtitle: 'LỊCH HỌC & THI',
@@ -1413,6 +1424,34 @@ class _ScheduleCardFull extends StatelessWidget {
             if (lichHoc.giaoVien.isNotEmpty)
               _Chip(Icons.person_outline, lichHoc.giaoVien),
           ]),
+          if (lichHoc.note != null && lichHoc.note!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.amber.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.amber.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.lightbulb_outline_rounded,
+                      size: 14, color: Colors.orange),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      lichHoc.note!,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.brown,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ]),
       );
 }

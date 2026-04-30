@@ -261,33 +261,57 @@ class GradeDb {
         },
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
+  
+  static Future<void> saveSemesterSummary({
+    required String mssv,
+    required String namHoc,
+    required int hocKy,
+    double? tbc10,
+    double? tbc4,
+    int? tc,
+  }) async {
+    final d = await DatabaseService.db;
+    await d.insert(
+      'semester_summaries',
+      {
+        'mssv': mssv,
+        'nam_hoc': namHoc,
+        'hoc_ky': hocKy,
+        'tbc_he10': tbc10,
+        'tbc_he4': tbc4,
+        'so_tc_dat': tc,
+      },
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  static Future<Map<String, DiemSummary>> getSemesterSummaries() async {
+    final d = await DatabaseService.db;
+    final rows = await d.query('semester_summaries');
+    final Map<String, DiemSummary> result = {};
+    for (final r in rows) {
+      final key = '${r['nam_hoc']}_HK${r['hoc_ky']}';
+      result[key] = DiemSummary(
+        tbcHocTapHe10: (r['tbc_he10'] as num?)?.toDouble(),
+        tbcHocTapHe4: (r['tbc_he4'] as num?)?.toDouble(),
+        soTinChiHocTap: (r['so_tc_dat'] as num?)?.toInt(),
+      );
+    }
+    return result;
+  }
 
   // Trả về GPA hệ 10 (và hệ 4) theo từng kỳ (cho biểu đồ)
   static Future<Map<String, double>> getGPAByKy() async {
     final d = await DatabaseService.db;
-    final rows = await d.query('student_grades',
-        where: 'avg_grade IS NOT NULL AND avg_grade > 0',
-        orderBy: 'nam_hoc ASC, hoc_ky ASC');
-
-    final Map<String, List<Map<String, Object?>>> grouped = {};
-    for (final row in rows) {
-      final key = '${row['nam_hoc']}_HK${row['hoc_ky']}';
-      grouped.putIfAbsent(key, () => []).add(row);
-    }
-
-    final result = <String, double>{};
-    for (final entry in grouped.entries) {
-      double pts = 0;
-      int creds = 0;
-      for (final row in entry.value) {
-        final grade = (row['avg_grade'] as num?)?.toDouble() ?? 0;
-        final credits = (row['credits'] as int?) ?? 0;
-        if (grade > 0 && credits > 0) {
-          pts += grade * credits;
-          creds += credits;
-        }
+    final Map<String, double> result = {};
+    
+    final summaries = await d.query('semester_summaries');
+    for (final s in summaries) {
+      final key = '${s['nam_hoc']}_HK${s['hoc_ky']}';
+      final val = (s['tbc_he10'] as num?)?.toDouble();
+      if (val != null && val > 0) {
+        result[key] = val;
       }
-      if (creds > 0) result[entry.key] = pts / creds;
     }
     return result;
   }
@@ -307,38 +331,20 @@ class GradeDb {
   // Thêm getGPAByKyHe4 — dùng numeric_grade (Điểm số hệ 4):
   static Future<Map<String, double>> getGPAByKyHe4() async {
     final d = await DatabaseService.db;
-    // ← FIX: lấy cả rows có avg_grade để fallback convert
-    final rows = await d.query('student_grades',
-        where: 'avg_grade IS NOT NULL AND avg_grade > 0',
-        orderBy: 'nam_hoc ASC, hoc_ky ASC');
-
-    final Map<String, List<Map<String, Object?>>> grouped = {};
-    for (final row in rows) {
-      final key = '${row['nam_hoc']}_HK${row['hoc_ky']}';
-      grouped.putIfAbsent(key, () => []).add(row);
-    }
-
-    final result = <String, double>{};
-    for (final entry in grouped.entries) {
-      double pts = 0;
-      int creds = 0;
-      for (final row in entry.value) {
-        // Ưu tiên numeric_grade (hệ 4 thực), fallback convert từ avg_grade
-        final grade4 = (row['numeric_grade'] as num?)?.toDouble();
-        final grade10 = (row['avg_grade'] as num?)?.toDouble() ?? 0.0;
-        final grade = (grade4 != null && grade4 > 0)
-            ? grade4
-            : _he10ToHe4(grade10); // ← FIX: convert thay vì bỏ qua
-        final credits = (row['credits'] as int?) ?? 0;
-        if (grade > 0 && credits > 0) {
-          pts += grade * credits;
-          creds += credits;
-        }
+    final Map<String, double> result = {};
+    
+    final summaries = await d.query('semester_summaries');
+    for (final s in summaries) {
+      final key = '${s['nam_hoc']}_HK${s['hoc_ky']}';
+      final val = (s['tbc_he4'] as num?)?.toDouble();
+      if (val != null && val > 0) {
+        result[key] = val;
       }
-      if (creds > 0) result[entry.key] = pts / creds;
     }
+
     return result;
   }
+
 
   static Future<DiemSummary?> loadDiemSummary() async {
     try {
