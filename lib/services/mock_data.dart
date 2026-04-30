@@ -94,8 +94,8 @@ class MockData {
   static DiemSummary getDiemSummary() => DiemSummary(
         tbcTichLuyHe4: 3.2,
         tbcTichLuyHe10: 8.1,
-        tbcHocTapHe4: null,
-        tbcHocTapHe10: null,
+        tbcHocTapHe4: 3.15,
+        tbcHocTapHe10: 8.05,
         xepLoaiHe4: 'Khá',
         xepLoaiHe10: 'Khá',
         soTinChiTichLuy: 56,

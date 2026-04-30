@@ -257,42 +257,68 @@ class AppProvider extends ChangeNotifier {
     final newDaDong = financeProvider.tongHocPhiDaDong;
 
     if (prevDiemCount > 0 && newDiemCount > prevDiemCount) {
+      final title = 'Có điểm mới';
+      final body = '${newDiemCount - prevDiemCount} môn học mới đã được cập nhật';
       await NotificationService.add(AppNotif(
         id: 'grade_${now.millisecondsSinceEpoch}',
-        title: 'Có điểm mới',
-        body: '${newDiemCount - prevDiemCount} môn học mới đã được cập nhật',
+        title: title,
+        body: body,
         targetTab: 2,
         ts: now,
       ));
+      await LocalNotificationService.showImmediate(
+        id: 1001,
+        title: title,
+        body: body,
+      );
     }
     if (prevLichHocCount > 0 && newLichHocCount > prevLichHocCount) {
+      final title = 'Lịch học được cập nhật';
+      final body = 'Có ${newLichHocCount - prevLichHocCount} buổi học mới trong lịch';
       await NotificationService.add(AppNotif(
         id: 'lich_${now.millisecondsSinceEpoch}',
-        title: 'Lịch học được cập nhật',
-        body:
-            'Có ${newLichHocCount - prevLichHocCount} buổi học mới trong lịch',
+        title: title,
+        body: body,
         targetTab: 1,
         ts: now,
       ));
+      await LocalNotificationService.showImmediate(
+        id: 1002,
+        title: title,
+        body: body,
+      );
     }
     if (prevLichThiCount > 0 && newLichThiCount > prevLichThiCount) {
+      final title = 'Có lịch thi mới';
+      final body = '${newLichThiCount - prevLichThiCount} lịch thi vừa được thêm vào';
       await NotificationService.add(AppNotif(
         id: 'thi_${now.millisecondsSinceEpoch}',
-        title: 'Có lịch thi mới',
-        body:
-            '${newLichThiCount - prevLichThiCount} lịch thi vừa được thêm vào',
+        title: title,
+        body: body,
         targetTab: 1,
         ts: now,
       ));
+      await LocalNotificationService.showImmediate(
+        id: 1003,
+        title: title,
+        body: body,
+      );
     }
     if (prevDaDong > 0 && newDaDong > prevDaDong) {
+      final title = 'Thanh toán được ghi nhận';
+      final body = 'Học phí đã được cập nhật';
       await NotificationService.add(AppNotif(
         id: 'finance_${now.millisecondsSinceEpoch}',
-        title: 'Thanh toán được ghi nhận',
-        body: 'Học phí đã được cập nhật',
+        title: title,
+        body: body,
         targetTab: 3,
         ts: now,
       ));
+      await LocalNotificationService.showImmediate(
+        id: 1004,
+        title: title,
+        body: body,
+      );
     }
   }
 

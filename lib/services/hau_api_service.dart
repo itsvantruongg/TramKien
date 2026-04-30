@@ -217,7 +217,7 @@ class HauApiService {
     // 3. Lịch thi
     await ScheduleDb.saveLichThi(MockData.getLichThi());
 
-    // 4. Điểm
+    // 4. Điểm chi tiết
     final diem = MockData.getDiem();
     final rawList = diem
         .map((d) => {
@@ -232,16 +232,42 @@ class HauApiService {
               'hocKy': d.hocKy,
               'namHoc': d.namHoc,
               'canVote': d.canVote,
+              'is_overview': 0,
+              'mssv': 'admin',
             })
         .toList();
     await GradeDb.saveDiem(rawList);
 
+    // 4.1 Điểm Overview (Tab Tổng quan)
+    final overview = MockData.getDiemOverview();
+    final rawOverview = overview
+        .map((d) => {
+              'tenMonHoc': d.tenMonHoc,
+              'maMonHoc': d.maMonHoc,
+              'soTinChi': d.soTinChi,
+              'componentScore': d.componentScore,
+              'examScore': d.examScore,
+              'avgGrade': d.avgGrade,
+              'diemTongKet': d.diemTongKet,
+              'xepLoai': d.xepLoai,
+              'hocKy': 0,
+              'namHoc': 'Overview',
+              'is_overview': 1,
+              'mssv': 'admin',
+            })
+        .toList();
+    await GradeDb.saveDiem(rawOverview);
+
     // 5. Học phí
     await MockData.populateFinance();
-    // 6. Tổng kết học tập (diem summary)
-    await GradeDb.saveDiemSummary(MockData.getDiemSummary());
 
-    print('✅ Seed Admin DB hoàn tất (student + lịch + điểm + học phí).');
+    // 6. Tổng kết học tập & Tính toán GPA biểu đồ
+    await GradeDb.saveDiemSummary(MockData.getDiemSummary());
+    await GradeDb.recalculateSemesterSummaries('admin');
+
+    await DatabaseService.setAdminSeeded(true);
+    print(
+        '✅ Seed Admin DB hoàn tất (student + lịch + điểm + overview + GPA + học phí).');
   }
 
   // ── THÔNG TIN SINH VIÊN ────────────────────────────────────

@@ -261,7 +261,7 @@ class GradeDb {
         },
         conflictAlgorithm: ConflictAlgorithm.replace);
   }
-  
+
   static Future<void> saveSemesterSummary({
     required String mssv,
     required String namHoc,
@@ -304,7 +304,7 @@ class GradeDb {
   static Future<Map<String, double>> getGPAByKy() async {
     final d = await DatabaseService.db;
     final Map<String, double> result = {};
-    
+
     final summaries = await d.query('semester_summaries');
     for (final s in summaries) {
       final key = '${s['nam_hoc']}_HK${s['hoc_ky']}';
@@ -332,7 +332,7 @@ class GradeDb {
   static Future<Map<String, double>> getGPAByKyHe4() async {
     final d = await DatabaseService.db;
     final Map<String, double> result = {};
-    
+
     final summaries = await d.query('semester_summaries');
     for (final s in summaries) {
       final key = '${s['nam_hoc']}_HK${s['hoc_ky']}';
@@ -344,7 +344,6 @@ class GradeDb {
 
     return result;
   }
-
 
   static Future<DiemSummary?> loadDiemSummary() async {
     try {
@@ -408,5 +407,61 @@ class GradeDb {
       where: 'is_overview = 1 AND mssv = ?',
       whereArgs: [mssv],
     );
+  }
+
+  // Tự động tính toán lại semester_summaries từ bảng student_grades
+  static Future<void> recalculateSemesterSummaries(String mssv) async {
+    final d = await DatabaseService.db;
+    final rows = await d.query(
+      'student_grades',
+      where: 'is_overview = 0',
+      orderBy: 'nam_hoc ASC, hoc_ky ASC',
+    );
+
+    final Map<String, List<Map<String, dynamic>>> grouped = {};
+    for (final r in rows) {
+      final key = '${r['nam_hoc']}_HK${r['hoc_ky']}';
+      grouped.putIfAbsent(key, () => []).add(r);
+    }
+
+    await d.transaction((txn) async {
+      for (final entry in grouped.entries) {
+        final keyParts = entry.key.split('_HK');
+        final namHoc = keyParts[0];
+        final hocKy = int.parse(keyParts[1]);
+        final items = entry.value;
+
+        double totalPts10 = 0;
+        double totalPts4 = 0;
+        int totalCreds = 0;
+
+        for (final item in items) {
+          final grade10 = (item['avg_grade'] as num?)?.toDouble() ??
+              (item['numeric_grade'] as num?)?.toDouble() ??
+              0.0;
+          final credits = (item['credits'] as int?) ?? 0;
+          if (grade10 > 0 && credits > 0) {
+            totalPts10 += grade10 * credits;
+            totalPts4 += _he10ToHe4(grade10) * credits;
+            totalCreds += credits;
+          }
+        }
+
+        if (totalCreds > 0) {
+          await txn.insert(
+            'semester_summaries',
+            {
+              'mssv': mssv,
+              'nam_hoc': namHoc,
+              'hoc_ky': hocKy,
+              'tbc_he10': totalPts10 / totalCreds,
+              'tbc_he4': totalPts4 / totalCreds,
+              'so_tc_dat': totalCreds,
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace,
+          );
+        }
+      }
+    });
   }
 }

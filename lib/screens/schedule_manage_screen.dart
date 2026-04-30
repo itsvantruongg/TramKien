@@ -18,6 +18,13 @@ class ScheduleManageScreen extends StatefulWidget {
 class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
   String _searchQuery = '';
   String? _selectedSemester;
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -67,8 +74,22 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
       } catch (_) {}
     }
     if (latestDate == null) return false;
-    // Completed if today > latestDate + 21 days
-    return DateTime.now().isAfter(latestDate.add(const Duration(days: 21)));
+    // Completed if today > latestDate + 14 days
+    return DateTime.now().isAfter(latestDate.add(const Duration(days: 14)));
+  }
+
+  /// Hàm chuẩn hóa tiếng Việt: bỏ dấu, đưa về chữ thường
+  String _normalize(String? s) {
+    if (s == null) return '';
+    var str = s.toLowerCase();
+    const vietnamese =
+        'àáảãạăằắẳẵặâầấẩẫậèéẻẽẹêềếểễệìíỉĩịòóỏõọôồốổỗộơờớởỡợùúủũụưừứửữựỳýỷỹỵđ';
+    const latin =
+        'aaaaaaaaaaaaaaaaaeeeeeeeeeeeiiiiiiooooooooooooooooouuuuuuuuuuuuyyyyyd';
+    for (int i = 0; i < vietnamese.length; i++) {
+      str = str.replaceAll(vietnamese[i], latin[i]);
+    }
+    return str;
   }
 
   @override
@@ -99,11 +120,13 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
 
       if (sem != _selectedSemester) return false;
 
-      final query = _searchQuery.toLowerCase();
-      final title = (item.lichHoc?.tenHocPhan ?? item.lichThi?.tenMonHoc ?? '')
-          .toLowerCase();
-      final note =
-          (item.lichHoc?.note ?? item.lichThi?.note ?? '').toLowerCase();
+      final query = _normalize(_searchQuery);
+      if (query.isEmpty) return true;
+
+      final title =
+          _normalize(item.lichHoc?.tenHocPhan ?? item.lichThi?.tenMonHoc ?? '');
+      final note = _normalize(item.lichHoc?.note ?? item.lichThi?.note ?? '');
+
       return title.contains(query) || note.contains(query);
     }).toList();
 
@@ -134,7 +157,7 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
           schedule.isExpired = true;
         }
       } else {
-        // No exam: check 21 days after last class
+        // No exam: check 14 days after last class
         if (_isSubjectCompletedNoExam(schedule.learning)) {
           schedule.isExpired = true;
         }
@@ -177,12 +200,22 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
                     offset: const Offset(0, 4))
               ]),
               child: TextField(
+                controller: _searchController,
                 decoration: InputDecoration(
                   hintText: 'Tìm kiếm học phần hoặc ghi chú...',
                   hintStyle:
                       const TextStyle(fontSize: 14, color: AppTheme.outline),
                   prefixIcon: const Icon(Icons.search_rounded,
                       color: AppTheme.primary, size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 20),
+                          onPressed: () {
+                            _searchController.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
                   filled: true,
                   fillColor: AppTheme.surfaceContainerLowest,
                   contentPadding: const EdgeInsets.symmetric(vertical: 12),
@@ -340,6 +373,8 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
                   color: isCardDisabled
                       ? AppTheme.outline.withOpacity(0.05)
                       : AppTheme.primary.withOpacity(0.03),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(20)),
                   border: Border(
                       bottom: BorderSide(
                           color: AppTheme.outlineVariant.withOpacity(0.2))),
@@ -347,15 +382,20 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(
-                        item.title,
-                        style: GoogleFonts.manrope(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 15,
-                          color: isCardDisabled
-                              ? AppTheme.outline
-                              : AppTheme.onSurface,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.title,
+                            style: GoogleFonts.manrope(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                              color: isCardDisabled
+                                  ? AppTheme.outline
+                                  : AppTheme.onSurface,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     if (isCardDisabled)
@@ -591,6 +631,18 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
     } catch (_) {
       return range;
     }
+  }
+
+  String _formatSemester(String sem) {
+    try {
+      final parts = sem.split('_');
+      if (parts.length == 2) {
+        final year = parts[0];
+        final ky = parts[1].replaceAll('HK', '');
+        return 'HK$ky ($year)';
+      }
+    } catch (_) {}
+    return sem;
   }
 
   void _showCardMenu(

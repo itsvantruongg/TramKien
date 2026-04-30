@@ -98,9 +98,19 @@ class ProfileScreen extends StatelessWidget {
 
               const SizedBox(height: 20),
               Center(
-                  child: Text('Version 1.0.1',
+                  child: Column(
+                children: [
+                  Text('VERSION 1.0.2',
                       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppTheme.outlineVariant, letterSpacing: 1.5))),
+                          color: AppTheme.outline,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 2)),
+                  // const SizedBox(height: 4),
+                  // Text('Cập nhật: 30/04/2026',
+                  //     style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  //         color: AppTheme.outlineVariant, fontSize: 10)),
+                ],
+              )),
             ]),
           ),
         ),
@@ -525,34 +535,41 @@ class _Row extends StatelessWidget {
   final String label, value;
   const _Row(this.icon, this.label, this.value);
   @override
-  Widget build(BuildContext ctx) => Row(children: [
-        Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(12),
+  Widget build(BuildContext ctx) => Row(
+        crossAxisAlignment: CrossAxisAlignment.start, // Căn trên đầu cho đều
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 18, color: AppTheme.primary),
           ),
-          child: Icon(icon, size: 18, color: AppTheme.primary),
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(label,
-              style: Theme.of(ctx)
-                  .textTheme
-                  .labelSmall
-                  ?.copyWith(color: AppTheme.outline, letterSpacing: 1)),
-          const SizedBox(height: 2),
-          Text(value,
-              style: Theme.of(ctx)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(fontWeight: FontWeight.w600),
-              overflow: TextOverflow.ellipsis),
-        ])),
-      ]);
+          const SizedBox(width: 14),
+          Expanded(
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                Text(label,
+                    style: Theme.of(ctx)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: AppTheme.outline, letterSpacing: 1)),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: Theme.of(ctx)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.w600, height: 1.3),
+                  maxLines: 3, // Cho phép hiện 3 dòng
+                  softWrap: true,
+                ),
+              ])),
+        ],
+      );
 }
 
 class _Div extends StatelessWidget {
