@@ -80,6 +80,17 @@ class NotificationService {
         _key, jsonEncode(list.map((x) => x.toJson()).toList()));
   }
 
+  static Future<void> markRead(String id) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = await getAll();
+    final idx = list.indexWhere((n) => n.id == id);
+    if (idx != -1) {
+      list[idx].isRead = true;
+      await prefs.setString(
+          _key, jsonEncode(list.map((x) => x.toJson()).toList()));
+    }
+  }
+
   static Future<void> clearAll() async =>
       (await SharedPreferences.getInstance()).remove(_key);
 }

@@ -140,23 +140,28 @@ class GradeDb {
   }) async {
     final d = await DatabaseService.db;
 
+    final mssv = DatabaseService.currentMssv;
+
     String? where;
     List<Object?>? whereArgs;
 
     if (isOverview == true) {
-      where = 'is_overview = 1';
-      whereArgs = null;
+      where = 'mssv = ? AND is_overview = 1';
+      whereArgs = [mssv];
     } else if (isOverview == false) {
-      where = 'is_overview = 0';
+      where = 'mssv = ? AND is_overview = 0';
+      whereArgs = [mssv];
       if (hocKy != null && namHoc != null) {
         where += ' AND hoc_ky = ? AND nam_hoc = ?';
-        whereArgs = [hocKy, namHoc];
+        whereArgs.addAll([hocKy, namHoc]);
       }
     } else {
       // isOverview == null → lấy tất cả (hành vi cũ)
+      where = 'mssv = ?';
+      whereArgs = [mssv];
       if (hocKy != null && namHoc != null) {
-        where = 'hoc_ky = ? AND nam_hoc = ?';
-        whereArgs = [hocKy, namHoc];
+        where += ' AND hoc_ky = ? AND nam_hoc = ?';
+        whereArgs.addAll([hocKy, namHoc]);
       }
     }
 

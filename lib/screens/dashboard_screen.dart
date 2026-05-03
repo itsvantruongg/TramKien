@@ -18,28 +18,28 @@ class DashboardScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
-      body: RefreshIndicator(
-        onRefresh: () => p.syncAll(forceRefresh: true),
-        child: CustomScrollView(slivers: [
-          SliverToBoxAdapter(
-            child: AcademicAppBar(
-              subtitle: 'DASHBOARD',
-              actions: [
-                NotificationBell(onNavigate: onNavigate),
-                IconButton(
-                  icon: p.isSyncing
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.sync_outlined,
-                          color: AppTheme.primary),
-                  onPressed: () => p.syncAll(forceRefresh: true),
-                ),
-              ],
-            ),
+      body: Column(
+        children: [
+          AcademicAppBar(
+            subtitle: 'DASHBOARD',
+            actions: [
+              NotificationBell(onNavigate: onNavigate),
+              IconButton(
+                icon: p.isSyncing
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                    : const Icon(Icons.sync_outlined, color: AppTheme.primary),
+                onPressed: () => p.syncAll(forceRefresh: true),
+              ),
+            ],
           ),
-          SliverPadding(
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () => p.syncAll(forceRefresh: true),
+              child: CustomScrollView(slivers: [
+                SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
@@ -290,7 +290,10 @@ class DashboardScreen extends StatelessWidget {
               ]),
             ),
           ),
-        ]),
+              ]),
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -55,62 +55,57 @@ class _GradesScreenState extends State<GradesScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
       backgroundColor: AppTheme.surface,
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        // 2. SỬA LẠI TOÀN BỘ CÁC SỰ KIỆN VUỐT MÀN HÌNH Ở ĐÂY
-        onHorizontalDragUpdate: (details) {
-          setState(() {
-            // Cập nhật vị trí đang vuốt (-1.0 đến 1.0)
-            _swipeOffset += details.delta.dx / screenWidth;
-            _swipeOffset = _swipeOffset.clamp(-1.0, 1.0);
-          });
-        },
-        onHorizontalDragEnd: (details) {
-          final velocity = details.primaryVelocity ?? 0;
-          bool nextShowHe10 = _showHe10;
-
-          // Nếu vuốt mạnh (velocity) hoặc kéo lố 25% màn hình (offset) thì chuyển
-          if (velocity > 200 || _swipeOffset > 0.25) {
-            nextShowHe10 = true; // Vuốt sang phải -> Chọn Hệ 10
-          } else if (velocity < -200 || _swipeOffset < -0.25) {
-            nextShowHe10 = false; // Vuốt sang trái -> Chọn Hệ 4
-          }
-
-          if (nextShowHe10 != _showHe10) {
-            setState(() => _showHe10 = nextShowHe10);
-          }
-          // Vuốt xong thì nhả offset về 0 để phần xanh trượt vào vị trí cố định
-          setState(() => _swipeOffset = 0.0);
-        },
-        onHorizontalDragCancel: () {
-          setState(() => _swipeOffset = 0.0);
-        },
-        child: RefreshIndicator(
-          onRefresh: () => p.syncGrades(),
-          child: CustomScrollView(slivers: [
-            SliverToBoxAdapter(
-                child: AcademicAppBar(
-              subtitle: 'ĐIỂM HỌC TẬP',
-              actions: [
-                NotificationBell(onNavigate: widget.onNavigate),
-                IconButton(
-                  icon: p.diemState == LoadState.loading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: AppTheme.primary))
-                      : const Icon(Icons.sync_outlined,
-                          color: AppTheme.primary),
-                  onPressed: () => p.syncGrades(forceRefresh: true),
-                  tooltip: 'Đồng bộ điểm',
-                ),
-              ],
-            )),
-            // Toggle Hệ 10 / Hệ 4
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+      body: Column(
+        children: [
+          AcademicAppBar(
+            subtitle: 'ĐIỂM HỌC TẬP',
+            actions: [
+              NotificationBell(onNavigate: widget.onNavigate),
+              IconButton(
+                icon: p.diemState == LoadState.loading
+                    ? const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: AppTheme.primary))
+                    : const Icon(Icons.sync_outlined, color: AppTheme.primary),
+                onPressed: () => p.syncGrades(forceRefresh: true),
+                tooltip: 'Đồng bộ điểm',
+              ),
+            ],
+          ),
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onHorizontalDragUpdate: (details) {
+                setState(() {
+                  _swipeOffset += details.delta.dx / screenWidth;
+                  _swipeOffset = _swipeOffset.clamp(-1.0, 1.0);
+                });
+              },
+              onHorizontalDragEnd: (details) {
+                final velocity = details.primaryVelocity ?? 0;
+                bool nextShowHe10 = _showHe10;
+                if (velocity > 200 || _swipeOffset > 0.25) {
+                  nextShowHe10 = true;
+                } else if (velocity < -200 || _swipeOffset < -0.25) {
+                  nextShowHe10 = false;
+                }
+                if (nextShowHe10 != _showHe10) {
+                  setState(() => _showHe10 = nextShowHe10);
+                }
+                setState(() => _swipeOffset = 0.0);
+              },
+              onHorizontalDragCancel: () {
+                setState(() => _swipeOffset = 0.0);
+              },
+              child: RefreshIndicator(
+                onRefresh: () => p.syncGrades(),
+                child: CustomScrollView(slivers: [
+                  // Toggle Hệ 10 / Hệ 4
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                 child: Row(
                   children: [
                     const Text('Hiển thị theo:',
@@ -403,10 +398,14 @@ class _GradesScreenState extends State<GradesScreen> {
                 ]),
               ),
             ),
-          ]),
+          ],
         ),
       ),
-    );
+    ),
+  ),
+],
+),
+);
   }
 
   // "2023-2024_HK1" hoặc "HK1 2023-2024" → comparable int

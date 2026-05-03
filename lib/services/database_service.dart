@@ -16,6 +16,7 @@ class DatabaseService {
   static Database? _db;
   static const _version = 13;
   static String _currentMssv = '';
+  static String get currentMssv => _currentMssv;
   static int _currentUserId = -1;
 
   // ── User Registry (mssv → userId) ─────────
