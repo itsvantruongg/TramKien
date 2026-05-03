@@ -109,7 +109,7 @@ class GradeProvider extends ChangeNotifier {
       }
 
       // ── Load lại từ DB để đảm bảo data nhất quán ──
-      _diem = await GradeDb.getDiem();
+      _diem = await GradeDb.getDiem(isOverview: false);
       _diemOverview = await GradeDb.getDiem(isOverview: true);
 
       _diemSummary = result.latestSummary ?? await GradeDb.loadDiemSummary();

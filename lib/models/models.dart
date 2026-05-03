@@ -417,6 +417,7 @@ class DiemMonHoc {
   final String namHoc;
   final bool isElective; // Môn tự chọn
   final bool canVote; // Môn cần vote mới xem được điểm
+  final bool isOverview; // Mới thêm: phân biệt điểm overview
   final DateTime? lastUpdated;
 
   const DiemMonHoc({
@@ -439,6 +440,7 @@ class DiemMonHoc {
     required this.namHoc,
     this.isElective = false,
     this.canVote = false,
+    this.isOverview = false,
     this.lastUpdated,
   });
 
@@ -476,6 +478,7 @@ class DiemMonHoc {
         namHoc: m['nam_hoc'] ?? '',
         isElective: (m['is_elective'] as int?) == 1,
         canVote: m['status'] == 'pending_vote',
+        isOverview: (m['is_overview'] as int?) == 1,
         lastUpdated: m['last_updated'] != null
             ? DateTime.tryParse(m['last_updated'])
             : null,
@@ -498,6 +501,7 @@ class DiemMonHoc {
         'raw_component_score': rawComponentScore,
         'raw_exam_score': rawExamScore,
         'is_elective': isElective ? 1 : 0,
+        'is_overview': isOverview ? 1 : 0,
         'status': canVote ? 'pending_vote' : 'completed',
         'hoc_ky': hocKy,
         'nam_hoc': namHoc,

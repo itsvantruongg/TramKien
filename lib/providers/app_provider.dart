@@ -178,6 +178,10 @@ class AppProvider extends ChangeNotifier {
       // Xóa thông báo đã lên lịch
       await LocalNotificationService.setNotificationEnabled(
           mssvToDelete, false);
+      
+      // Xóa data thông báo theo yêu cầu mới
+      await NotificationService.clearAll();
+      _unreadNotifCount = 0;
 
       _authState = AuthState.loggedOut;
       _currentMssv = '';
@@ -239,9 +243,23 @@ class AppProvider extends ChangeNotifier {
       debugPrint('⚠️ syncAll error: $e');
     } finally {
       _isSyncing = false;
-      _unreadNotifCount = await NotificationService.unreadCount();
+      await refreshUnreadCount();
+      notifyListeners(); // Đảm bảo icon quay sẽ dừng
+    }
+  }
+
+  Future<void> refreshUnreadCount() async {
+    final count = await NotificationService.unreadCount();
+    if (_unreadNotifCount != count) {
+      _unreadNotifCount = count;
+      debugPrint('🔔 Notification count updated: $_unreadNotifCount');
       notifyListeners();
     }
+  }
+
+  Future<void> markNotifAsRead(String id) async {
+    await NotificationService.markRead(id);
+    await refreshUnreadCount();
   }
 
   Future<void> _detectAndNotify({
@@ -256,21 +274,27 @@ class AppProvider extends ChangeNotifier {
     final newLichThiCount = scheduleProvider.lichThi.length;
     final newDaDong = financeProvider.tongHocPhiDaDong;
 
+    // Chỉ thông báo nếu trước đó đã có data (không phải lần sync đầu tiên khi mới cài app/clear cache)
     if (prevDiemCount > 0 && newDiemCount > prevDiemCount) {
-      final title = 'Có điểm mới';
-      final body = '${newDiemCount - prevDiemCount} môn học mới đã được cập nhật';
-      await NotificationService.add(AppNotif(
-        id: 'grade_${now.millisecondsSinceEpoch}',
-        title: title,
-        body: body,
-        targetTab: 2,
-        ts: now,
-      ));
-      await LocalNotificationService.showImmediate(
-        id: 1001,
-        title: title,
-        body: body,
-      );
+      // Đếm xem thực sự có bao nhiêu môn CÓ ĐIỂM mới (tránh count nhầm các môn overview)
+      // Ở đây ta tin tưởng gradeProvider.diem chỉ chứa môn học thực (isOverview=false)
+      final diff = newDiemCount - prevDiemCount;
+      if (diff > 0) {
+        final title = 'Có điểm mới';
+        final body = 'Vừa có $diff môn học có điểm mới trên hệ thống tin chỉ.';
+        await NotificationService.add(AppNotif(
+          id: 'grade_${now.millisecondsSinceEpoch}',
+          title: title,
+          body: body,
+          targetTab: 2,
+          ts: now,
+        ));
+        await LocalNotificationService.showImmediate(
+          id: 1001,
+          title: title,
+          body: body,
+        );
+      }
     }
     if (prevLichHocCount > 0 && newLichHocCount > prevLichHocCount) {
       final title = 'Lịch học được cập nhật';
@@ -518,9 +542,9 @@ class AppProvider extends ChangeNotifier {
   // All-time totals
   double get tongHocPhiAllTerms => financeProvider.tongHocPhiAllTerms;
   String? get tongThieuHocPhi => financeProvider.tongThieuHocPhi;
-  double get tongHocPhiAllPhaiDong => tongHocPhiAllTerms;
-  double get tongHocPhiAllDaDong => tongHocPhiDaDong;
-  double get tongHocPhiAllConLai => tongHocPhiConLai;
+  double get tongHocPhiAllPhaiDong => financeProvider.tongHocPhiPhaiDong;
+  double get tongHocPhiAllDaDong => financeProvider.tongHocPhiDaDong;
+  double get tongHocPhiAllConLai => financeProvider.tongHocPhiConLai;
   double get progressHocPhiAll => tongHocPhiAllPhaiDong > 0
       ? (tongHocPhiAllDaDong / tongHocPhiAllPhaiDong).clamp(0.0, 1.0)
       : 0.0;

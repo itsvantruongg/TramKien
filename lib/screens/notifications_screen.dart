@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/app_provider.dart';
 import '../services/notification_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/shared_widgets.dart';
@@ -23,11 +25,13 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Future<void> _load() async {
     final list = await NotificationService.getAll();
     await NotificationService.markAllRead();
-    if (mounted)
+    if (mounted) {
+      context.read<AppProvider>().refreshUnreadCount();
       setState(() {
         _notifs = list;
         _loading = false;
       });
+    }
   }
 
   @override
@@ -71,7 +75,10 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   TextButton(
                     onPressed: () async {
                       await NotificationService.clearAll();
-                      if (mounted) setState(() => _notifs.clear());
+                      if (mounted) {
+                        context.read<AppProvider>().refreshUnreadCount();
+                        setState(() => _notifs.clear());
+                      }
                     },
                     child: const Text('Xóa tất cả',
                         style: TextStyle(color: AppTheme.error, fontSize: 12)),
@@ -105,6 +112,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 child: _NotifCard(
                   notif: _notifs[i],
                   onTap: () {
+                    context.read<AppProvider>().markNotifAsRead(_notifs[i].id);
                     Navigator.pop(context);
                     widget.onNavigate?.call(_notifs[i].targetTab);
                   },

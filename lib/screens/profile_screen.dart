@@ -23,99 +23,117 @@ class ProfileScreen extends StatelessWidget {
     final s = p.student;
 
     return Scaffold(
-      backgroundColor: AppTheme.surface,
-      body: CustomScrollView(slivers: [
-        const SliverToBoxAdapter(child: AcademicAppBar(subtitle: 'PROFILE')),
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate([
-              // Hero
-              Text(s?.hoTen ?? 'Sinh viên',
-                  style: (MediaQuery.of(context).size.width < 360
-                          ? Theme.of(context).textTheme.headlineMedium
-                          : Theme.of(context).textTheme.displaySmall)
-                      ?.copyWith(
-                          fontWeight: FontWeight.w800, letterSpacing: -0.5)),
-              const SizedBox(height: 4),
-              Text(p.currentMssv ?? '',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleMedium
-                      ?.copyWith(color: AppTheme.primary)),
-              const SizedBox(height: 8),
-              Row(children: [
-                const StatusChip(label: 'ĐANG HỌC'),
-                const SizedBox(width: 8),
-                if (s?.chuyenNganh.isNotEmpty == true)
-                  StatusChip(
-                    label: s!.chuyenNganh.toUpperCase(),
-                    color: AppTheme.secondary,
-                  ),
-              ]),
-              const SizedBox(height: 16),
+        backgroundColor: AppTheme.surface,
+        body: Column(children: [
+          const AcademicAppBar(subtitle: 'PROFILE'),
+          Expanded(
+            child: CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate(
+                      [
+                        // Hero
+                        Text(s?.hoTen ?? 'Sinh viên',
+                            style: (MediaQuery.of(context).size.width < 360
+                                    ? Theme.of(context).textTheme.headlineMedium
+                                    : Theme.of(context).textTheme.displaySmall)
+                                ?.copyWith(
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.5)),
+                        const SizedBox(height: 4),
+                        Text(p.currentMssv ?? '',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(color: AppTheme.primary)),
+                        const SizedBox(height: 8),
+                        Row(children: [
+                          const StatusChip(label: 'ĐANG HỌC'),
+                          const SizedBox(width: 8),
+                          if (s?.chuyenNganh.isNotEmpty == true)
+                            StatusChip(
+                              label: s!.chuyenNganh.toUpperCase(),
+                              color: AppTheme.secondary,
+                            ),
+                        ]),
+                        const SizedBox(height: 16),
 
-              // Settings list
-              SurfaceCard(
-                padding: EdgeInsets.zero,
-                child: Column(children: [
-                  _NotificationToggle(mssv: p.currentMssv ?? ''),
-                  const Divider(
-                      height: 1, color: AppTheme.surfaceContainerHigh),
-                  _Item(Icons.badge_outlined, 'Thông tin sinh viên', () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const StudentInfoScreen()));
-                  }),
-                  _Item(
-                      Icons.account_tree_outlined, 'Chương trình đào tạo chính',
-                      () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const CurriculumScreen()));
-                  }),
-                  _Item(Icons.rate_review_outlined, 'Góp ý ứng dụng', () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const FeedbackScreen()));
-                  }),
-                  _Item(Icons.policy_outlined, 'Điều khoản dịch vụ', () {
-                    Navigator.push(context,
-                        MaterialPageRoute(builder: (_) => const TermsScreen()));
-                  }),
-                  _Item(
-                    Icons.logout,
-                    'Đăng xuất',
-                    () => _confirmLogout(context, p),
-                    iconColor: AppTheme.error,
-                    textColor: AppTheme.error,
-                  ),
-                ]),
-              ),
+                        // Settings list
+                        SurfaceCard(
+                          padding: EdgeInsets.zero,
+                          child: Column(children: [
+                            _NotificationToggle(mssv: p.currentMssv ?? ''),
+                            const Divider(
+                                height: 1,
+                                color: AppTheme.surfaceContainerHigh),
+                            _Item(Icons.badge_outlined, 'Thông tin sinh viên',
+                                () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const StudentInfoScreen()));
+                            }),
+                            _Item(Icons.account_tree_outlined,
+                                'Chương trình đào tạo chính', () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) =>
+                                          const CurriculumScreen()));
+                            }),
+                            _Item(Icons.rate_review_outlined, 'Góp ý ứng dụng',
+                                () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const FeedbackScreen()));
+                            }),
+                            _Item(Icons.policy_outlined, 'Điều khoản dịch vụ',
+                                () {
+                              Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (_) => const TermsScreen()));
+                            }),
+                            _Item(
+                              Icons.logout,
+                              'Đăng xuất',
+                              () => _confirmLogout(context, p),
+                              iconColor: AppTheme.error,
+                              textColor: AppTheme.error,
+                            ),
+                          ]),
+                        ),
 
-              const SizedBox(height: 20),
-              Center(
-                  child: Column(
-                children: [
-                  Text('VERSION 1.0.2',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: AppTheme.outline,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 2)),
-                  // const SizedBox(height: 4),
-                  // Text('Cập nhật: 30/04/2026',
-                  //     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  //         color: AppTheme.outlineVariant, fontSize: 10)),
-                ],
-              )),
-            ]),
-          ),
-        ),
-      ]),
-    );
+                        const SizedBox(height: 20),
+                        Center(
+                            child: Column(
+                          children: [
+                            Text('VERSION 1.0.2',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(
+                                        color: AppTheme.outline,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 2)),
+                            // const SizedBox(height: 4),
+                            // Text('Cập nhật: 30/04/2026',
+                            //     style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            //         color: AppTheme.outlineVariant, fontSize: 10)),
+                          ],
+                        )),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          )
+        ]));
   }
 
   void _confirmLogout(BuildContext ctx, AppProvider p) {
@@ -317,49 +335,55 @@ class StudentInfoScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppTheme.surface,
-      body: CustomScrollView(slivers: [
-        // Custom appbar with back
-        SliverToBoxAdapter(
-            child: Container(
-          color: AppTheme.surface.withOpacity(0.7),
-          child: SafeArea(
-              top: true,
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: Row(children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                        Text('Thông tin sinh viên',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                    color: AppTheme.primary,
-                                    fontWeight: FontWeight.w800)),
-                        Text('STUDENT PROFILE',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                    color: AppTheme.outline,
-                                    letterSpacing: 1.5)),
-                      ])),
-                  IconButton(
-                    icon: const Icon(Icons.sync_outlined,
-                        color: AppTheme.primary),
-                    onPressed: () => p.syncAll(forceRefresh: true),
-                  ),
-                ]),
-              )),
-        )),
+      body: Column(
+        children: [
+          Container(
+            color: AppTheme.surface.withOpacity(0.7),
+            child: SafeArea(
+                top: true,
+                bottom: false,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(children: [
+                    IconButton(
+                      icon:
+                          const Icon(Icons.arrow_back, color: AppTheme.primary),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                          Text('Thông tin sinh viên',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(
+                                      color: AppTheme.primary,
+                                      fontWeight: FontWeight.w800)),
+                          Text('STUDENT PROFILE',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                      color: AppTheme.outline,
+                                      letterSpacing: 1.5)),
+                        ])),
+                    IconButton(
+                      icon: const Icon(Icons.sync_outlined,
+                          color: AppTheme.primary),
+                      onPressed: () => p.syncAll(forceRefresh: true),
+                    ),
+                  ]),
+                )),
+          ),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: () => p.syncAll(forceRefresh: true),
+              child: CustomScrollView(
+                slivers: [
 
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
@@ -457,7 +481,11 @@ class StudentInfoScreen extends StatelessWidget {
             ]),
           ),
         ),
-      ]),
+              ]),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

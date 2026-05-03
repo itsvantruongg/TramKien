@@ -7,7 +7,7 @@ import '../services/db/finance_db.dart';
 
 class FinanceProvider extends ChangeNotifier {
   // ── Constants ────────────────────────────
-  static const Duration _ttlHocPhi = Duration(hours: 12);
+  static const Duration _ttlHocPhi = Duration(hours: 6);
 
   // ── State ────────────────────────────────
   List<Map<String, Object?>> _paymentReceipts = [];

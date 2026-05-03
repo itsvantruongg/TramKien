@@ -31,7 +31,6 @@ class _CurriculumScreenState extends State<CurriculumScreen> {
     try {
       List<Map<String, String>> result;
 
-      // Thêm đoạn này:
       if (HauApiService.currentMssv == 'admin' && MockData.isEnabled) {
         result = MockData.getChuyenNganhChinh();
       } else {
@@ -43,7 +42,6 @@ class _CurriculumScreenState extends State<CurriculumScreen> {
           _data = result;
           _loading = false;
         });
-        // Tính tổng TC bắt buộc (không bao gồm tự chọn) và lưu vào cache
         final mandatoryTC =
             result.where((m) => m['tu_chon'] != '1').fold(0, (s, m) {
           final tc = double.tryParse(m['tin_chi'] ?? '');
@@ -64,7 +62,6 @@ class _CurriculumScreenState extends State<CurriculumScreen> {
     }
   }
 
-  // Group: khoi -> ky -> list of courses
   Map<String, Map<String, List<Map<String, String>>>> get _grouped {
     final m = <String, Map<String, List<Map<String, String>>>>{};
     for (final r in _data) {
@@ -84,121 +81,136 @@ class _CurriculumScreenState extends State<CurriculumScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.surface,
-      body: CustomScrollView(slivers: [
-        SliverToBoxAdapter(
-            child: Container(
-          color: AppTheme.surface.withOpacity(0.7),
-          child: SafeArea(
-              top: true,
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                child: Row(children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: AppTheme.primary),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const SizedBox(width: 4),
-                  Expanded(
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                        Text('Chương trình đào tạo',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(
-                                    color: AppTheme.primary,
-                                    fontWeight: FontWeight.w800)),
-                        Text('CHUYÊN NGÀNH CHÍNH',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                    color: AppTheme.outline,
-                                    letterSpacing: 1.5)),
-                      ])),
-                  IconButton(
-                    icon: const Icon(Icons.refresh_rounded,
-                        color: AppTheme.primary),
-                    onPressed: _load,
-                  ),
-                ]),
-              )),
-        )),
-        if (_loading)
-          const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()))
-        else if (_error != null)
-          SliverFillRemaining(
-              child: Center(
-                  child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline, color: AppTheme.error, size: 48),
-              const SizedBox(height: 12),
-              const Text('Không tải được dữ liệu'),
-              const SizedBox(height: 8),
-              OutlinedButton(onPressed: _load, child: const Text('Thử lại')),
-            ],
-          )))
-        else ...[
-          // Summary card
-          SliverToBoxAdapter(
-              child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-            child: GradientCard(
-                child: Row(children: [
-              Expanded(
-                  child: _StatBox(
-                      label: 'Tổng môn học', value: '${_data.length}')),
-              Container(width: 1, height: 48, color: Colors.white24),
-              Expanded(
-                  child:
-                      _StatBox(label: 'Tổng tín chỉ', value: '$_totalTinChi')),
-              Container(width: 1, height: 48, color: Colors.white24),
-              Expanded(
-                  child: _StatBox(
-                      label: 'Khối kiến thức', value: '${_grouped.length}')),
-            ])),
-          )),
-
-          // Legend
-          SliverToBoxAdapter(
-              child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-            child: Row(children: [
-              _LegendChip(color: AppTheme.primary, label: 'Bắt buộc'),
-              const SizedBox(width: 8),
-              _LegendChip(color: AppTheme.tertiary, label: 'Tự chọn'),
-              const SizedBox(width: 8),
-              _LegendChip(color: const Color(0xFF2E7D32), label: 'E-learning'),
-            ]),
-          )),
-
-          // Grouped list
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
-            sliver: SliverList(
-                delegate: SliverChildListDelegate([
-              for (final khoiEntry in _grouped.entries) ...[
-                _KhoiHeader(
-                    title: khoiEntry.key.isEmpty ? 'Chung' : khoiEntry.key),
-                const SizedBox(height: 8),
-                for (final kyEntry in khoiEntry.value.entries) ...[
-                  _KyBadge(ky: kyEntry.key),
-                  const SizedBox(height: 8),
-                  for (final course in kyEntry.value)
-                    _CourseCard(course: course),
-                  const SizedBox(height: 4),
-                ],
-                const SizedBox(height: 12),
-              ],
-            ])),
+      body: Column(
+        children: [
+          Container(
+            color: AppTheme.surface.withOpacity(0.7),
+            child: SafeArea(
+                top: true,
+                bottom: false,
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                  child: Row(children: [
+                    IconButton(
+                      icon:
+                          const Icon(Icons.arrow_back, color: AppTheme.primary),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                          Text('Chương trình đào tạo',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(
+                                      color: AppTheme.primary,
+                                      fontWeight: FontWeight.w800)),
+                          Text('CHUYÊN NGÀNH CHÍNH',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(
+                                      color: AppTheme.outline,
+                                      letterSpacing: 1.5)),
+                        ])),
+                    IconButton(
+                      icon: const Icon(Icons.refresh_rounded,
+                          color: AppTheme.primary),
+                      onPressed: _load,
+                    ),
+                  ]),
+                )),
           ),
-        ],
-      ]),
-    );
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: _load,
+              child: CustomScrollView(slivers: [
+              if (_loading)
+                const SliverFillRemaining(
+                    child: Center(child: CircularProgressIndicator()))
+              else if (_error != null)
+                SliverFillRemaining(
+                    child: Center(
+                        child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.error_outline,
+                        color: AppTheme.error, size: 48),
+                    const SizedBox(height: 12),
+                    const Text('Không tải được dữ liệu'),
+                    const SizedBox(height: 8),
+                    OutlinedButton(
+                        onPressed: _load, child: const Text('Thử lại')),
+                  ],
+                )))
+              else ...[
+                // Summary card
+                SliverToBoxAdapter(
+                    child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                  child: GradientCard(
+                      child: Row(children: [
+                    Expanded(
+                        child: _StatBox(
+                            label: 'Tổng môn học', value: '${_data.length}')),
+                    Container(width: 1, height: 48, color: Colors.white24),
+                    Expanded(
+                        child: _StatBox(
+                            label: 'Tổng tín chỉ', value: '$_totalTinChi')),
+                    Container(width: 1, height: 48, color: Colors.white24),
+                    Expanded(
+                        child: _StatBox(
+                            label: 'Khối kiến thức',
+                            value: '${_grouped.length}')),
+                  ])),
+                )),
+
+                // Legend
+                SliverToBoxAdapter(
+                    child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
+                  child: Row(children: [
+                    _LegendChip(color: AppTheme.primary, label: 'Bắt buộc'),
+                    const SizedBox(width: 8),
+                    _LegendChip(color: AppTheme.tertiary, label: 'Tự chọn'),
+                    const SizedBox(width: 8),
+                    _LegendChip(
+                        color: const Color(0xFF2E7D32), label: 'E-learning'),
+                  ]),
+                )),
+
+                // Grouped list
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+                  sliver: SliverList(
+                      delegate: SliverChildListDelegate([
+                    for (final khoiEntry in _grouped.entries) ...[
+                      _KhoiHeader(
+                          title:
+                              khoiEntry.key.isEmpty ? 'Chung' : khoiEntry.key),
+                      const SizedBox(height: 8),
+                      for (final kyEntry in khoiEntry.value.entries) ...[
+                        _KyBadge(ky: kyEntry.key),
+                        const SizedBox(height: 8),
+                        for (final course in kyEntry.value)
+                          _CourseCard(course: course),
+                        const SizedBox(height: 4),
+                      ],
+                      const SizedBox(height: 12),
+                    ],
+                  ])),
+                ),
+              ],
+            ]),
+          ),
+        ),
+      ],
+    ),
+  );
   }
 }
 

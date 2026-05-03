@@ -90,6 +90,7 @@ class GradeApi {
           hocKy: 0, // 0 = Overview
           namHoc: 'Overview',
           canVote: canVote,
+          isOverview: true,
           lastUpdated: DateTime.now(),
         );
       }).where((d) {
@@ -510,6 +511,7 @@ class GradeApi {
                 diemSoRaw.toLowerCase().contains('vote') ||
                 diemChuRaw.toLowerCase().contains('vote') ||
                 examRaw.toLowerCase().contains('vote'),
+            isOverview: true,
             lastUpdated: DateTime.now(),
           );
         }).where((d) {
