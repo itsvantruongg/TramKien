@@ -63,6 +63,18 @@
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<!-- Thay mã này bằng REVERSED_CLIENT_ID trong GoogleService-Info.plist của bạn -->
+				<string>com.googleusercontent.apps.804358231949-e306a4018819764a504fc4</string>
+			</array>
+		</dict>
+	</array>
 	<!-- Schemes cho url_launcher (canLaunchUrl) -->
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
@@ -71,11 +83,11 @@
 		<string>mailto</string>
 	</array>
 	<!-- Cho phép kết nối HTTP đến server HAU (server dùng redirect HTTP) -->
-	<!-- <key>NSAppTransportSecurity</key>
+	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
 		<true/>
-	</dict> -->
+	</dict>
 	<!-- Quyền thông báo (bắt buộc trên iOS) -->
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Trạm Kiến cần quyền thông báo để nhắc nhở lịch học và lịch thi của bạn.</string>
@@ -90,6 +102,7 @@
 	<key>BGTaskSchedulerPermittedIdentifiers</key>
 	<array>
 		<string>com.tramkien.bgsync</string>
+		<string>com.transistorsoft.fetch</string>
 	</array>
 </dict>
 </plist>

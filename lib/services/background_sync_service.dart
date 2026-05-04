@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart' as wm;
 import 'package:background_fetch/background_fetch.dart' as bf;
+import 'package:firebase_core/firebase_core.dart';
+import '../firebase_options.dart';
 import 'package:http/http.dart' as http;
 
 import 'hau_api_service.dart';
@@ -61,6 +63,17 @@ Future<void> _runSyncLogic() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
 
+    // Khởi tạo Firebase cho Isolate chạy ngầm
+    try {
+      if (Firebase.apps.isEmpty) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      }
+    } catch (e) {
+      debugPrint('⚙️ [BG] Firebase Init Error (Isolate): $e');
+    }
+
     // 1. Đọc thông tin đăng nhập đã lưu
     final prefs = await SharedPreferences.getInstance();
     final mssv = prefs.getString('saved_mssv') ?? '';
@@ -99,13 +112,14 @@ Future<void> _runSyncLogic() async {
 
     // 6. Sync dữ liệu
     try {
+      // Giới hạn 20 giây để không bị iOS kill (iOS giới hạn 30s)
       await Future.wait([
         GradeApi.fetchDiem(),
         ScheduleApi.fetchLichHocFromStart(mssv: mssv),
         ScheduleApi.fetchLichThiFromStart(mssv: mssv),
-      ]);
+      ]).timeout(const Duration(seconds: 20));
     } catch (e) {
-      debugPrint('⚙️ [BG] Sync error: $e');
+      debugPrint('⚙️ [BG] Sync/Timeout error: $e');
     }
 
     // 7. Snapshot SAU sync
@@ -163,7 +177,8 @@ Future<void> _runSyncLogic() async {
     }
 
     // 10. Lên lịch thông báo định kỳ (Chỉ nếu đã bật)
-    final isEnabled = await LocalNotificationService.isNotificationEnabled(mssv);
+    final isEnabled =
+        await LocalNotificationService.isNotificationEnabled(mssv);
     if (isEnabled) {
       debugPrint('⚙️ [BG] Đang lên lịch thông báo nhắc nhở...');
       await LocalNotificationService.scheduleClasses(
@@ -197,14 +212,18 @@ Future<bool> _checkNetwork() async {
 class BackgroundSyncService {
   /// Khởi tạo — gọi một lần trong main().
   static Future<void> initialize() async {
-    if (Platform.isAndroid) {
-      await wm.Workmanager().initialize(
-        callbackDispatcher,
-        isInDebugMode: false,
-      );
-    } else if (Platform.isIOS) {
-      // Đăng ký headless task handler cho trường hợp app bị kill
-      bf.BackgroundFetch.registerHeadlessTask(backgroundFetchHeadlessTask);
+    try {
+      if (Platform.isAndroid) {
+        await wm.Workmanager().initialize(
+          callbackDispatcher,
+          isInDebugMode: false,
+        );
+      } else if (Platform.isIOS) {
+        // Đăng ký headless task handler cho trường hợp app bị kill
+        bf.BackgroundFetch.registerHeadlessTask(backgroundFetchHeadlessTask);
+      }
+    } catch (e) {
+      debugPrint('❌ BackgroundSyncService Init Error: $e');
     }
   }
 
