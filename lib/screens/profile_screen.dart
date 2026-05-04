@@ -207,33 +207,12 @@ class _NotificationToggle extends StatefulWidget {
 }
 
 class _NotificationToggleState extends State<_NotificationToggle> {
-  bool _enabled = false;
   bool _processing = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadState();
-  }
-
-  @override
-  void didUpdateWidget(covariant _NotificationToggle oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.mssv != widget.mssv) {
-      _loadState();
-    }
-  }
-
-  Future<void> _loadState() async {
-    final enabled =
-        await LocalNotificationService.isNotificationEnabled(widget.mssv);
-    if (mounted) setState(() => _enabled = enabled);
-  }
 
   Future<void> _toggle(bool val) async {
     if (!mounted) return;
 
-    // Disable switch trong lúc đang xử lý
+    final p = context.read<AppProvider>();
     setState(() => _processing = true);
 
     try {
@@ -242,12 +221,11 @@ class _NotificationToggleState extends State<_NotificationToggle> {
       }
       await LocalNotificationService.setNotificationEnabled(widget.mssv, val);
 
-      // Chỉ cập nhật UI sau khi hệ thống đã xử lý xong
+      // Cập nhật state toàn cục
+      p.setNotifEnabled(val);
+
       if (!mounted) return;
-      setState(() {
-        _enabled = val;
-        _processing = false;
-      });
+      setState(() => _processing = false);
 
       if (val) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -256,7 +234,7 @@ class _NotificationToggleState extends State<_NotificationToggle> {
         ));
         await LocalNotificationService.showTestNotification();
         if (!mounted) return;
-        context.read<AppProvider>().syncSchedule(forceRefresh: false).then((_) {
+        p.syncSchedule(forceRefresh: false).then((_) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Đã lên lịch xong các thông báo.'),
@@ -271,17 +249,15 @@ class _NotificationToggleState extends State<_NotificationToggle> {
         ));
       }
     } catch (e) {
-      // Nếu lỗi → revert lại trạng thái cũ
       if (!mounted) return;
-      setState(() {
-        _enabled = !val;
-        _processing = false;
-      });
+      setState(() => _processing = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Đọc trạng thái từ Provider thay vì local state
+    final enabled = context.select<AppProvider, bool>((p) => p.notifEnabled);
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(children: [
@@ -312,7 +288,7 @@ class _NotificationToggleState extends State<_NotificationToggle> {
           ),
         ),
         Switch(
-          value: _enabled,
+          value: enabled,
           onChanged: (widget.mssv.isNotEmpty && !_processing) ? _toggle : null,
           activeColor: AppTheme.primary,
         ),
@@ -382,105 +358,108 @@ class StudentInfoScreen extends StatelessWidget {
           Expanded(
             child: RefreshIndicator(
               onRefresh: () => p.syncAll(forceRefresh: true),
-              child: CustomScrollView(
-                slivers: [
-
-        SliverPadding(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
-          sliver: SliverList(
-            delegate: SliverChildListDelegate([
-              // Identity card
-              SurfaceCard(
-                  child: Row(children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child:
-                      const Icon(Icons.person, color: Colors.white, size: 32),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      Text(s?.hoTen ?? '—',
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleLarge
-                              ?.copyWith(fontWeight: FontWeight.w800)),
-                      const SizedBox(height: 4),
-                      Text(p.currentMssv ?? '—',
-                          style: Theme.of(context)
-                              .textTheme
-                              .bodyMedium
-                              ?.copyWith(
-                                  color: AppTheme.primary,
-                                  fontWeight: FontWeight.w600)),
-                      const SizedBox(height: 8),
-                      Row(children: [
-                        const StatusChip(label: 'ĐANG HỌC'),
-                        const SizedBox(width: 6),
-                        if (s?.gioiTinh.isNotEmpty == true)
-                          StatusChip(
-                            label: s!.gioiTinh.toUpperCase(),
-                            color: AppTheme.secondary,
+              child: CustomScrollView(slivers: [
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+                  sliver: SliverList(
+                    delegate: SliverChildListDelegate([
+                      // Identity card
+                      SurfaceCard(
+                          child: Row(children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            gradient: AppTheme.primaryGradient,
+                            borderRadius: BorderRadius.circular(20),
                           ),
-                      ]),
-                    ])),
-              ])),
-              const SizedBox(height: 12),
+                          child: const Icon(Icons.person,
+                              color: Colors.white, size: 32),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              Text(s?.hoTen ?? '—',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(fontWeight: FontWeight.w800)),
+                              const SizedBox(height: 4),
+                              Text(p.currentMssv ?? '—',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                          color: AppTheme.primary,
+                                          fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 8),
+                              Row(children: [
+                                const StatusChip(label: 'ĐANG HỌC'),
+                                const SizedBox(width: 6),
+                                if (s?.gioiTinh.isNotEmpty == true)
+                                  StatusChip(
+                                    label: s!.gioiTinh.toUpperCase(),
+                                    color: AppTheme.secondary,
+                                  ),
+                              ]),
+                            ])),
+                      ])),
+                      const SizedBox(height: 12),
 
-              // Academic grid
-              _SectionTitle('Thông tin học tập'),
-              const SizedBox(height: 8),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: EdgeInsets
-                    .zero, // xóa ambient padding mặc định gây khoảng trắng thừa
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio:
-                    MediaQuery.of(context).size.width < 360 ? 1.15 : 1.3,
-                children: [
-                  _GridCard('Chuyên ngành', s?.chuyenNganh ?? '—',
-                      Icons.school_outlined),
-                  _GridCard('Hệ đào tạo', s?.heDaoTao ?? '—',
-                      Icons.category_outlined),
-                  _GridCard('Niên khóa', s?.nienKhoa ?? '—',
-                      Icons.calendar_month_outlined),
-                  _GridCard(
-                      'Khóa học', s?.khoaHoc ?? '—', Icons.bookmark_outlined),
-                ],
-              ),
-              const SizedBox(height: 12),
+                      // Academic grid
+                      _SectionTitle('Thông tin học tập'),
+                      const SizedBox(height: 8),
+                      GridView.count(
+                        crossAxisCount: 2,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        padding: EdgeInsets
+                            .zero, // xóa ambient padding mặc định gây khoảng trắng thừa
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                        childAspectRatio:
+                            MediaQuery.of(context).size.width < 360
+                                ? 1.15
+                                : 1.3,
+                        children: [
+                          _GridCard('Chuyên ngành', s?.chuyenNganh ?? '—',
+                              Icons.school_outlined),
+                          _GridCard('Hệ đào tạo', s?.heDaoTao ?? '—',
+                              Icons.category_outlined),
+                          _GridCard('Niên khóa', s?.nienKhoa ?? '—',
+                              Icons.calendar_month_outlined),
+                          _GridCard('Khóa học', s?.khoaHoc ?? '—',
+                              Icons.bookmark_outlined),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
 
-              // Personal info
-              _SectionTitle('Thông tin cá nhân'),
-              const SizedBox(height: 8),
-              SurfaceCard(
-                  child: Column(children: [
-                _Row(Icons.cake_outlined, 'Ngày sinh', s?.ngaySinh ?? '—'),
-                _Div(),
-                _Row(Icons.phone_outlined, 'Điện thoại', s?.dienThoai ?? '—'),
-                _Div(),
-                _Row(Icons.email_outlined, 'Email', s?.email ?? '—'),
-                _Div(),
-                _Row(Icons.home_outlined, 'Quê quán', s?.queQuan ?? '—'),
-                _Div(),
-                _Row(Icons.location_on_outlined, 'Địa chỉ báo tin',
-                    s?.diaChiBaoTin ?? '—'),
-                _Div(),
-                _Row(Icons.badge_outlined, 'CMND/CCCD', s?.cmnd ?? '—'),
-              ])),
-            ]),
-          ),
-        ),
+                      // Personal info
+                      _SectionTitle('Thông tin cá nhân'),
+                      const SizedBox(height: 8),
+                      SurfaceCard(
+                          child: Column(children: [
+                        _Row(Icons.cake_outlined, 'Ngày sinh',
+                            s?.ngaySinh ?? '—'),
+                        _Div(),
+                        _Row(Icons.phone_outlined, 'Điện thoại',
+                            s?.dienThoai ?? '—'),
+                        _Div(),
+                        _Row(Icons.email_outlined, 'Email', s?.email ?? '—'),
+                        _Div(),
+                        _Row(
+                            Icons.home_outlined, 'Quê quán', s?.queQuan ?? '—'),
+                        _Div(),
+                        _Row(Icons.location_on_outlined, 'Địa chỉ báo tin',
+                            s?.diaChiBaoTin ?? '—'),
+                        _Div(),
+                        _Row(Icons.badge_outlined, 'CMND/CCCD', s?.cmnd ?? '—'),
+                      ])),
+                    ]),
+                  ),
+                ),
               ]),
             ),
           ),

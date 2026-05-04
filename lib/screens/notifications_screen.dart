@@ -13,32 +13,27 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
-  List<AppNotif> _notifs = [];
-  bool _loading = true;
-
   @override
   void initState() {
     super.initState();
-    _load();
-  }
-
-  Future<void> _load() async {
-    final list = await NotificationService.getAll();
-    await NotificationService.markAllRead();
-    if (mounted) {
-      context.read<AppProvider>().refreshUnreadCount();
-      setState(() {
-        _notifs = list;
-        _loading = false;
-      });
-    }
+    // Đánh dấu tất cả đã đọc và reload danh sách từ provider
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await NotificationService.markAllRead();
+      if (mounted) {
+        await context.read<AppProvider>().refreshNotifications();
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Lắng nghe reactive từ AppProvider – UI tự rebuild khi có thay đổi
+    final notifs = context.watch<AppProvider>().notifications;
+
     return Scaffold(
       backgroundColor: AppTheme.surface,
       body: CustomScrollView(slivers: [
+        // ── Header ──────────────────────────────────────────────
         SliverToBoxAdapter(
             child: Container(
           color: AppTheme.surface.withOpacity(0.7),
@@ -72,24 +67,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                                     color: AppTheme.outline,
                                     letterSpacing: 1.5)),
                       ])),
-                  TextButton(
-                    onPressed: () async {
-                      await NotificationService.clearAll();
-                      if (mounted) {
-                        context.read<AppProvider>().refreshUnreadCount();
-                        setState(() => _notifs.clear());
-                      }
-                    },
-                    child: const Text('Xóa tất cả',
-                        style: TextStyle(color: AppTheme.error, fontSize: 12)),
+                  Opacity(
+                    opacity: notifs.isNotEmpty ? 1.0 : 0.4,
+                    child: IgnorePointer(
+                      ignoring: notifs.isEmpty,
+                      child: TextButton.icon(
+                        onPressed: () =>
+                            context.read<AppProvider>().clearAllNotifs(),
+                        icon: const Icon(Icons.delete_sweep_outlined,
+                            size: 18, color: AppTheme.error),
+                        label: const Text('Xóa tất cả',
+                            style:
+                                TextStyle(color: AppTheme.error, fontSize: 13)),
+                      ),
+                    ),
                   ),
                 ]),
               )),
         )),
-        if (_loading)
-          const SliverFillRemaining(
-              child: Center(child: CircularProgressIndicator()))
-        else if (_notifs.isEmpty)
+
+        // ── Empty state ─────────────────────────────────────────
+        if (notifs.isEmpty)
           const SliverFillRemaining(
               child: Center(
                   child: Column(
@@ -102,29 +100,53 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                   style: TextStyle(color: AppTheme.onSurfaceVariant)),
             ],
           )))
+        // ── Notification list ────────────────────────────────────
         else
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
             sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
-              (ctx, i) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: _NotifCard(
-                  notif: _notifs[i],
-                  onTap: () {
-                    context.read<AppProvider>().markNotifAsRead(_notifs[i].id);
-                    Navigator.pop(context);
-                    widget.onNavigate?.call(_notifs[i].targetTab);
-                  },
-                ),
-              ),
-              childCount: _notifs.length,
+              (ctx, i) {
+                final notif = notifs[i];
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  // ── Swipe-to-dismiss ──────────────────────────
+                  child: Dismissible(
+                    key: ValueKey(notif.id),
+                    direction: DismissDirection.endToStart,
+                    // Nền đỏ khi vuốt
+                    background: Container(
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      decoration: BoxDecoration(
+                        color: AppTheme.error.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(Icons.delete_outline,
+                          color: AppTheme.error, size: 24),
+                    ),
+                    onDismissed: (_) =>
+                        context.read<AppProvider>().removeNotif(notif.id),
+                    child: _NotifCard(
+                      notif: notif,
+                      onTap: () {
+                        context.read<AppProvider>().markNotifAsRead(notif.id);
+                        Navigator.pop(context);
+                        widget.onNavigate?.call(notif.targetTab);
+                      },
+                    ),
+                  ),
+                );
+              },
+              childCount: notifs.length,
             )),
           ),
       ]),
     );
   }
 }
+
+// ── _NotifCard ────────────────────────────────────────────────
 
 class _NotifCard extends StatelessWidget {
   final AppNotif notif;
@@ -158,6 +180,7 @@ class _NotifCard extends StatelessWidget {
         onTap: onTap,
         padding: const EdgeInsets.all(14),
         child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          // Icon
           Container(
             width: 42,
             height: 42,
@@ -168,21 +191,36 @@ class _NotifCard extends StatelessWidget {
             child: Icon(_icon, color: _color, size: 20),
           ),
           const SizedBox(width: 12),
+          // Content
           Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                Text(notif.title,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleSmall
-                        ?.copyWith(fontWeight: FontWeight.w700)),
+                Row(children: [
+                  Expanded(
+                    child: Text(notif.title,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            // Đậm nếu chưa đọc
+                            color: notif.isRead
+                                ? AppTheme.onSurfaceVariant
+                                : null)),
+                  ),
+                  // Chấm đỏ nếu chưa đọc
+                  if (!notif.isRead)
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(
+                        color: AppTheme.error,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                ]),
                 const SizedBox(height: 4),
                 Text(notif.body,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: AppTheme.onSurfaceVariant),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppTheme.onSurfaceVariant),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
@@ -192,6 +230,7 @@ class _NotifCard extends StatelessWidget {
                         .labelSmall
                         ?.copyWith(color: AppTheme.outline)),
               ])),
+          const SizedBox(width: 4),
           Icon(Icons.chevron_right, color: AppTheme.outlineVariant, size: 18),
         ]),
       );

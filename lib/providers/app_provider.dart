@@ -5,6 +5,7 @@ import '../models/models.dart';
 import '../services/hau_api_service.dart';
 import '../services/database_service.dart';
 import '../services/notification_service.dart';
+import '../services/background_sync_service.dart';
 import './schedule_provider.dart';
 import './grade_provider.dart';
 import './finance_provider.dart';
@@ -31,8 +32,10 @@ class AppProvider extends ChangeNotifier {
   String _authError = '';
   Student? _student;
   bool _isSyncing = false;
+  bool _notifEnabled = false;
   int _curriculumMandatoryCredits = 144; // default fallback
   int _unreadNotifCount = 0;
+  List<AppNotif> _notifications = []; // Reactive notification list
 
   // ── Getters ─────────────────────────────
   AuthState get authState => _authState;
@@ -40,8 +43,10 @@ class AppProvider extends ChangeNotifier {
   String get authError => _authError;
   Student? get student => _student;
   bool get isSyncing => _isSyncing;
+  bool get notifEnabled => _notifEnabled;
   int get curriculumTotalCredits => _curriculumMandatoryCredits;
   int get unreadNotifCount => _unreadNotifCount;
+  List<AppNotif> get notifications => _notifications;
 
   // ── Constructor ─────────────────────────
   AppProvider() {
@@ -78,6 +83,8 @@ class AppProvider extends ChangeNotifier {
           NotificationService.setMssv(mssv);
           gradeProvider.setMssv(mssv);
           scheduleProvider.setMssv(mssv);
+          // Load notification state
+          _notifEnabled = await LocalNotificationService.isNotificationEnabled(mssv);
           // Load cache trước khi login để show data ngay
           await _loadFromCache();
           _authState = AuthState.loggedIn;
@@ -134,18 +141,29 @@ class AppProvider extends ChangeNotifier {
         }
 
         // Vào app NGAY, sync chạy nền
+        // Load notification state
+        _notifEnabled =
+            await LocalNotificationService.isNotificationEnabled(mssv);
         _authState = AuthState.loggedIn;
         notifyListeners();
 
         // Admin: seed + load cache NGAY (data là local, không cần chờ)
         if (mssv == 'admin') {
-          await HauApiService.seedAdminMockData();
+          await NotificationService.seedMockData();
           await _loadFromCache();
+        }
+        if (mssv == 'admin') {
+          await HauApiService.seedAdminMockData();
+          await NotificationService.seedMockData(); // Bổ sung seeding thông báo
+          await _loadFromCache();
+          await refreshNotifications(); // Ép buộc load thông báo vào state ngay lập tức
           notifyListeners();
         }
 
         // Sync nền — không await
         syncAll().then((_) => notifyListeners());
+        // Đăng ký background sync định kỳ
+        BackgroundSyncService.schedulePeriodicSync();
         return true;
       } else {
         _authState = AuthState.loggedOut;
@@ -175,13 +193,15 @@ class AppProvider extends ChangeNotifier {
       await prefs.remove(_kPw);
       await prefs.setBool(_kRemember, false);
 
-      // Xóa thông báo đã lên lịch
+      // Xóa thông báo đã lên lịch & hủy background sync
       await LocalNotificationService.setNotificationEnabled(
           mssvToDelete, false);
-      
-      // Xóa data thông báo theo yêu cầu mới
+      await BackgroundSyncService.cancelAll();
+
+      // Xóa data thông báo
       await NotificationService.clearAll();
       _unreadNotifCount = 0;
+      _notifications = [];
 
       _authState = AuthState.loggedOut;
       _currentMssv = '';
@@ -196,6 +216,11 @@ class AppProvider extends ChangeNotifier {
     } catch (e) {
       _authError = 'Lỗi đăng xuất: $e';
     }
+    notifyListeners();
+  }
+
+  void setNotifEnabled(bool val) {
+    _notifEnabled = val;
     notifyListeners();
   }
 
@@ -248,18 +273,43 @@ class AppProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshUnreadCount() async {
-    final count = await NotificationService.unreadCount();
-    if (_unreadNotifCount != count) {
-      _unreadNotifCount = count;
-      debugPrint('🔔 Notification count updated: $_unreadNotifCount');
-      notifyListeners();
-    }
+  /// Tải lại danh sách thông báo và số unread vào state, kích hoạt rebuild UI.
+  Future<void> refreshNotifications() async {
+    final list = await NotificationService.getAll();
+    final count = list.where((n) => !n.isRead).length;
+    _notifications = list;
+    _unreadNotifCount = count;
+    _notifications = await NotificationService.getAll();
+    _unreadNotifCount = _notifications.where((n) => !n.isRead).length;
+    notifyListeners();
   }
 
   Future<void> markNotifAsRead(String id) async {
     await NotificationService.markRead(id);
-    await refreshUnreadCount();
+    final idx = _notifications.indexWhere((n) => n.id == id);
+    if (idx != -1) {
+      _notifications[idx].isRead = true;
+      _unreadNotifCount = _notifications.where((n) => !n.isRead).length;
+      notifyListeners();
+    }
+  }
+
+  Future<void> removeNotif(String id) async {
+    await NotificationService.removeOne(id);
+    _notifications.removeWhere((n) => n.id == id);
+    _unreadNotifCount = _notifications.where((n) => !n.isRead).length;
+    notifyListeners();
+  }
+
+  Future<void> clearAllNotifs() async {
+    await NotificationService.clearAll();
+    _notifications.clear();
+    _unreadNotifCount = 0;
+    notifyListeners();
+  }
+
+  Future<void> refreshUnreadCount() async {
+    await refreshNotifications();
   }
 
   Future<void> _detectAndNotify({
@@ -274,75 +324,87 @@ class AppProvider extends ChangeNotifier {
     final newLichThiCount = scheduleProvider.lichThi.length;
     final newDaDong = financeProvider.tongHocPhiDaDong;
 
-    // Chỉ thông báo nếu trước đó đã có data (không phải lần sync đầu tiên khi mới cài app/clear cache)
+    // Đọc danh sách đã xóa 1 lần duy nhất để tối ưu hiệu năng
+    final dismissed = await NotificationService.getDismissedIds();
+    final allNotifs = await NotificationService.getAll();
+
+    // 1. THÔNG BÁO ĐIỂM
     if (prevDiemCount > 0 && newDiemCount > prevDiemCount) {
-      // Đếm xem thực sự có bao nhiêu môn CÓ ĐIỂM mới (tránh count nhầm các môn overview)
-      // Ở đây ta tin tưởng gradeProvider.diem chỉ chứa môn học thực (isOverview=false)
       final diff = newDiemCount - prevDiemCount;
-      if (diff > 0) {
+      final notifId = 'grade_to_$newDiemCount'; // ID ổn định dựa trên số lượng
+      if (!dismissed.contains(notifId) &&
+          !allNotifs.any((n) => n.id == notifId)) {
         final title = 'Có điểm mới';
-        final body = 'Vừa có $diff môn học có điểm mới trên hệ thống tin chỉ.';
+        final body = 'Vừa có $diff môn học có điểm mới trên hệ thống tín chỉ.';
         await NotificationService.add(AppNotif(
-          id: 'grade_${now.millisecondsSinceEpoch}',
+          id: notifId,
           title: title,
           body: body,
           targetTab: 2,
           ts: now,
         ));
         await LocalNotificationService.showImmediate(
-          id: 1001,
-          title: title,
-          body: body,
-        );
+            id: 1001, title: title, body: body);
       }
     }
+
+    // 2. THÔNG BÁO LỊCH HỌC
     if (prevLichHocCount > 0 && newLichHocCount > prevLichHocCount) {
-      final title = 'Lịch học được cập nhật';
-      final body = 'Có ${newLichHocCount - prevLichHocCount} buổi học mới trong lịch';
-      await NotificationService.add(AppNotif(
-        id: 'lich_${now.millisecondsSinceEpoch}',
-        title: title,
-        body: body,
-        targetTab: 1,
-        ts: now,
-      ));
-      await LocalNotificationService.showImmediate(
-        id: 1002,
-        title: title,
-        body: body,
-      );
+      final notifId = 'lich_to_$newLichHocCount';
+      if (!dismissed.contains(notifId) &&
+          !allNotifs.any((n) => n.id == notifId)) {
+        final title = 'Lịch học được cập nhật';
+        final body =
+            'Có ${newLichHocCount - prevLichHocCount} buổi học mới trong lịch';
+        await NotificationService.add(AppNotif(
+          id: notifId,
+          title: title,
+          body: body,
+          targetTab: 1,
+          ts: now,
+        ));
+        await LocalNotificationService.showImmediate(
+            id: 1002, title: title, body: body);
+      }
     }
+
+    // 3. THÔNG BÁO LỊCH THI
     if (prevLichThiCount > 0 && newLichThiCount > prevLichThiCount) {
-      final title = 'Có lịch thi mới';
-      final body = '${newLichThiCount - prevLichThiCount} lịch thi vừa được thêm vào';
-      await NotificationService.add(AppNotif(
-        id: 'thi_${now.millisecondsSinceEpoch}',
-        title: title,
-        body: body,
-        targetTab: 1,
-        ts: now,
-      ));
-      await LocalNotificationService.showImmediate(
-        id: 1003,
-        title: title,
-        body: body,
-      );
+      final notifId = 'thi_to_$newLichThiCount';
+      if (!dismissed.contains(notifId) &&
+          !allNotifs.any((n) => n.id == notifId)) {
+        final title = 'Có lịch thi mới';
+        final body =
+            '${newLichThiCount - prevLichThiCount} lịch thi vừa được thêm vào';
+        await NotificationService.add(AppNotif(
+          id: notifId,
+          title: title,
+          body: body,
+          targetTab: 1,
+          ts: now,
+        ));
+        await LocalNotificationService.showImmediate(
+            id: 1003, title: title, body: body);
+      }
     }
+
+    // 4. THÔNG BÁO HỌC PHÍ
     if (prevDaDong > 0 && newDaDong > prevDaDong) {
-      final title = 'Thanh toán được ghi nhận';
-      final body = 'Học phí đã được cập nhật';
-      await NotificationService.add(AppNotif(
-        id: 'finance_${now.millisecondsSinceEpoch}',
-        title: title,
-        body: body,
-        targetTab: 3,
-        ts: now,
-      ));
-      await LocalNotificationService.showImmediate(
-        id: 1004,
-        title: title,
-        body: body,
-      );
+      final notifId = 'finance_to_${newDaDong.toInt()}';
+      if (!dismissed.contains(notifId) &&
+          !allNotifs.any((n) => n.id == notifId)) {
+        final title = 'Thanh toán được ghi nhận';
+        final body = 'Học phí đã được cập nhật';
+        await NotificationService.add(AppNotif(
+          id: notifId,
+          title: title,
+          body: body,
+          targetTab: 3,
+          ts: now,
+        ));
+        await LocalNotificationService.showImmediate(
+            id: 1004, title: title, body: body);
+      }
     }
   }
 
@@ -352,6 +414,8 @@ class AppProvider extends ChangeNotifier {
     if (!enabled) return;
 
     final now = DateTime.now();
+    final dismissed = await NotificationService.getDismissedIds();
+    final allNotifs = await NotificationService.getAll();
 
     // ── 1. THÔNG BÁO TỔNG HỢP 20:00 (ngày mai) ──
     for (int i = 1; i <= 1; i++) {
@@ -365,8 +429,9 @@ class AppProvider extends ChangeNotifier {
 
       final notifId =
           'schedule_reminder_${targetDate.year}_${targetDate.month}_${targetDate.day}';
-      final list = await NotificationService.getAll();
-      if (list.any((n) => n.id == notifId)) continue;
+
+      if (dismissed.contains(notifId)) continue;
+      if (allNotifs.any((n) => n.id == notifId)) continue;
 
       String body = '';
       if (classes.isNotEmpty) body += '📚 ${classes.length} ca học';
@@ -411,8 +476,9 @@ class AppProvider extends ChangeNotifier {
 
         final notifId =
             'class_reminder_${targetDate.year}_${targetDate.month}_${targetDate.day}_${c.tenHocPhan}';
-        final list = await NotificationService.getAll();
-        if (list.any((n) => n.id == notifId)) continue;
+
+        if (dismissed.contains(notifId)) continue;
+        if (allNotifs.any((n) => n.id == notifId)) continue;
 
         await NotificationService.add(AppNotif(
           id: notifId,
@@ -437,8 +503,9 @@ class AppProvider extends ChangeNotifier {
 
         final notifId =
             'exam_reminder_${targetDate.year}_${targetDate.month}_${targetDate.day}_${e.tenMonHoc}';
-        final list = await NotificationService.getAll();
-        if (list.any((n) => n.id == notifId)) continue;
+
+        if (dismissed.contains(notifId)) continue;
+        if (allNotifs.any((n) => n.id == notifId)) continue;
 
         await NotificationService.add(AppNotif(
           id: notifId,
@@ -468,8 +535,8 @@ class AppProvider extends ChangeNotifier {
 
       await _detectAndNotifyDailySchedule();
 
-      // Load unread count
-      _unreadNotifCount = await NotificationService.unreadCount();
+      // Load danh sách thông báo vào state (reactive)
+      await refreshNotifications();
     } catch (e) {
       debugPrint('Lỗi tải cache: $e');
     }
@@ -491,14 +558,6 @@ class AppProvider extends ChangeNotifier {
       debugPrint('Lỗi sync student: $e');
     }
   }
-
-  // ── Backward Compatibility Getters ──────────────────────────
-  // These allow screens to access sub-provider data directly from AppProvider
-
-  AuthState get authState2 => _authState;
-  String get currentMssv2 => _currentMssv;
-  String get authError2 => _authError;
-  Student? get student2 => _student;
 
   // Schedule
   LoadState get lichHocState =>
@@ -525,7 +584,8 @@ class AppProvider extends ChangeNotifier {
   List<DiemMonHoc> get diem => gradeProvider.diem;
   List<DiemMonHoc> get diemOverview => gradeProvider.diemOverview;
   DiemSummary? get diemSummary => gradeProvider.diemSummary;
-  Map<String, DiemSummary> get semesterSummaries => gradeProvider.semesterSummaries;
+  Map<String, DiemSummary> get semesterSummaries =>
+      gradeProvider.semesterSummaries;
 
   // Finance
   LoadState get hocPhiState =>
@@ -583,8 +643,14 @@ class AppProvider extends ChangeNotifier {
         scheduleProvider.syncLichHoc(forceRefresh: forceRefresh),
         scheduleProvider.syncLichThi(forceRefresh: forceRefresh),
       ]).then((_) async {
-        await LocalNotificationService.scheduleClasses(
-            _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi);
+        // Chỉ lên lịch thông báo nếu người dùng đã bật
+        if (_notifEnabled) {
+          await LocalNotificationService.scheduleClasses(
+              _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi);
+        } else {
+          // Nếu tắt, đảm bảo hủy hết lịch cũ
+          await LocalNotificationService.cancelAll();
+        }
       });
 
   /// Chỉ đồng bộ học phí (dùng cho RefreshIndicator trang Tài chính)

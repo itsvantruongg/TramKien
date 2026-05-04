@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import UserNotifications
+import background_fetch
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -9,7 +10,10 @@ import UserNotifications
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
-    // Cho phép thông báo hiển thị khi app đang foreground
+    
+    // Đăng ký background_fetch (Quan trọng cho iOS)
+    BackgroundFetchPlugin.register(with: self.registrar(forPlugin: "BackgroundFetchPlugin")!)
+    
     UNUserNotificationCenter.current().delegate = self
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }

@@ -199,8 +199,8 @@ class LocalNotificationService {
     }
 
     // Thay vì cancelAll() xóa nhầm cả thông báo test (ID 9999),
-    // ta chỉ xóa các ID từ 1 đến 100 (là ID của lịch học)
-    for (int j = 1; j <= 100; j++) {
+    // ta chỉ xóa các ID từ 1 đến 200 (là ID của lịch học)
+    for (int j = 1; j <= 200; j++) {
       await _plugin.cancel(j);
     }
 
@@ -218,7 +218,7 @@ class LocalNotificationService {
     final location = tz.getLocation('Asia/Ho_Chi_Minh');
 
     for (int i = 0; i <= 14; i++) {
-      if (scheduledCount >= 60) break;
+      if (scheduledCount >= 200) break;
 
       final date = now.add(Duration(days: i));
       final dateOnly = DateTime(date.year, date.month, date.day);
@@ -240,10 +240,10 @@ class LocalNotificationService {
 
       if (classes.isEmpty && exams.isEmpty) continue;
 
-      // 1. TỔNG HỢP NGÀY MAI (Chỉ lên lịch vào 20:00 ngày hôm trước, i > 0 vì ngày mai so với hôm qua)
-      // THAY TOÀN BỘ BLOCK "1. TỔNG HỢP NGÀY MAI"
+      // 1. TỔNG HỢP NGÀY MAI (Lên lịch lúc 20:00 ngày hôm trước)
       if (i > 0) {
-        // Tính 16:30 hôm nay (ngày trước của date)
+        if (scheduledCount >= 200) break;
+        // Tính 20:00 hôm nay (ngày trước của date)
         final yesterday = date.subtract(const Duration(days: 1));
         final scheduleTime = tz.TZDateTime(
           location,
@@ -287,7 +287,7 @@ class LocalNotificationService {
                 'schedule_channel',
                 'Nhắc nhở lịch học',
                 channelDescription:
-                    'Thông báo lịch học vào 16:30 ngày hôm trước',
+                    'Thông báo lịch học vào 20:00 ngày hôm trước',
                 importance: Importance.high,
                 priority: Priority.high,
               ),
@@ -305,7 +305,7 @@ class LocalNotificationService {
 
       // 2. NHẮC TRƯỚC 1 TIẾNG CHO TỪNG CA HỌC (cho cả hôm nay và ngày mai)
       for (var c in classes) {
-        if (scheduledCount >= 60) break;
+        if (scheduledCount >= 200) break;
         final timeParts = c.gioHoc.split(':');
         if (timeParts.length == 2) {
           final h = int.tryParse(timeParts[0]) ?? 0;
@@ -346,7 +346,7 @@ class LocalNotificationService {
 
       // 3. NHẮC TRƯỚC 1 TIẾNG CHO TỪNG CA THI
       for (var e in exams) {
-        if (scheduledCount >= 60) break;
+        if (scheduledCount >= 200) break;
         final timeParts = e.gioBatDau.split(':');
         if (timeParts.length == 2) {
           final h = int.tryParse(timeParts[0]) ?? 0;
