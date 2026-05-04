@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDuck4L1MfHPwWMaOQ21G5hsiej647utI8',
-    appId: '1:804358231949:android:a184d6638975b097504fc4',
+    appId: '1:804358231949:android:1cd56c60e5d28a8c504fc4',
     messagingSenderId: '804358231949',
     projectId: 'tramkien-c99cf',
     storageBucket: 'tramkien-c99cf.firebasestorage.app',
@@ -59,10 +59,10 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCVliQA0XYTxCL1BjD54MB1Gskm3W7VTec',
-    appId: '1:804358231949:ios:e306a4018819764a504fc4',
+    appId: '1:804358231949:ios:e04b4eefe15e4747504fc4',
     messagingSenderId: '804358231949',
     projectId: 'tramkien-c99cf',
     storageBucket: 'tramkien-c99cf.firebasestorage.app',
-    iosBundleId: 'com.example.demo',
+    iosBundleId: 'com.tramkien.hau',
   );
 }
