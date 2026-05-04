@@ -1,8 +1,23 @@
-# Cấu hình Podfile cho iOS 16.0+ (Tích hợp Flutter Helper)
+# Cấu hình Podfile cho iOS 16.0+
 platform :ios, '16.0'
 
-# Quan trọng: Dòng này giúp Podfile hiểu được các lệnh như 'flutter_install_all_ios_pods'
-load File.join(File.dirname(File.realpath(__FILE__)), 'Flutter', 'podhelper.rb')
+# Logic chuẩn của Flutter để tự động tìm đường dẫn SDK (FLUTTER_ROOT)
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "The Generated.xcconfig file does not exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+# Load podhelper trực tiếp từ Flutter SDK thay vì thư mục local
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
 
 install! 'cocoapods', :deterministic_uuids => false
 
@@ -10,7 +25,6 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
-  # Lệnh này bây giờ đã được định nghĩa nhờ dòng 'load' ở trên
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
