@@ -45,8 +45,9 @@ Future<void> main() async {
     },
     onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
   );
-  // Khởi tạo Workmanager cho background sync
+  // Khởi tạo và lên lịch đồng bộ nền
   await BackgroundSyncService.initialize();
+  await BackgroundSyncService.schedulePeriodicSync();
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppProvider()..init(),

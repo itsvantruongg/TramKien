@@ -11,8 +11,7 @@ import background_fetch
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
     
-    // Đăng ký background_fetch (Quan trọng cho iOS)
-    BackgroundFetchPlugin.register(with: self.registrar(forPlugin: "BackgroundFetchPlugin")!)
+    // GeneratedPluginRegistrant sẽ tự động đăng ký các plugin bao gồm BackgroundFetch
     
     UNUserNotificationCenter.current().delegate = self
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
