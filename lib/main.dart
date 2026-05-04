@@ -13,6 +13,7 @@ import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/notifications_screen.dart';
 import 'services/analytics_service.dart';
+import 'services/background_sync_service.dart';
 import 'services/local_notification_service.dart';
 import 'theme/app_theme.dart';
 
@@ -44,6 +45,8 @@ Future<void> main() async {
     },
     onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
   );
+  // Khởi tạo Workmanager cho background sync
+  await BackgroundSyncService.initialize();
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppProvider()..init(),

@@ -192,8 +192,8 @@ class ScheduleProvider extends ChangeNotifier {
       if (allCached) {
         for (final k in kyList) {
           final cacheKey = 'lich_thi_${k.ky}_${k.nam}';
-          final isCached = !(await DatabaseService.isStale(
-              cacheKey, _ttlLichThi));
+          final isCached =
+              !(await DatabaseService.isStale(cacheKey, _ttlLichThi));
           if (!isCached) {
             allCached = false;
             break;

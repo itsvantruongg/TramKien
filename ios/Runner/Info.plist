@@ -84,6 +84,12 @@
 	<array>
 		<string>fetch</string>
 		<string>remote-notification</string>
+		<string>processing</string>
+	</array>
+	<!-- BGTaskScheduler: cho phép chạy background task định kỳ (iOS 13+) -->
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.tramkien.bgsync</string>
 	</array>
 </dict>
 </plist>
