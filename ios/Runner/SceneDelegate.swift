@@ -8,7 +8,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         guard let windowScene = (scene as? UIWindowScene) else { return }
         
         window = UIWindow(windowScene: windowScene)
-        let controller = FlutterViewController(project: nil, initialRoute: nil)
+        let controller = FlutterViewController(project: nil, nibName: nil, bundle: nil)
         window?.rootViewController = controller
         window?.makeKeyAndVisible()
     }
