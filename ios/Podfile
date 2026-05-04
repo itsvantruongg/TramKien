@@ -1,5 +1,8 @@
-# Cấu hình Podfile cho iOS 16.0+ (Hiện đại nhất)
+# Cấu hình Podfile cho iOS 16.0+ (Tích hợp Flutter Helper)
 platform :ios, '16.0'
+
+# Quan trọng: Dòng này giúp Podfile hiểu được các lệnh như 'flutter_install_all_ios_pods'
+load File.join(File.dirname(File.realpath(__FILE__)), 'Flutter', 'podhelper.rb')
 
 install! 'cocoapods', :deterministic_uuids => false
 
@@ -7,6 +10,7 @@ target 'Runner' do
   use_frameworks!
   use_modular_headers!
 
+  # Lệnh này bây giờ đã được định nghĩa nhờ dòng 'load' ở trên
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 end
 
@@ -16,11 +20,7 @@ post_install do |installer|
     
     target.build_configurations.each do |config|
       config.build_settings['DEBUG_INFORMATION_FORMAT'] = 'dwarf'
-      
-      # Đồng bộ toàn bộ Pods lên iOS 16.0
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '16.0'
-      
-      # Tắt sandboxing để các script Flutter chạy mượt trên Xcode 15/16
       config.build_settings['ENABLE_USER_SCRIPT_SANDBOXING'] = 'NO'
     end
   end
