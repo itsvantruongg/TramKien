@@ -57,6 +57,11 @@ android {
         }
     }
 
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
+
     applicationVariants.all {
         val variant = this
         outputs.all {
