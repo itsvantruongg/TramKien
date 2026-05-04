@@ -43,7 +43,8 @@ jobs:
           install! 'cocoapods', :deterministic_uuids => false
 
           target 'Runner' do
-            use_frameworks!
+            # Sửa lỗi xung đột Static Binary ở dòng này
+            use_frameworks! :linkage => :static
             use_modular_headers!
             flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
           end
