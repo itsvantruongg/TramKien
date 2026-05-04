@@ -1,15 +1,2 @@
-import UIKit
-import Flutter
-
-class SceneDelegate: UIResponder, UIWindowSceneDelegate {
-    var window: UIWindow?
-
-    func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-        guard let windowScene = (scene as? UIWindowScene) else { return }
-        
-        window = UIWindow(windowScene: windowScene)
-        let controller = FlutterViewController(project: nil, nibName: nil, bundle: nil)
-        window?.rootViewController = controller
-        window?.makeKeyAndVisible()
-    }
-}
+// File này đã được vô hiệu hóa để sửa lỗi màn hình trắng.
+// App sẽ sử dụng AppDelegate mặc định của Flutter.
