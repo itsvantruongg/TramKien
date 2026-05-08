@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart' as wm;
 import 'package:background_fetch/background_fetch.dart' as bf;
-import 'package:firebase_core/firebase_core.dart';
-import '../firebase_options.dart';
 import 'package:http/http.dart' as http;
 
 import 'hau_api_service.dart';
@@ -63,21 +61,11 @@ Future<void> _runSyncLogic() async {
   try {
     WidgetsFlutterBinding.ensureInitialized();
 
-    // Khởi tạo Firebase cho Isolate chạy ngầm
-    try {
-      if (Firebase.apps.isEmpty) {
-        await Firebase.initializeApp(
-          options: DefaultFirebaseOptions.currentPlatform,
-        );
-      }
-    } catch (e) {
-      debugPrint('⚙️ [BG] Firebase Init Error (Isolate): $e');
-    }
-
     // 1. Đọc thông tin đăng nhập đã lưu
     final prefs = await SharedPreferences.getInstance();
     final mssv = prefs.getString('saved_mssv') ?? '';
     final pw = prefs.getString('saved_pw') ?? '';
+    // ignore: unused_local_variable
     final remember = prefs.getBool('remember_login') ?? false;
 
     // Nếu không nhớ mật khẩu, chúng ta chỉ cho phép sync nếu MSSV hiện tại đang trùng với mssv trong prefs

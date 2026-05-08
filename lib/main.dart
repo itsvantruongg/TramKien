@@ -4,15 +4,10 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_analytics/firebase_analytics.dart';
-import 'firebase_options.dart';
-
 import 'providers/app_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/notifications_screen.dart';
-import 'services/analytics_service.dart';
 import 'services/background_sync_service.dart';
 import 'services/local_notification_service.dart';
 import 'theme/app_theme.dart';
@@ -26,15 +21,12 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // --- THÊM ĐOẠN KHỞI TẠO FIREBASE VÀO ĐÂY ---
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
   await initializeDateFormatting('vi_VN', null);
-  await AnalyticsService.initialize();
+  
   await LocalNotificationService.init(
     onDidReceiveNotificationResponse: (response) {
       if (navigatorKey.currentState != null) {
@@ -58,8 +50,6 @@ Future<void> main() async {
 
 class SchedifyApp extends StatelessWidget {
   const SchedifyApp({super.key});
-  // --- KHAI BÁO BIẾN ANALYTICS ---
-  static FirebaseAnalytics analytics = FirebaseAnalytics.instance;
 
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -67,10 +57,7 @@ class SchedifyApp extends StatelessWidget {
         title: 'Trạm Kiến',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light,
-        // --- THÊM OBSERVER ĐỂ THEO DÕI CHUYỂN TRANG ---
-        navigatorObservers: [
-          FirebaseAnalyticsObserver(analytics: analytics),
-        ],
+        navigatorObservers: const [],
         builder: (context, child) {
           final mediaQuery = MediaQuery.of(context);
           final size = mediaQuery.size;

@@ -44,15 +44,6 @@
 	</array>
 	<key>CFBundleURLTypes</key>
 	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<!-- Thay mã này bằng REVERSED_CLIENT_ID trong GoogleService-Info.plist của bạn -->
-				<string>com.googleusercontent.apps.804358231949-e306a4018819764a504fc4</string>
-			</array>
-		</dict>
 	</array>
 	<!-- Schemes cho url_launcher (canLaunchUrl) -->
 	<key>LSApplicationQueriesSchemes</key>

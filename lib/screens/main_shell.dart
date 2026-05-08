@@ -4,7 +4,6 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../services/analytics_service.dart';
 import '../theme/app_theme.dart';
 import 'dashboard_screen.dart';
 import 'finance_screen.dart';
@@ -40,15 +39,6 @@ class _MainShellState extends State<MainShell>
         _ => 'MainShell',
       };
 
-  void _logCurrentScreen() {
-    unawaited(
-      AnalyticsService.logScreenView(
-        screenName: _screenNameForIndex(_idx),
-        screenClass: '${_screenNameForIndex(_idx)}Screen',
-      ),
-    );
-  }
-
   void _navigate(int idx) {
     if (idx == _idx) return;
     if (_animController.isAnimating) {
@@ -58,7 +48,6 @@ class _MainShellState extends State<MainShell>
       _prevIdx = _idx;
       _idx = idx;
     });
-    _logCurrentScreen();
     _animController.forward(from: 0.0);
   }
 
@@ -151,7 +140,6 @@ class _MainShellState extends State<MainShell>
           });
         }
       });
-    _logCurrentScreen();
   }
 
   @override
