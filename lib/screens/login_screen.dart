@@ -355,12 +355,19 @@ class _LoginScreenState extends State<LoginScreen> {
                   ]),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: 12),
+                Text('Tài khoản trải nghiệm: admin / admin@123',
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: AppTheme.outline)),
+
+                const SizedBox(height: 12),
                 Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                   const Icon(Icons.verified_user_outlined,
                       size: 14, color: AppTheme.outline),
                   const SizedBox(width: 6),
-                  Text('Trợ Lý Học Tập HAU v1.0.2',
+                  Text('Trợ Lý Học Tập HAU v1.0.3',
                       style: Theme.of(context)
                           .textTheme
                           .labelSmall
