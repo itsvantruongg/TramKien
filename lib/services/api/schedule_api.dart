@@ -260,11 +260,13 @@ class ScheduleApi {
 
     const batchSize = 2;
     for (int start = 0; start < kyList.length; start += batchSize) {
-      final end =
-          (start + batchSize < kyList.length) ? start + batchSize : kyList.length;
+      final end = (start + batchSize < kyList.length)
+          ? start + batchSize
+          : kyList.length;
       final batch = kyList.sublist(start, end);
       final results = await Future.wait(batch.map((k) =>
-          _fetchLichHocSemesterWithRetry(hocKy: k.ky, namHoc: k.nam, mssv: mssv)));
+          _fetchLichHocSemesterWithRetry(
+              hocKy: k.ky, namHoc: k.nam, mssv: mssv)));
 
       for (int i = 0; i < batch.length; i++) {
         final k = batch[i];
@@ -277,7 +279,8 @@ class ScheduleApi {
         } else if (result.items.isEmpty) {
           print('   ⚪ $kyLabel: rỗng (chưa có lịch)');
         } else {
-          final monNames = result.items.map((l) => l.tenHocPhan).toSet().join(', ');
+          final monNames =
+              result.items.map((l) => l.tenHocPhan).toSet().join(', ');
           print('   🟢 $kyLabel: ${result.items.length} bản ghi → $monNames');
         }
 
@@ -440,8 +443,7 @@ class ScheduleApi {
         }
         // FILTER: ngayThi must be valid date format
         if (l.ngayThi.isEmpty || !RegExp(r'\d+/\d+/\d+').hasMatch(l.ngayThi)) {
-          print(
-              '⚠️ WARN: Skipping lich thi with invalid date: "${l.ngayThi}"');
+          print('⚠️ WARN: Skipping lich thi with invalid date: "${l.ngayThi}"');
           return false;
         }
         return true;
@@ -487,11 +489,12 @@ class ScheduleApi {
 
     const batchSize = 4;
     for (int start = 0; start < kyList.length; start += batchSize) {
-      final end =
-          (start + batchSize < kyList.length) ? start + batchSize : kyList.length;
+      final end = (start + batchSize < kyList.length)
+          ? start + batchSize
+          : kyList.length;
       final batch = kyList.sublist(start, end);
-      final results = await Future.wait(batch.map((k) =>
-          _fetchLichThiSemesterWithRetry(hocKy: k.ky, namHoc: k.nam)));
+      final results = await Future.wait(batch.map(
+          (k) => _fetchLichThiSemesterWithRetry(hocKy: k.ky, namHoc: k.nam)));
 
       for (int i = 0; i < batch.length; i++) {
         final k = batch[i];
@@ -511,7 +514,8 @@ class ScheduleApi {
       }
     }
 
-    print('🏁 [LichThi] Tổng: ${allLichThi.length} lịch thi complete=$complete');
+    print(
+        '🏁 [LichThi] Tổng: ${allLichThi.length} lịch thi complete=$complete');
     return (items: allLichThi, complete: complete);
   }
 

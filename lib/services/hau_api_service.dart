@@ -62,6 +62,14 @@ class HauApiService {
 
   // ── LOGIN ──────────────────────────────────────────────────
 
+  /// Lấy __RequestVerificationToken từ trang login (ASP.NET anti-forgery).
+  /// Trả về token string, hoặc rỗng nếu không tìm thấy.
+  static String _parseCsrfToken(String html) {
+    final doc = html_parser.parse(html);
+    final input = doc.querySelector('input[name="__RequestVerificationToken"]');
+    return input?.attributes['value'] ?? '';
+  }
+
   // Trả về null = thành công, trả về String = thông báo lỗi
   static Future<String?> login(String mssv, String password) async {
     try {
@@ -72,11 +80,25 @@ class HauApiService {
 
       _cookies.clear();
 
+      // Bước 1: GET trang login để lấy cookie session + __RequestVerificationToken
       final r1 = await http
           .get(Uri.parse('$base/DangNhap/Login'), headers: _baseHeaders)
           .timeout(const Duration(seconds: 15));
       _saveCookies(r1);
 
+      // Bước 2: Parse CSRF token từ HTML trang login
+      final csrfToken = _parseCsrfToken(r1.body);
+      // Nếu không tìm thấy token → thử lấy từ trang gốc (BASE_URL)
+      String resolvedToken = csrfToken;
+      if (resolvedToken.isEmpty) {
+        final r0 = await http
+            .get(Uri.parse(base), headers: _baseHeaders)
+            .timeout(const Duration(seconds: 15));
+        _saveCookies(r0);
+        resolvedToken = _parseCsrfToken(r0.body);
+      }
+
+      // Bước 3: POST login kèm CSRF token (giống check_endpoint.py)
       final request =
           http.Request('POST', Uri.parse('$base/DangNhap/CheckLogin'));
       request.headers.addAll({
@@ -92,6 +114,8 @@ class HauApiService {
         'Role': '0',
         'UserName': mssv,
         'Password': password,
+        if (resolvedToken.isNotEmpty)
+          '__RequestVerificationToken': resolvedToken,
       };
       request.followRedirects = false;
 

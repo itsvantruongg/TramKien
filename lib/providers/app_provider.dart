@@ -84,7 +84,8 @@ class AppProvider extends ChangeNotifier {
           gradeProvider.setMssv(mssv);
           scheduleProvider.setMssv(mssv);
           // Load notification state
-          _notifEnabled = await LocalNotificationService.isNotificationEnabled(mssv);
+          _notifEnabled =
+              await LocalNotificationService.isNotificationEnabled(mssv);
           // Load cache trước khi login để show data ngay
           await _loadFromCache();
           _authState = AuthState.loggedIn;
