@@ -112,7 +112,7 @@ class ProfileScreen extends StatelessWidget {
                         Center(
                             child: Column(
                           children: [
-                            Text('VERSION 1.0.3',
+                            Text('VERSION 1.0.4',
                                 style: Theme.of(context)
                                     .textTheme
                                     .labelSmall
