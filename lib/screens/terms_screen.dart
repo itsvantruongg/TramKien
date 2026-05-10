@@ -73,7 +73,7 @@ class TermsScreen extends StatelessWidget {
                               .textTheme
                               .titleMedium
                               ?.copyWith(fontWeight: FontWeight.w800)),
-                      Text('Cập nhật: 08/05/2026 • Phiên bản 1.0.3',
+                      Text('Cập nhật: 10/05/2026 • Phiên bản 1.0.4',
                           style: Theme.of(context)
                               .textTheme
                               .labelSmall
