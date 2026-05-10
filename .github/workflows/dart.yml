@@ -82,6 +82,6 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: build/ios/iphoneos/TramKien.ipa
-          tag: v1.0.3
+          tag: v1.0.4
           overwrite: true
-          body: "New update for ios"
+          body: "IOS Update 1.0.4 - New update for ios"
