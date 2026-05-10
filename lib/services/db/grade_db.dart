@@ -11,7 +11,9 @@ class GradeDb {
       {int? hocKy, String? namHoc, String? mssv}) async {
     final d = await DatabaseService.db;
     await d.transaction((txn) async {
+      int orderIndex = 0;
       for (final raw in list) {
+        orderIndex++;
         final resolvedMssv = mssv ?? raw['mssv']?.toString() ?? '';
         final resolvedNamHoc = raw['nam_hoc']?.toString() ??
             raw['namHoc']?.toString() ??
@@ -79,6 +81,7 @@ class GradeDb {
               raw['is_overview'] == true || raw['is_overview'] == 1 ? 1 : 0,
           'is_elective':
               (raw['is_elective'] == 1 || raw['Môn tự chọn'] == '*') ? 1 : 0,
+          'display_order': orderIndex,
           'notes': raw['notes']?.toString() ?? raw['Ghi chú']?.toString(),
           'status': resolvedStatus,
           'nam_hoc': resolvedNamHoc,
@@ -169,7 +172,7 @@ class GradeDb {
       'student_grades',
       where: where,
       whereArgs: whereArgs,
-      orderBy: 'nam_hoc DESC, hoc_ky DESC',
+      orderBy: 'nam_hoc DESC, hoc_ky DESC, display_order ASC',
     );
     return rows.map(DiemMonHoc.fromMap).toList();
   }

@@ -14,7 +14,7 @@ export 'db/finance_db.dart';
 
 class DatabaseService {
   static Database? _db;
-  static const _version = 13;
+  static const _version = 14;
   static String _currentMssv = '';
   static String get currentMssv => _currentMssv;
   static int _currentUserId = -1;
@@ -155,6 +155,10 @@ class DatabaseService {
             )
           ''');
         }
+        if (oldV < 14) {
+          await db.execute(
+              'ALTER TABLE student_grades ADD COLUMN display_order INTEGER DEFAULT 0');
+        }
       },
     );
   }
@@ -239,6 +243,7 @@ class DatabaseService {
         
         -- Phân loại & Trạng thái
         is_elective INTEGER DEFAULT 0,  -- Môn tự chọn
+        display_order INTEGER DEFAULT 0, -- Thứ tự hiển thị gốc
         notes TEXT,                     -- Ghi chú
         status TEXT DEFAULT 'completed',
         

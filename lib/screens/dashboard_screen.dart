@@ -300,7 +300,7 @@ class DashboardScreen extends StatelessWidget {
 
   List<Widget> _buildTodaySchedule(BuildContext ctx, AppProvider p) {
     final list = p.getLichHocHomNay();
-    if (p.lichHocState == LoadState.loading && list.isEmpty) {
+    if (p.lichHocState == LoadState.loading && p.lichHoc.isEmpty) {
       return [
         SkeletonBox(width: double.infinity, height: 88, radius: 16),
         const SizedBox(height: 8)
