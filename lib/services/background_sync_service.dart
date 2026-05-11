@@ -11,6 +11,7 @@ import 'local_notification_service.dart';
 import 'database_service.dart';
 import 'api/grade_api.dart';
 import 'api/schedule_api.dart';
+import 'api/finance_api.dart';
 import '../models/models.dart';
 
 /// Tên task
@@ -97,23 +98,54 @@ Future<void> _runSyncLogic() async {
     final prevDiem = await GradeDb.getDiem();
     final prevLichHoc = await ScheduleDb.getLichHoc();
     final prevLichThi = await ScheduleDb.getLichThi();
+    final prevFeeSummary = await FinanceDb.getAllFeeSummary();
+    final prevDaDong = prevFeeSummary.fold(
+        0.0, (s, f) => s + ((f['da_nop'] as num?) ?? 0).toDouble());
 
-    // 6. Sync dữ liệu
+    // 6. Sync dữ liệu — phải capture kết quả rồi lưu vào DB
+    // BUG CŨ: kết quả fetchDiem/fetchLichHoc/fetchLichThi bị bỏ qua (discard),
+    // DB không được cập nhật → prevCount == newCount → không bao giờ thông báo.
+    List<DiemMonHoc> fetchedDiem = [];
+    List<LichHoc> fetchedLichHoc = [];
+    List<LichThi> fetchedLichThi = [];
+
     try {
       // Giới hạn 20 giây để không bị iOS kill (iOS giới hạn 30s)
-      await Future.wait([
+      final results = await Future.wait<dynamic>([
         GradeApi.fetchDiem(),
         ScheduleApi.fetchLichHocFromStart(mssv: mssv),
         ScheduleApi.fetchLichThiFromStart(mssv: mssv),
+        FinanceApi.fetchAndSaveHocPhi(), // FinanceApi tự lưu vào DB
       ]).timeout(const Duration(seconds: 20));
+
+      fetchedDiem = List<DiemMonHoc>.from(results[0] as List);
+      fetchedLichHoc = List<LichHoc>.from(results[1] as List);
+      fetchedLichThi = List<LichThi>.from(results[2] as List);
     } catch (e) {
       debugPrint('⚙️ [BG] Sync/Timeout error: $e');
     }
 
-    // 7. Snapshot SAU sync
+    // Lưu vào DB (nếu fetch thành công)
+    if (fetchedDiem.isNotEmpty) {
+      await GradeDb.saveDiem(
+        fetchedDiem.map((d) => d.toMap()).toList(),
+        mssv: mssv,
+      );
+    }
+    if (fetchedLichHoc.isNotEmpty) {
+      await ScheduleDb.saveLichHoc(fetchedLichHoc);
+    }
+    if (fetchedLichThi.isNotEmpty) {
+      await ScheduleDb.saveLichThi(fetchedLichThi);
+    }
+
+    // 7. Snapshot SAU sync (đọc lại từ DB sau khi đã lưu)
     final newDiem = await GradeDb.getDiem();
     final newLichHoc = await ScheduleDb.getLichHoc();
     final newLichThi = await ScheduleDb.getLichThi();
+    final newFeeSummary = await FinanceDb.getAllFeeSummary();
+    final newDaDong = newFeeSummary.fold(
+        0.0, (s, f) => s + ((f['da_nop'] as num?) ?? 0).toDouble());
 
     // 8. Đọc dismissed list một lần
     final dismissed = await NotificationService.getDismissedIds();
@@ -161,6 +193,16 @@ Future<void> _runSyncLogic() async {
         '${newLichThi.length - prevLichThi.length} lịch thi vừa được cập nhật.',
         1,
         2003,
+      );
+    }
+
+    if (prevDaDong > 0 && newDaDong > prevDaDong) {
+      await pushIfNew(
+        'finance_to_${newDaDong.toInt()}',
+        'Thanh toán được ghi nhận 💰',
+        'Học phí đã được cập nhật trên hệ thống.',
+        3,
+        2004,
       );
     }
 

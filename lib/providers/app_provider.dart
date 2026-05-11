@@ -330,6 +330,11 @@ class AppProvider extends ChangeNotifier {
     final allNotifs = await NotificationService.getAll();
 
     // 1. THÔNG BÁO ĐIỂM
+    // Chỉ thông báo khi:
+    //   - prevDiemCount > 0: đã có data trong bộ nhớ trước khi sync (không phải lần đầu tiên)
+    //   - newDiemCount > prevDiemCount: thực sự có thêm môn học mới
+    // Lưu ý: prevDiemCount == 0 xảy ra khi cache chưa load HOẶC lần đăng nhập đầu tiên.
+    // Không thông báo trong trường hợp này để tránh "44 môn mới" giả tạo khi vào app lần đầu.
     if (prevDiemCount > 0 && newDiemCount > prevDiemCount) {
       final diff = newDiemCount - prevDiemCount;
       final notifId = 'grade_to_$newDiemCount'; // ID ổn định dựa trên số lượng
@@ -636,27 +641,70 @@ class AppProvider extends ChangeNotifier {
       );
 
   /// Chỉ đồng bộ điểm (dùng cho RefreshIndicator trang Điểm)
-  Future<void> syncGrades({bool forceRefresh = true}) =>
-      gradeProvider.syncDiem(forceRefresh: forceRefresh);
+  Future<void> syncGrades({bool forceRefresh = true}) async {
+    // Snapshot trước sync để detect thay đổi điểm
+    final prevDiemCount = gradeProvider.diem.length;
+
+    await gradeProvider.syncDiem(forceRefresh: forceRefresh);
+
+    // Phát hiện và thông báo nếu có điểm mới
+    await _detectAndNotify(
+      prevDiemCount: prevDiemCount,
+      prevLichHocCount: scheduleProvider.lichHoc.length, // không thay đổi
+      prevLichThiCount: scheduleProvider.lichThi.length, // không thay đổi
+      prevDaDong: financeProvider.tongHocPhiDaDong, // không thay đổi
+    );
+    await refreshUnreadCount();
+    notifyListeners();
+  }
 
   /// Chỉ đồng bộ lịch học + lịch thi (dùng cho RefreshIndicator trang Lịch)
-  Future<void> syncSchedule({bool forceRefresh = true}) => Future.wait([
-        scheduleProvider.syncLichHoc(forceRefresh: forceRefresh),
-        scheduleProvider.syncLichThi(forceRefresh: forceRefresh),
-      ]).then((_) async {
-        // Chỉ lên lịch thông báo nếu người dùng đã bật
-        if (_notifEnabled) {
-          await LocalNotificationService.scheduleClasses(
-              _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi);
-        } else {
-          // Nếu tắt, đảm bảo hủy hết lịch cũ
-          await LocalNotificationService.cancelAll();
-        }
-      });
+  Future<void> syncSchedule({bool forceRefresh = true}) async {
+    // Snapshot trước sync để detect thay đổi
+    final prevLichHocCount = scheduleProvider.lichHoc.length;
+    final prevLichThiCount = scheduleProvider.lichThi.length;
+
+    await Future.wait([
+      scheduleProvider.syncLichHoc(forceRefresh: forceRefresh),
+      scheduleProvider.syncLichThi(forceRefresh: forceRefresh),
+    ]);
+
+    // Lên lịch push notification (local alarm)
+    if (_notifEnabled) {
+      await LocalNotificationService.scheduleClasses(
+          _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi);
+    } else {
+      await LocalNotificationService.cancelAll();
+    }
+
+    // Phát hiện và thông báo in-app nếu có lịch mới
+    await _detectAndNotify(
+      prevDiemCount: gradeProvider.diem.length,       // không thay đổi
+      prevLichHocCount: prevLichHocCount,
+      prevLichThiCount: prevLichThiCount,
+      prevDaDong: financeProvider.tongHocPhiDaDong,   // không thay đổi
+    );
+    await refreshUnreadCount();
+    notifyListeners();
+  }
 
   /// Chỉ đồng bộ học phí (dùng cho RefreshIndicator trang Tài chính)
-  Future<void> syncFinance({bool forceRefresh = true}) =>
-      financeProvider.syncHocPhi(forceRefresh: forceRefresh);
+  Future<void> syncFinance({bool forceRefresh = true}) async {
+    // Snapshot trước sync để detect thay đổi
+    final prevDaDong = financeProvider.tongHocPhiDaDong;
+
+    await financeProvider.syncHocPhi(forceRefresh: forceRefresh);
+
+    // Phát hiện và thông báo in-app nếu có cập nhật học phí
+    await _detectAndNotify(
+      prevDiemCount: gradeProvider.diem.length,             // không thay đổi
+      prevLichHocCount: scheduleProvider.lichHoc.length,    // không thay đổi
+      prevLichThiCount: scheduleProvider.lichThi.length,    // không thay đổi
+      prevDaDong: prevDaDong,
+    );
+    await refreshUnreadCount();
+    notifyListeners();
+  }
 
   Future<void> changeHocKy(int hocKy) => scheduleProvider.changeHocKy(hocKy);
   Future<void> changeNamHoc(int year) => scheduleProvider.changeNamHoc(year);
