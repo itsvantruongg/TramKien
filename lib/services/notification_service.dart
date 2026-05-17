@@ -54,6 +54,7 @@ class NotificationService {
 
   static Future<List<String>> getDismissedIds() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.reload(); // Đồng bộ cache với dữ liệu background isolate đã ghi
     return prefs.getStringList(_dismissedKey) ?? [];
   }
 
@@ -75,6 +76,7 @@ class NotificationService {
   static Future<List<AppNotif>> getAll() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      await prefs.reload(); // Đồng bộ cache với dữ liệu background isolate đã ghi
       final raw = prefs.getString(_key);
       if (raw == null) return [];
       final list = (jsonDecode(raw) as List)

@@ -263,21 +263,21 @@ class BackgroundSyncService {
       await wm.Workmanager().registerPeriodicTask(
         kBgSyncTaskUniqueName,
         kBgSyncTaskName,
-        frequency: const Duration(hours: 2),
+        frequency: const Duration(hours: 6),
         constraints: wm.Constraints(
           networkType: wm.NetworkType.connected,
           requiresBatteryNotLow: true,
         ),
         existingWorkPolicy: wm.ExistingPeriodicWorkPolicy.replace,
         backoffPolicy: wm.BackoffPolicy.linear,
-        backoffPolicyDelay: const Duration(minutes: 15),
+        backoffPolicyDelay: const Duration(minutes: 30),
       );
-      debugPrint('✅ [Android BG] Đã đăng ký periodic sync (mỗi 2 tiếng)');
+      debugPrint('✅ [Android BG] Đã đăng ký periodic sync (mỗi 6 tiếng)');
     } else if (Platform.isIOS) {
       // iOS: dùng background_fetch
       await bf.BackgroundFetch.configure(
         bf.BackgroundFetchConfig(
-          minimumFetchInterval: 120, // phút (2 tiếng)
+          minimumFetchInterval: 360, // phút (6 tiếng)
           stopOnTerminate: false, // tiếp tục chạy kể cả khi app bị kill
           enableHeadless: true, // bắt buộc để headless task hoạt động
           startOnBoot: true,
@@ -296,7 +296,7 @@ class BackgroundSyncService {
           bf.BackgroundFetch.finish(taskId);
         },
       );
-      debugPrint('✅ [iOS BG] Đã cấu hình background_fetch (mỗi 2 tiếng)');
+      debugPrint('✅ [iOS BG] Đã cấu hình background_fetch (mỗi 6 tiếng)');
     }
   }
 

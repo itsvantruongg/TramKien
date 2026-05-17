@@ -11,7 +11,7 @@ class ScheduleProvider extends ChangeNotifier {
   static const List<int> allNamHoc = [2024, 2025, 2026];
   static const List<int> allDotHoc = [1, 2, 3, 4, 5, 6, 7, 8];
   static const Duration _ttlLichHoc = Duration(hours: 6);
-  static const Duration _ttlLichThi = Duration(hours: 24);
+  static const Duration _ttlLichThi = Duration(hours: 6);
 
   // ── State ────────────────────────────────
   List<LichHoc> _lichHoc = [];

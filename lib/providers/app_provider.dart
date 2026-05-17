@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
@@ -20,7 +21,7 @@ enum AuthState { unknown, loggedOut, loggedIn }
 
 enum LoadState { idle, loading, success, error }
 
-class AppProvider extends ChangeNotifier {
+class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   // ── Composition: Include 3 sub-providers ────────────────────
   late ScheduleProvider scheduleProvider;
   late GradeProvider gradeProvider;
@@ -36,6 +37,7 @@ class AppProvider extends ChangeNotifier {
   int _curriculumMandatoryCredits = 144; // default fallback
   int _unreadNotifCount = 0;
   List<AppNotif> _notifications = []; // Reactive notification list
+  DateTime? _lastSyncTime; // Theo dõi lần sync cuối để tránh sync quá thường xuyên
 
   // ── Getters ─────────────────────────────
   AuthState get authState => _authState;
@@ -58,6 +60,9 @@ class AppProvider extends ChangeNotifier {
     scheduleProvider.addListener(_onSubProviderChanged);
     gradeProvider.addListener(_onSubProviderChanged);
     financeProvider.addListener(_onSubProviderChanged);
+
+    // Đăng ký lắng nghe trạng thái vòng đời của ứng dụng
+    WidgetsBinding.instance.addObserver(this);
   }
 
   void _onSubProviderChanged() {
@@ -93,7 +98,9 @@ class AppProvider extends ChangeNotifier {
           // Login nền để lấy session mới
           final error = await HauApiService.login(mssv, pw);
           if (error == null) {
-            await syncAll();
+            // Force refresh khi cold start: luôn fetch API bất kể TTL cache
+            // để đảm bảo data luôn mới nhất ngay khi user mở app
+            await syncAll(forceRefresh: true);
           }
           // Nếu login thất bại do mất mạng, vẫn giữ cached data
           return;
@@ -269,6 +276,7 @@ class AppProvider extends ChangeNotifier {
       debugPrint('⚠️ syncAll error: $e');
     } finally {
       _isSyncing = false;
+      _lastSyncTime = DateTime.now(); // Cập nhật thời điểm sync xong
       await refreshUnreadCount();
       notifyListeners(); // Đảm bảo icon quay sẽ dừng
     }
@@ -723,10 +731,46 @@ class AppProvider extends ChangeNotifier {
   // ── Cleanup ──────────────────────────────
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this); // Hủy đăng ký lifecycle observer
     scheduleProvider.dispose();
     gradeProvider.dispose();
     financeProvider.dispose();
     super.dispose();
+  }
+
+  /// Lắng nghe trạng thái vòng đời của ứng dụng.
+  /// Khi user mở lại app từ nền (resumed), reload lại cache để:
+  ///   1. Đồng bộ SharedPreferences (vì getAll/getDismissedIds đã gọi prefs.reload()).
+  ///   2. Nạp lại dữ liệu SQLite mới nhất vào RAM của các Provider,
+  ///      giúp prevCount trong syncAll() luôn khớp thực tế — tránh thông báo trùng lặp.
+  @override
+  Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
+    if (state == AppLifecycleState.resumed) {
+      debugPrint('[⚡ Resume] App mở lại — đang làm mới cache từ SQLite...');
+      try {
+        if (_currentMssv.isNotEmpty) {
+          await _loadFromCache();
+
+          // Sync lại nếu đã hơn 30 phút kể từ lần sync cuối
+          // (tránh sync liên tục khi user chỉ switch app nhanh)
+          final now = DateTime.now();
+          final shouldSync = _lastSyncTime == null ||
+              now.difference(_lastSyncTime!) > const Duration(minutes: 30);
+
+          if (shouldSync && !_isSyncing) {
+            debugPrint('[⚡ Resume] Đã lâu hơn 30 phút — tiến hành sync...');
+            // Chạy nền, không await để không block UI
+            syncAll(forceRefresh: true).then((_) {
+              debugPrint('[⚡ Resume] Sync hoàn tất sau khi resume');
+            });
+          } else {
+            debugPrint('[⚡ Resume] Sync gần đây (< 30 phút), bỏ qua fetch API');
+          }
+        }
+      } catch (e) {
+        debugPrint('⚠️ Lỗi làm mới cache khi resume: $e');
+      }
+    }
   }
 
   // ── Network check ─────────────────────────
