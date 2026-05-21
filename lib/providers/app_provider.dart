@@ -17,9 +17,6 @@ const _kMssv = 'saved_mssv';
 const _kPw = 'saved_pw';
 const _kRemember = 'remember_login';
 
-/// Key để lưu mốc thời gian catch-up (theo user)
-String _kLastCatchup(String mssv) => 'last_catchup_time_$mssv';
-
 enum AuthState { unknown, loggedOut, loggedIn }
 
 enum LoadState { idle, loading, success, error }
@@ -40,7 +37,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   int _curriculumMandatoryCredits = 144; // default fallback
   int _unreadNotifCount = 0;
   List<AppNotif> _notifications = []; // Reactive notification list
-  DateTime? _lastSyncTime; // Theo dõi lần sync cuối để tránh sync quá thường xuyên
+  DateTime?
+      _lastSyncTime; // Theo dõi lần sync cuối để tránh sync quá thường xuyên
 
   // ── Getters ─────────────────────────────
   AuthState get authState => _authState;
@@ -273,11 +271,9 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         prevDaDong: prevDaDong,
       );
 
-      // Lưu lại thông báo vào UI nếu đã tới giờ
-      await _detectAndNotifyDailySchedule();
-
-      // Catch-up: bù thẻ thông báo cho những ngày đã qua khi app bị tắt
-      await _performCatchup();
+      // Sinh thẻ thông báo lịch học/thi (cho cả quá khứ/catch-up và tương lai)
+      await LocalNotificationService.generateScheduleCards(
+          _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi);
     } catch (e) {
       debugPrint('⚠️ syncAll error: $e');
     } finally {
@@ -428,307 +424,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _detectAndNotifyDailySchedule() async {
-    final enabled =
-        await LocalNotificationService.isNotificationEnabled(_currentMssv);
-    if (!enabled) return;
-
-    final now = DateTime.now();
-    final dismissed = await NotificationService.getDismissedIds();
-    final allNotifs = await NotificationService.getAll();
-
-    // ── 1. THÔNG BÁO TỔNG HỢP 20:00 (ngày mai) ──
-    for (int i = 1; i <= 1; i++) {
-      final targetDate = now.add(Duration(days: i));
-      final notifyAt = DateTime(now.year, now.month, now.day, 20, 0);
-      if (now.isBefore(notifyAt)) continue;
-
-      final classes = getLichHocForDate(targetDate);
-      final exams = getLichThiForDate(targetDate);
-      if (classes.isEmpty && exams.isEmpty) continue;
-
-      final notifId =
-          'schedule_reminder_${targetDate.year}_${targetDate.month}_${targetDate.day}';
-
-      if (dismissed.contains(notifId)) continue;
-      if (allNotifs.any((n) => n.id == notifId)) continue;
-
-      String body = '';
-      if (classes.isNotEmpty) body += '📚 ${classes.length} ca học';
-      if (exams.isNotEmpty) {
-        if (body.isNotEmpty) body += ' & ';
-        body += '📝 ${exams.length} ca thi';
-      }
-      body += ' vào ngày mai. ';
-      final details = <String>[];
-      for (var c in classes) details.add('${c.tenHocPhan} (${c.gioHoc})');
-      for (var e in exams) details.add('${e.tenMonHoc} (Thi - ${e.gioBatDau})');
-      body += details.take(3).join(', ');
-      if (details.length > 3)
-        body += ' và ${details.length - 3} sự kiện khác...';
-
-      await NotificationService.add(AppNotif(
-        id: notifId,
-        title: 'Nhắc nhở lịch học ngày mai',
-        body: body,
-        targetTab: 1,
-        ts: notifyAt,
-      ));
-    }
-
-    // ── 2. THÔNG BÁO TRƯỚC 1 TIẾNG TỪNG CA HỌC/THI (hôm nay + ngày mai) ──
-    for (int i = 0; i <= 1; i++) {
-      final targetDate = now.add(Duration(days: i));
-      final classes = getLichHocForDate(targetDate);
-      final exams = getLichThiForDate(targetDate);
-
-      for (final c in classes) {
-        final timeParts = c.gioHoc.split(':');
-        if (timeParts.length != 2) continue;
-        final h = int.tryParse(timeParts[0]) ?? 0;
-        final m = int.tryParse(timeParts[1]) ?? 0;
-        final classTime =
-            DateTime(targetDate.year, targetDate.month, targetDate.day, h, m);
-        final reminderTime = classTime.subtract(const Duration(hours: 1));
-
-        // Chỉ add nếu đã đến giờ nhắc và chưa quá giờ học
-        if (now.isBefore(reminderTime) || now.isAfter(classTime)) continue;
-
-        final notifId =
-            'class_reminder_${targetDate.year}_${targetDate.month}_${targetDate.day}_${c.tenHocPhan}';
-
-        if (dismissed.contains(notifId)) continue;
-        if (allNotifs.any((n) => n.id == notifId)) continue;
-
-        await NotificationService.add(AppNotif(
-          id: notifId,
-          title: 'Sắp tới giờ học!',
-          body:
-              'Môn ${c.tenHocPhan} sẽ bắt đầu lúc ${c.gioHoc} tại phòng ${c.phong}.',
-          targetTab: 1,
-          ts: reminderTime,
-        ));
-      }
-
-      for (final e in exams) {
-        final timeParts = e.gioBatDau.split(':');
-        if (timeParts.length != 2) continue;
-        final h = int.tryParse(timeParts[0]) ?? 0;
-        final m = int.tryParse(timeParts[1]) ?? 0;
-        final examTime =
-            DateTime(targetDate.year, targetDate.month, targetDate.day, h, m);
-        final reminderTime = examTime.subtract(const Duration(hours: 1));
-
-        if (now.isBefore(reminderTime) || now.isAfter(examTime)) continue;
-
-        final notifId =
-            'exam_reminder_${targetDate.year}_${targetDate.month}_${targetDate.day}_${e.tenMonHoc}';
-
-        if (dismissed.contains(notifId)) continue;
-        if (allNotifs.any((n) => n.id == notifId)) continue;
-
-        await NotificationService.add(AppNotif(
-          id: notifId,
-          title: 'Sắp tới giờ thi!',
-          body:
-              'Môn ${e.tenMonHoc} sẽ thi lúc ${e.gioBatDau} tại phòng ${e.phong}.',
-          targetTab: 1,
-          ts: reminderTime,
-        ));
-      }
-    }
-  }
-
-  /// ── Catch-up: Bù thẻ thông báo lịch học/thi cho khoảng thời gian app bị tắt ──
-  ///
-  /// Thuật toán:
-  ///   1. Đọc [last_catchup_time]. Nếu chưa có, mặc định là 3 ngày trước (tối đa 7 ngày).
-  ///   2. Vòng lặp từ ngày đó → ngày mai:
-  ///      - Quá khứ  → âm thầm ghi thẻ vào SQLite, KHÔNG đổ chuông.
-  ///      - Sắp tới (≤ 1 tiếng) → ghi thẻ + đổ chuông native ngay lập tức.
-  ///   3. Cập nhật [last_catchup_time] = now.
-  Future<void> _performCatchup() async {
-    if (_currentMssv.isEmpty) return;
-
-    // Chỉ chạy nếu đã có lịch học hoặc lịch thi
-    if (scheduleProvider.lichHoc.isEmpty && scheduleProvider.lichThi.isEmpty) {
-      return;
-    }
-
-    final now = DateTime.now();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.reload();
-
-    // ── 1. Xác định điểm bắt đầu catch-up ──
-    final catchupKey = _kLastCatchup(_currentMssv);
-    final lastMs = prefs.getInt(catchupKey);
-    DateTime startDay;
-    if (lastMs == null) {
-      // Lần đầu tiên: lùi về tối đa 3 ngày (không dùng 7 ngày tránh spam)
-      startDay = DateTime(now.year, now.month, now.day)
-          .subtract(const Duration(days: 3));
-    } else {
-      final last = DateTime.fromMillisecondsSinceEpoch(lastMs);
-      startDay = DateTime(last.year, last.month, last.day);
-    }
-
-    // Giới hạn an toàn: không bao giờ quét ngược quá 7 ngày
-    final maxStart = DateTime(now.year, now.month, now.day)
-        .subtract(const Duration(days: 7));
-    if (startDay.isBefore(maxStart)) startDay = maxStart;
-
-    // Kết thúc: ngày mai
-    final endDay =
-        DateTime(now.year, now.month, now.day).add(const Duration(days: 1));
-
-    debugPrint(
-        '[Catch-up] Quét từ $startDay → $endDay (now=$now)');
-
-    final dismissed = await NotificationService.getDismissedIds();
-    final allNotifs = await NotificationService.getAll();
-    // Tạo Set để tra cứu nhanh O(1)
-    final existingIds = allNotifs.map((n) => n.id).toSet();
-    final dismissedSet = dismissed.toSet();
-
-    // ── 2. Vòng lặp qua từng ngày ──
-    for (DateTime day = startDay;
-        !day.isAfter(endDay);
-        day = day.add(const Duration(days: 1))) {
-      final classes = getLichHocForDate(day);
-      final exams = getLichThiForDate(day);
-
-      if (classes.isEmpty && exams.isEmpty) continue;
-
-      // 2a. LỊCH HỌC
-      for (final c in classes) {
-        final notifId =
-            'class_reminder_${day.year}_${day.month}_${day.day}_${c.tenHocPhan}';
-
-        if (dismissedSet.contains(notifId)) continue;
-        if (existingIds.contains(notifId)) continue;
-
-        // Tính giờ bắt đầu ca học
-        final timeParts = c.gioHoc.split(':');
-        if (timeParts.length != 2) continue;
-        final h = int.tryParse(timeParts[0]) ?? 0;
-        final m = int.tryParse(timeParts[1]) ?? 0;
-        final classTime = DateTime(day.year, day.month, day.day, h, m);
-        final reminderTime = classTime.subtract(const Duration(hours: 1));
-
-        final notif = AppNotif(
-          id: notifId,
-          title: 'Lịch học: ${c.tenHocPhan}',
-          body:
-              'Môn ${c.tenHocPhan} lúc ${c.gioHoc} tại phòng ${c.phong}.'
-              ' (${day.day}/${day.month}/${day.year})',
-          targetTab: 1,
-          ts: reminderTime,
-        );
-
-        final isPast = now.isAfter(classTime);
-        final isUpcoming =
-            !isPast && now.isAfter(reminderTime) && now.isBefore(classTime);
-
-        await NotificationService.add(notif);
-        existingIds.add(notifId); // Cập nhật set local để tránh add lại
-
-        if (isUpcoming) {
-          // Sắp tới giờ → đổ chuông native
-          await LocalNotificationService.showImmediate(
-            id: notifId.hashCode & 0x7FFFFFFF,
-            title: 'Sắp tới giờ học!',
-            body:
-                'Môn ${c.tenHocPhan} sẽ bắt đầu lúc ${c.gioHoc} tại phòng ${c.phong}.',
-          );
-          debugPrint('[Catch-up] 🔔 CHUÔNG: ${c.tenHocPhan} lúc ${c.gioHoc}');
-        } else {
-          debugPrint(
-              '[Catch-up] 📝 Im lặng: ${c.tenHocPhan} ngày ${day.day}/${day.month}');
-        }
-      }
-
-      // 2b. LỊCH THI
-      for (final e in exams) {
-        final notifId =
-            'exam_reminder_${day.year}_${day.month}_${day.day}_${e.tenMonHoc}';
-
-        if (dismissedSet.contains(notifId)) continue;
-        if (existingIds.contains(notifId)) continue;
-
-        final timeParts = e.gioBatDau.split(':');
-        if (timeParts.length != 2) continue;
-        final h = int.tryParse(timeParts[0]) ?? 0;
-        final m = int.tryParse(timeParts[1]) ?? 0;
-        final examTime = DateTime(day.year, day.month, day.day, h, m);
-        final reminderTime = examTime.subtract(const Duration(hours: 1));
-
-        final notif = AppNotif(
-          id: notifId,
-          title: 'Lịch thi: ${e.tenMonHoc}',
-          body:
-              'Thi môn ${e.tenMonHoc} lúc ${e.gioBatDau} tại phòng ${e.phong}.'
-              ' (${day.day}/${day.month}/${day.year})',
-          targetTab: 1,
-          ts: reminderTime,
-        );
-
-        final isPast = now.isAfter(examTime);
-        final isUpcoming =
-            !isPast && now.isAfter(reminderTime) && now.isBefore(examTime);
-
-        await NotificationService.add(notif);
-        existingIds.add(notifId);
-
-        if (isUpcoming) {
-          await LocalNotificationService.showImmediate(
-            id: notifId.hashCode & 0x7FFFFFFF,
-            title: 'Sắp tới giờ thi!',
-            body:
-                'Môn ${e.tenMonHoc} sẽ thi lúc ${e.gioBatDau} tại phòng ${e.phong}.',
-          );
-          debugPrint('[Catch-up] 🔔 CHUÔNG THI: ${e.tenMonHoc} lúc ${e.gioBatDau}');
-        } else {
-          debugPrint(
-              '[Catch-up] 📝 Im lặng thi: ${e.tenMonHoc} ngày ${day.day}/${day.month}');
-        }
-      }
-
-      // 2c. THÔNG BÁO TỔNG HỢP NGÀY (chỉ cho quá khứ — ngày mai đã có _detectAndNotifyDailySchedule)
-      if (day.isBefore(DateTime(now.year, now.month, now.day))) {
-        final summaryId =
-            'schedule_reminder_${day.year}_${day.month}_${day.day}';
-        if (!dismissedSet.contains(summaryId) &&
-            !existingIds.contains(summaryId)) {
-          String body = '';
-          if (classes.isNotEmpty) body += '📚 ${classes.length} ca học';
-          if (exams.isNotEmpty) {
-            if (body.isNotEmpty) body += ' & ';
-            body += '📝 ${exams.length} ca thi';
-          }
-          body += ' vào ${day.day}/${day.month}/${day.year}.';
-          final details = <String>[];
-          for (var cls in classes) details.add('${cls.tenHocPhan} (${cls.gioHoc})');
-          for (var ex in exams) details.add('${ex.tenMonHoc} (Thi - ${ex.gioBatDau})');
-          body += ' ' + details.take(3).join(', ');
-          if (details.length > 3) body += ' và ${details.length - 3} sự kiện khác...';
-
-          await NotificationService.add(AppNotif(
-            id: summaryId,
-            title: 'Lịch học ${day.day}/${day.month}/${day.year}',
-            body: body,
-            targetTab: 1,
-            ts: DateTime(day.year, day.month, day.day, 20, 0),
-          ));
-          existingIds.add(summaryId);
-          debugPrint('[Catch-up] 📋 Tổng hợp ngày ${day.day}/${day.month}');
-        }
-      }
-    }
-
-    // ── 3. Cập nhật mốc catch-up ──
-    await prefs.setInt(catchupKey, now.millisecondsSinceEpoch);
-    debugPrint('[Catch-up] ✅ Hoàn tất. last_catchup_time = $now');
-  }
+  // Các phương thức sinh thẻ thông báo lịch học/thi cũ đã được chuyển sang LocalNotificationService.generateScheduleCards
 
   Future<void> _loadFromCache() async {
     try {
@@ -744,10 +440,9 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       _curriculumMandatoryCredits =
           prefs.getInt('curriculum_mandatory_tc') ?? 144;
 
-      await _detectAndNotifyDailySchedule();
-
-      // Catch-up từ cache (chạy dù offline — không cần mạng)
-      await _performCatchup();
+      // Sinh thẻ thông báo lịch học/thi (cho cả quá khứ/catch-up và tương lai)
+      await LocalNotificationService.generateScheduleCards(
+          _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi);
 
       // Load danh sách thông báo vào state (reactive)
       await refreshNotifications();
@@ -887,10 +582,10 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     // Phát hiện và thông báo in-app nếu có lịch mới
     await _detectAndNotify(
-      prevDiemCount: gradeProvider.diem.length,       // không thay đổi
+      prevDiemCount: gradeProvider.diem.length, // không thay đổi
       prevLichHocCount: prevLichHocCount,
       prevLichThiCount: prevLichThiCount,
-      prevDaDong: financeProvider.tongHocPhiDaDong,   // không thay đổi
+      prevDaDong: financeProvider.tongHocPhiDaDong, // không thay đổi
     );
     await refreshUnreadCount();
     notifyListeners();
@@ -905,9 +600,9 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     // Phát hiện và thông báo in-app nếu có cập nhật học phí
     await _detectAndNotify(
-      prevDiemCount: gradeProvider.diem.length,             // không thay đổi
-      prevLichHocCount: scheduleProvider.lichHoc.length,    // không thay đổi
-      prevLichThiCount: scheduleProvider.lichThi.length,    // không thay đổi
+      prevDiemCount: gradeProvider.diem.length, // không thay đổi
+      prevLichHocCount: scheduleProvider.lichHoc.length, // không thay đổi
+      prevLichThiCount: scheduleProvider.lichThi.length, // không thay đổi
       prevDaDong: prevDaDong,
     );
     await refreshUnreadCount();
@@ -931,7 +626,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   // ── Cleanup ──────────────────────────────
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this); // Hủy đăng ký lifecycle observer
+    WidgetsBinding.instance
+        .removeObserver(this); // Hủy đăng ký lifecycle observer
     scheduleProvider.dispose();
     gradeProvider.dispose();
     financeProvider.dispose();
@@ -950,8 +646,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       try {
         if (_currentMssv.isNotEmpty) {
           await _loadFromCache();
-          // Lưu ý: _loadFromCache() đã gọi _performCatchup() bên trong,
-          // nên thẻ thông báo quá khứ luôn được bù dù mạng chập chờn.
+          // Lưu ý: _loadFromCache() đã gọi generateScheduleCards() bên trong,
+          // nên thẻ thông báo lịch học/thi luôn được bù và cập nhật dù mạng chập chờn.
 
           // Sync API lại nếu đã hơn 30 phút kể từ lần sync cuối
           // (tránh sync liên tục khi user chỉ switch app nhanh)

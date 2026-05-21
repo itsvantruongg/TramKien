@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 // import 'package:android_intent_plus/android_intent_plus.dart';
 // import 'package:android_intent_plus/flag.dart';
 import '../models/models.dart';
+import 'notification_service.dart';
 
 class LocalNotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
@@ -387,5 +388,184 @@ class LocalNotificationService {
       }
     }
     print('🔔 Hoàn tất lên lịch. Tổng cộng $scheduledCount thông báo.');
+    // Lên lịch thông báo xong thì lên lịch tạo thẻ
+    await generateScheduleCards(mssv, lichHoc, lichThi);
+  }
+
+  static Future<void> generateScheduleCards(
+      String mssv, List<LichHoc> lichHoc, List<LichThi> lichThi) async {
+    if (mssv.isEmpty) return;
+    if (!await isNotificationEnabled(mssv)) return;
+
+    final now = DateTime.now();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.reload();
+
+    // ── 1. Xác định điểm bắt đầu catch-up ──
+    final catchupKey = 'last_catchup_time_$mssv';
+    final lastMs = prefs.getInt(catchupKey);
+    DateTime startDay;
+    if (lastMs == null) {
+      // Mặc định lùi về 3 ngày trước
+      startDay = DateTime(now.year, now.month, now.day)
+          .subtract(const Duration(days: 3));
+    } else {
+      final last = DateTime.fromMillisecondsSinceEpoch(lastMs);
+      startDay = DateTime(last.year, last.month, last.day);
+    }
+
+    // Giới hạn an toàn: không bao giờ quét ngược quá 7 ngày
+    final maxStart = DateTime(now.year, now.month, now.day)
+        .subtract(const Duration(days: 7));
+    if (startDay.isBefore(maxStart)) startDay = maxStart;
+
+    // Quét từ startDay đến 14 ngày trong tương lai (đồng bộ với scheduleClasses)
+    final endDay = DateTime(now.year, now.month, now.day).add(const Duration(days: 14));
+
+    print('[Schedule Cards] Quét và sinh thẻ từ $startDay → $endDay (now=$now)');
+
+    final dismissed = await NotificationService.getDismissedIds();
+    final allNotifs = await NotificationService.getAllRaw();
+    final existingIds = allNotifs.map((n) => n.id).toSet();
+    final dismissedSet = dismissed.toSet();
+
+    // Hàm lấy danh sách lớp học/thi theo ngày
+    List<LichHoc> getLichHocForDate(DateTime date) {
+      final dateOnly = DateTime(date.year, date.month, date.day);
+      return lichHoc.where((l) => _lichHocMatchesDate(l, dateOnly)).toList();
+    }
+
+    List<LichThi> getLichThiForDate(DateTime date) {
+      final dateOnly = DateTime(date.year, date.month, date.day);
+      return lichThi.where((l) {
+        final ed = _parseDate(l.ngayThi);
+        return ed != null &&
+            ed.year == dateOnly.year &&
+            ed.month == dateOnly.month &&
+            ed.day == dateOnly.day;
+      }).toList();
+    }
+
+    // Vòng lặp qua từng ngày trong phạm vi
+    for (DateTime day = startDay;
+        !day.isAfter(endDay);
+        day = day.add(const Duration(days: 1))) {
+      final dateOnly = DateTime(day.year, day.month, day.day);
+      final classes = getLichHocForDate(dateOnly);
+      final exams = getLichThiForDate(dateOnly);
+
+      if (classes.isEmpty && exams.isEmpty) continue;
+
+      // ── 1. THÔNG BÁO TỔNG HỢP (cho ngày mai / ngày học) ──
+      // Lên lịch vào lúc 20:00 ngày hôm trước của dateOnly
+      final yesterday = dateOnly.subtract(const Duration(days: 1));
+      final notifyAt = DateTime(yesterday.year, yesterday.month, yesterday.day, 20, 0);
+      final summaryId = 'schedule_reminder_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}';
+
+      if (!dismissedSet.contains(summaryId) && !existingIds.contains(summaryId)) {
+        String body = '';
+        if (classes.isNotEmpty) body += '📚 ${classes.length} ca học';
+        if (exams.isNotEmpty) {
+          if (body.isNotEmpty) body += ' & ';
+          body += '📝 ${exams.length} ca thi';
+        }
+        body += ' vào ngày mai. ';
+        final details = <String>[];
+        for (var c in classes) details.add('${c.tenHocPhan} (${c.gioHoc})');
+        for (var e in exams) details.add('${e.tenMonHoc} (Thi - ${e.gioBatDau})');
+        body += details.take(3).join(', ');
+        if (details.length > 3) {
+          body += ' và ${details.length - 3} sự kiện khác...';
+        }
+
+        final title = 'Nhắc nhở lịch học ngày mai';
+
+        await NotificationService.add(AppNotif(
+          id: summaryId,
+          title: title,
+          body: body,
+          targetTab: 1,
+          ts: notifyAt,
+        ));
+        existingIds.add(summaryId);
+      }
+
+      // ── 2. NHẮC TRƯỚC 1 TIẾNG TỪNG CA HỌC ──
+      for (final c in classes) {
+        final notifId = 'class_reminder_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}_${c.tenHocPhan}';
+
+        if (dismissedSet.contains(notifId)) continue;
+        if (existingIds.contains(notifId)) continue;
+
+        final timeParts = c.gioHoc.split(':');
+        if (timeParts.length != 2) continue;
+        final h = int.tryParse(timeParts[0]) ?? 0;
+        final m = int.tryParse(timeParts[1]) ?? 0;
+        final classTime = DateTime(dateOnly.year, dateOnly.month, dateOnly.day, h, m);
+        final reminderTime = classTime.subtract(const Duration(hours: 1));
+
+        final notif = AppNotif(
+          id: notifId,
+          title: 'Sắp tới giờ học!',
+          body: 'Môn ${c.tenHocPhan} sẽ bắt đầu lúc ${c.gioHoc} tại phòng ${c.phong}.',
+          targetTab: 1,
+          ts: reminderTime,
+        );
+
+        await NotificationService.add(notif);
+        existingIds.add(notifId);
+
+        // Đổ chuông native nếu sự kiện "upcoming" ngay lúc này (đáp ứng tính năng catch-up tức thời khi mở app)
+        final isPast = now.isAfter(classTime);
+        final isUpcoming = !isPast && now.isAfter(reminderTime) && now.isBefore(classTime);
+        if (isUpcoming) {
+          await LocalNotificationService.showImmediate(
+            id: notifId.hashCode & 0x7FFFFFFF,
+            title: 'Sắp tới giờ học!',
+            body: 'Môn ${c.tenHocPhan} sẽ bắt đầu lúc ${c.gioHoc} tại phòng ${c.phong}.',
+          );
+        }
+      }
+
+      // ── 3. NHẮC TRƯỚC 1 TIẾNG TỪNG CA THI ──
+      for (final e in exams) {
+        final notifId = 'exam_reminder_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}_${e.tenMonHoc}';
+
+        if (dismissedSet.contains(notifId)) continue;
+        if (existingIds.contains(notifId)) continue;
+
+        final timeParts = e.gioBatDau.split(':');
+        if (timeParts.length != 2) continue;
+        final h = int.tryParse(timeParts[0]) ?? 0;
+        final m = int.tryParse(timeParts[1]) ?? 0;
+        final examTime = DateTime(dateOnly.year, dateOnly.month, dateOnly.day, h, m);
+        final reminderTime = examTime.subtract(const Duration(hours: 1));
+
+        final notif = AppNotif(
+          id: notifId,
+          title: 'Sắp tới giờ thi!',
+          body: 'Môn ${e.tenMonHoc} sẽ thi lúc ${e.gioBatDau} tại phòng ${e.phong}.',
+          targetTab: 1,
+          ts: reminderTime,
+        );
+
+        await NotificationService.add(notif);
+        existingIds.add(notifId);
+
+        final isPast = now.isAfter(examTime);
+        final isUpcoming = !isPast && now.isAfter(reminderTime) && now.isBefore(examTime);
+        if (isUpcoming) {
+          await LocalNotificationService.showImmediate(
+            id: notifId.hashCode & 0x7FFFFFFF,
+            title: 'Sắp tới giờ thi!',
+            body: 'Môn ${e.tenMonHoc} sẽ thi lúc ${e.gioBatDau} tại phòng ${e.phong}.',
+          );
+        }
+      }
+    }
+
+    // Cập nhật mốc catch-up
+    await prefs.setInt(catchupKey, now.millisecondsSinceEpoch);
+    print('[Schedule Cards] ✅ Hoàn tất sinh thẻ.');
   }
 }

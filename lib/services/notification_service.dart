@@ -73,7 +73,8 @@ class NotificationService {
 
   // ── Read ─────────────────────────────────────────────────────
 
-  static Future<List<AppNotif>> getAll() async {
+  /// Lấy toàn bộ thông báo bao gồm cả các thông báo đã lên lịch cho tương lai
+  static Future<List<AppNotif>> getAllRaw() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.reload(); // Đồng bộ cache với dữ liệu background isolate đã ghi
@@ -87,6 +88,13 @@ class NotificationService {
     } catch (_) {
       return [];
     }
+  }
+
+  /// Chỉ lấy những thông báo đã xảy ra (timestamp <= now), ẩn các thông báo tương lai
+  static Future<List<AppNotif>> getAll() async {
+    final list = await getAllRaw();
+    final now = DateTime.now();
+    return list.where((n) => !n.ts.isAfter(now)).toList();
   }
 
   static Future<int> unreadCount() async =>
@@ -112,20 +120,20 @@ class NotificationService {
   /// Thêm thông báo mới. Kiểm tra trùng lặp theo ID (chính xác hơn title+time).
   static Future<void> add(AppNotif n) => _serialWrite(() async {
         final prefs = await SharedPreferences.getInstance();
-        final list = await getAll();
+        final list = await getAllRaw();
 
         // Kiểm tra trùng theo ID – chính xác và không bị nhầm lẫn giữa các loại thông báo
         if (list.any((x) => x.id == n.id)) return;
 
         list.insert(0, n);
         await prefs.setString(
-            _key, jsonEncode(list.take(100).map((x) => x.toJson()).toList()));
+            _key, jsonEncode(list.take(300).map((x) => x.toJson()).toList()));
       });
 
   /// Xóa một thông báo theo ID và lưu ID vào dismissed để không tạo lại.
   static Future<void> removeOne(String id) => _serialWrite(() async {
         final prefs = await SharedPreferences.getInstance();
-        final list = await getAll();
+        final list = await getAllRaw();
         list.removeWhere((n) => n.id == id);
         await prefs.setString(
             _key, jsonEncode(list.map((x) => x.toJson()).toList()));
@@ -135,15 +143,21 @@ class NotificationService {
 
   static Future<void> markAllRead() => _serialWrite(() async {
         final prefs = await SharedPreferences.getInstance();
-        final list = await getAll();
-        for (final n in list) n.isRead = true;
+        final list = await getAllRaw();
+        final now = DateTime.now();
+        for (final n in list) {
+          // Chỉ đánh dấu đã đọc cho những thông báo đã hiển thị (quá khứ/hiện tại)
+          if (!n.ts.isAfter(now)) {
+            n.isRead = true;
+          }
+        }
         await prefs.setString(
             _key, jsonEncode(list.map((x) => x.toJson()).toList()));
       });
 
   static Future<void> markRead(String id) => _serialWrite(() async {
         final prefs = await SharedPreferences.getInstance();
-        final list = await getAll();
+        final list = await getAllRaw();
         final idx = list.indexWhere((n) => n.id == id);
         if (idx != -1) {
           list[idx].isRead = true;
@@ -155,7 +169,7 @@ class NotificationService {
   /// Xóa tất cả và đưa toàn bộ ID hiện tại vào dismissed (ghi 1 lần).
   static Future<void> clearAll() => _serialWrite(() async {
         final prefs = await SharedPreferences.getInstance();
-        final currentNotifs = await getAll();
+        final currentNotifs = await getAllRaw();
         // Batch: lưu tất cả ID vào dismissed cùng một lần
         await addDismissedIds(currentNotifs.map((n) => n.id).toList());
         await prefs.remove(_key);
