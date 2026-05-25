@@ -44,6 +44,28 @@ class NotificationService {
     _currentMssv = mssv;
   }
 
+  static Future<void> ensureNotifStartTime(String mssv) async {
+    if (mssv.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'notif_start_time_$mssv';
+    if (prefs.getString(key) == null) {
+      final nowStr = DateTime.now().toIso8601String();
+      await prefs.setString(key, nowStr);
+      print('[NotificationService] Đã thiết lập notif_start_time cho $mssv: $nowStr');
+    }
+  }
+
+  static Future<DateTime?> getNotifStartTime() async {
+    if (_currentMssv.isEmpty) return null;
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'notif_start_time_$_currentMssv';
+    final val = prefs.getString(key);
+    if (val != null) {
+      return DateTime.tryParse(val);
+    }
+    return null;
+  }
+
   static String get _key =>
       'app_notifications_v2${_currentMssv.isNotEmpty ? '_$_currentMssv' : ''}';
 
@@ -94,7 +116,12 @@ class NotificationService {
   static Future<List<AppNotif>> getAll() async {
     final list = await getAllRaw();
     final now = DateTime.now();
-    return list.where((n) => !n.ts.isAfter(now)).toList();
+    final startTime = await getNotifStartTime();
+    return list.where((n) {
+      if (n.ts.isAfter(now)) return false;
+      if (startTime != null && n.ts.isBefore(startTime)) return false;
+      return true;
+    }).toList();
   }
 
   static Future<int> unreadCount() async =>

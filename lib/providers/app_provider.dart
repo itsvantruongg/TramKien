@@ -87,6 +87,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
           _currentMssv = mssv;
           await DatabaseService.setMssv(mssv);
           NotificationService.setMssv(mssv);
+          await NotificationService.ensureNotifStartTime(mssv);
           gradeProvider.setMssv(mssv);
           scheduleProvider.setMssv(mssv);
           // Load notification state
@@ -136,6 +137,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         _currentMssv = mssv;
         await DatabaseService.setMssv(mssv);
         NotificationService.setMssv(mssv);
+        await NotificationService.ensureNotifStartTime(mssv);
         gradeProvider.setMssv(mssv);
         scheduleProvider.setMssv(mssv);
 
@@ -201,6 +203,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       await prefs.remove(_kMssv);
       await prefs.remove(_kPw);
       await prefs.setBool(_kRemember, false);
+      await prefs.remove('notif_start_time_$mssvToDelete');
 
       // Xóa thông báo đã lên lịch & hủy background sync
       await LocalNotificationService.setNotificationEnabled(

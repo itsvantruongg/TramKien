@@ -429,6 +429,9 @@ class LocalNotificationService {
     final existingIds = allNotifs.map((n) => n.id).toSet();
     final dismissedSet = dismissed.toSet();
 
+    final startTimeStr = prefs.getString('notif_start_time_$mssv');
+    final startTime = startTimeStr != null ? DateTime.tryParse(startTimeStr) : null;
+
     // Hàm lấy danh sách lớp học/thi theo ngày
     List<LichHoc> getLichHocForDate(DateTime date) {
       final dateOnly = DateTime(date.year, date.month, date.day);
@@ -463,31 +466,33 @@ class LocalNotificationService {
       final summaryId = 'schedule_reminder_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}';
 
       if (!dismissedSet.contains(summaryId) && !existingIds.contains(summaryId)) {
-        String body = '';
-        if (classes.isNotEmpty) body += '📚 ${classes.length} ca học';
-        if (exams.isNotEmpty) {
-          if (body.isNotEmpty) body += ' & ';
-          body += '📝 ${exams.length} ca thi';
-        }
-        body += ' vào ngày mai. ';
-        final details = <String>[];
-        for (var c in classes) details.add('${c.tenHocPhan} (${c.gioHoc})');
-        for (var e in exams) details.add('${e.tenMonHoc} (Thi - ${e.gioBatDau})');
-        body += details.take(3).join(', ');
-        if (details.length > 3) {
-          body += ' và ${details.length - 3} sự kiện khác...';
-        }
+        if (startTime == null || !notifyAt.isBefore(startTime)) {
+          String body = '';
+          if (classes.isNotEmpty) body += '📚 ${classes.length} ca học';
+          if (exams.isNotEmpty) {
+            if (body.isNotEmpty) body += ' & ';
+            body += '📝 ${exams.length} ca thi';
+          }
+          body += ' vào ngày mai. ';
+          final details = <String>[];
+          for (var c in classes) details.add('${c.tenHocPhan} (${c.gioHoc})');
+          for (var e in exams) details.add('${e.tenMonHoc} (Thi - ${e.gioBatDau})');
+          body += details.take(3).join(', ');
+          if (details.length > 3) {
+            body += ' và ${details.length - 3} sự kiện khác...';
+          }
 
-        final title = 'Nhắc nhở lịch học ngày mai';
+          final title = 'Nhắc nhở lịch học ngày mai';
 
-        await NotificationService.add(AppNotif(
-          id: summaryId,
-          title: title,
-          body: body,
-          targetTab: 1,
-          ts: notifyAt,
-        ));
-        existingIds.add(summaryId);
+          await NotificationService.add(AppNotif(
+            id: summaryId,
+            title: title,
+            body: body,
+            targetTab: 1,
+            ts: notifyAt,
+          ));
+          existingIds.add(summaryId);
+        }
       }
 
       // ── 2. NHẮC TRƯỚC 1 TIẾNG TỪNG CA HỌC ──
@@ -504,26 +509,28 @@ class LocalNotificationService {
         final classTime = DateTime(dateOnly.year, dateOnly.month, dateOnly.day, h, m);
         final reminderTime = classTime.subtract(const Duration(hours: 1));
 
-        final notif = AppNotif(
-          id: notifId,
-          title: 'Sắp tới giờ học!',
-          body: 'Môn ${c.tenHocPhan} sẽ bắt đầu lúc ${c.gioHoc} tại phòng ${c.phong}.',
-          targetTab: 1,
-          ts: reminderTime,
-        );
-
-        await NotificationService.add(notif);
-        existingIds.add(notifId);
-
-        // Đổ chuông native nếu sự kiện "upcoming" ngay lúc này (đáp ứng tính năng catch-up tức thời khi mở app)
-        final isPast = now.isAfter(classTime);
-        final isUpcoming = !isPast && now.isAfter(reminderTime) && now.isBefore(classTime);
-        if (isUpcoming) {
-          await LocalNotificationService.showImmediate(
-            id: notifId.hashCode & 0x7FFFFFFF,
+        if (startTime == null || !reminderTime.isBefore(startTime)) {
+          final notif = AppNotif(
+            id: notifId,
             title: 'Sắp tới giờ học!',
             body: 'Môn ${c.tenHocPhan} sẽ bắt đầu lúc ${c.gioHoc} tại phòng ${c.phong}.',
+            targetTab: 1,
+            ts: reminderTime,
           );
+
+          await NotificationService.add(notif);
+          existingIds.add(notifId);
+
+          // Đổ chuông native nếu sự kiện "upcoming" ngay lúc này (đáp ứng tính năng catch-up tức thời khi mở app)
+          final isPast = now.isAfter(classTime);
+          final isUpcoming = !isPast && now.isAfter(reminderTime) && now.isBefore(classTime);
+          if (isUpcoming) {
+            await LocalNotificationService.showImmediate(
+              id: notifId.hashCode & 0x7FFFFFFF,
+              title: 'Sắp tới giờ học!',
+              body: 'Môn ${c.tenHocPhan} sẽ bắt đầu lúc ${c.gioHoc} tại phòng ${c.phong}.',
+            );
+          }
         }
       }
 
@@ -541,25 +548,27 @@ class LocalNotificationService {
         final examTime = DateTime(dateOnly.year, dateOnly.month, dateOnly.day, h, m);
         final reminderTime = examTime.subtract(const Duration(hours: 1));
 
-        final notif = AppNotif(
-          id: notifId,
-          title: 'Sắp tới giờ thi!',
-          body: 'Môn ${e.tenMonHoc} sẽ thi lúc ${e.gioBatDau} tại phòng ${e.phong}.',
-          targetTab: 1,
-          ts: reminderTime,
-        );
-
-        await NotificationService.add(notif);
-        existingIds.add(notifId);
-
-        final isPast = now.isAfter(examTime);
-        final isUpcoming = !isPast && now.isAfter(reminderTime) && now.isBefore(examTime);
-        if (isUpcoming) {
-          await LocalNotificationService.showImmediate(
-            id: notifId.hashCode & 0x7FFFFFFF,
+        if (startTime == null || !reminderTime.isBefore(startTime)) {
+          final notif = AppNotif(
+            id: notifId,
             title: 'Sắp tới giờ thi!',
             body: 'Môn ${e.tenMonHoc} sẽ thi lúc ${e.gioBatDau} tại phòng ${e.phong}.',
+            targetTab: 1,
+            ts: reminderTime,
           );
+
+          await NotificationService.add(notif);
+          existingIds.add(notifId);
+
+          final isPast = now.isAfter(examTime);
+          final isUpcoming = !isPast && now.isAfter(reminderTime) && now.isBefore(examTime);
+          if (isUpcoming) {
+            await LocalNotificationService.showImmediate(
+              id: notifId.hashCode & 0x7FFFFFFF,
+              title: 'Sắp tới giờ thi!',
+              body: 'Môn ${e.tenMonHoc} sẽ thi lúc ${e.gioBatDau} tại phòng ${e.phong}.',
+            );
+          }
         }
       }
     }
