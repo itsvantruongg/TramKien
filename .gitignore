@@ -71,3 +71,9 @@ temp_output.txt
 .DS_Store
 .AppleDouble
 .LSOverride
+
+
+#db
+*.db
+*.sql
+*.py
