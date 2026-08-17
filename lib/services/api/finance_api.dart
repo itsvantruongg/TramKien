@@ -21,7 +21,7 @@ class FinanceApi {
         0.0;
   }
 
-  /// Parse TẤT CẢ bảng trong HTML, hỗ trợ rowspan (merged cells)
+  /// Parse TẤT CẢ bảng trong HTML, hỗ trợ 2D grid (rowspan & colspan merged cells)
   static List<List<Map<String, String>>> _parseAllTables(String html) {
     final doc = HauApiService.parseHtml(html);
     final tables = doc.querySelectorAll('table');
@@ -40,42 +40,22 @@ class FinanceApi {
 
       if (headers.isEmpty) continue;
 
-      final rows = <Map<String, String>>[];
       final trs = table.querySelectorAll('tbody tr');
+      if (trs.isEmpty) continue;
 
-      // rowspan carry-forward: map col-index → (value, rowsLeft)
-      final carryOver = <int, ({String val, int left})>{};
+      final grid = HauApiService.parseTableGrid(trs);
+      final rows = <Map<String, String>>[];
 
-      for (final tr in trs) {
-        final tds = tr.querySelectorAll('td');
-        if (tds.isEmpty) continue;
-
+      for (final gridRow in grid) {
+        if (gridRow.isEmpty) continue;
         final row = <String, String>{};
-        int srcIdx = 0; // index vào tds (bỏ qua merged)
-
-        for (int col = 0; col < headers.length; col++) {
-          if (carryOver.containsKey(col) && carryOver[col]!.left > 0) {
-            // Dùng giá trị từ dòng trên (rowspan)
-            row[headers[col]] = carryOver[col]!.val;
-            row['_col$col'] = carryOver[col]!.val;
-            final rem = carryOver[col]!.left - 1;
-            if (rem == 0) {
-              carryOver.remove(col);
-            } else {
-              carryOver[col] = (val: carryOver[col]!.val, left: rem);
-            }
-          } else if (srcIdx < tds.length) {
-            final td = tds[srcIdx++];
-            final val = td.text.trim();
-            final rs = int.tryParse(td.attributes['rowspan'] ?? '1') ?? 1;
-            row[headers[col]] = val;
-            row['_col$col'] = val;
-            if (rs > 1) {
-              carryOver[col] = (val: val, left: rs - 1);
-            }
-          }
+        for (var col = 0; col < headers.length && col < gridRow.length; col++) {
+          row[headers[col]] = gridRow[col];
+          row['_col$col'] = gridRow[col];
         }
-
+        for (var col = 0; col < gridRow.length; col++) {
+          row['_col$col'] = gridRow[col];
+        }
         if (row.values.any((v) => v.isNotEmpty)) rows.add(row);
       }
       if (rows.isNotEmpty) result.add(rows);
@@ -93,17 +73,34 @@ class FinanceApi {
         return;
       }
 
-      final r = await http
+      var r = await http
           .get(
             Uri.parse('${HauApiService.base}/TraCuuHocPhi/Index'),
             headers: HauApiService.authHeaders,
           )
-          .timeout(const Duration(seconds: 20));
+          .timeout(const Duration(seconds: 30));
 
       HauApiService.saveCookies(r);
-      if (r.statusCode != 200 || r.body.contains('name="Password"')) {
-        debugPrint('💰 [Finance] Not logged in: status=${r.statusCode}');
-        return;
+      if (r.statusCode != 200 ||
+          HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+        if (HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+          final reauthed = await HauApiService.reauthenticateIfNeeded();
+          if (reauthed) {
+            r = await http
+                .get(
+                  Uri.parse('${HauApiService.base}/TraCuuHocPhi/Index'),
+                  headers: HauApiService.authHeaders,
+                )
+                .timeout(const Duration(seconds: 30));
+            HauApiService.saveCookies(r);
+          }
+        }
+        if (r.statusCode != 200 ||
+            HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+          debugPrint(
+              '💰 [Finance] Session expired or invalid status: ${r.statusCode}');
+          return;
+        }
       }
 
       final allTables = _parseAllTables(r.body);
@@ -120,24 +117,66 @@ class FinanceApi {
             '  ├ Table[$i]: ${allTables[i].length} rows, headers: $headers');
       }
 
-      // Cấu trúc trang học phí HAU luôn có 3 bảng theo thứ tự cố định:
-      // index 0 → TổngQuan    (7 cột)
-      // index 1 → Phiếu thu   (8 cột - PaymentReceipts)
-      // index 2 → Chi tiết    (11 cột - FeeDetails)
-      if (allTables.length >= 1 && allTables[0].isNotEmpty) {
-        debugPrint(
-            '💰 [Finance] Saving TổngQuan (${allTables[0].length} rows)');
-        await _saveTongQuan(allTables[0]);
+      // Dynamic content signature classification instead of hardcoded table array indices
+      List<Map<String, String>>? tongQuanTable;
+      List<Map<String, String>>? paymentReceiptsTable;
+      List<Map<String, String>>? feeDetailsTable;
+
+      for (final table in allTables) {
+        if (table.isEmpty) continue;
+        final headersStr =
+            table.first.keys.join(' ') + ' ' + table.first.values.join(' ');
+
+        if (tongQuanTable == null &&
+            (headersStr.contains('Mực học phí') ||
+                headersStr.contains('Mức học phí') ||
+                headersStr.contains('Miễn giảm')) &&
+            (headersStr.contains('Thừa thiếu') ||
+                headersStr.contains('Thừa / thiếu') ||
+                headersStr.contains('Số tiền đã nộp'))) {
+          tongQuanTable = table;
+          debugPrint(
+              '💰 [Finance] Identified Summary Table by signature (${table.length} rows)');
+        } else if (paymentReceiptsTable == null &&
+            (headersStr.contains('Số phiếu') ||
+                headersStr.contains('Lần thu') ||
+                headersStr.contains('In hóa đơn')) &&
+            (headersStr.contains('Đợt thu') ||
+                headersStr.contains('Ngày thu') ||
+                headersStr.contains('Số tiền'))) {
+          paymentReceiptsTable = table;
+          debugPrint(
+              '💰 [Finance] Identified Payment Receipts Table by signature (${table.length} rows)');
+        } else if (feeDetailsTable == null &&
+            (headersStr.contains('Loại thu') ||
+                headersStr.contains('Số tiền nộp')) &&
+            (headersStr.contains('Đã nộp') ||
+                headersStr.contains('Số tiền miễn giảm'))) {
+          feeDetailsTable = table;
+          debugPrint(
+              '💰 [Finance] Identified Fee Details Table by signature (${table.length} rows)');
+        }
       }
-      if (allTables.length >= 2 && allTables[1].isNotEmpty) {
+
+      // Positional index fallback only if signature matching yields null
+      tongQuanTable ??= (allTables.isNotEmpty ? allTables[0] : null);
+      paymentReceiptsTable ??= (allTables.length >= 2 ? allTables[1] : null);
+      feeDetailsTable ??= (allTables.length >= 3 ? allTables[2] : null);
+
+      if (tongQuanTable != null && tongQuanTable.isNotEmpty) {
         debugPrint(
-            '💰 [Finance] Saving PaymentReceipts (${allTables[1].length} rows)');
-        await _savePaymentReceipts(allTables[1]);
+            '💰 [Finance] Saving Summary Table (${tongQuanTable.length} rows)');
+        await _saveTongQuan(tongQuanTable);
       }
-      if (allTables.length >= 3 && allTables[2].isNotEmpty) {
+      if (paymentReceiptsTable != null && paymentReceiptsTable.isNotEmpty) {
         debugPrint(
-            '💰 [Finance] Saving FeeDetails (${allTables[2].length} rows)');
-        await _saveFeeDetails(allTables[2]);
+            '💰 [Finance] Saving PaymentReceipts Table (${paymentReceiptsTable.length} rows)');
+        await _savePaymentReceipts(paymentReceiptsTable);
+      }
+      if (feeDetailsTable != null && feeDetailsTable.isNotEmpty) {
+        debugPrint(
+            '💰 [Finance] Saving FeeDetails Table (${feeDetailsTable.length} rows)');
+        await _saveFeeDetails(feeDetailsTable);
       }
 
       await DatabaseService.updateCacheMeta(

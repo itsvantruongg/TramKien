@@ -4,7 +4,6 @@ import '../hau_api_service.dart';
 import '../mock_data.dart';
 import '../db/grade_db.dart';
 
-
 typedef DiemResult = ({
   List<DiemMonHoc> diem,
   DiemSummary? summary,
@@ -16,19 +15,52 @@ class GradeApi {
 
   static Future<List<DiemMonHoc>> fetchDiem() async {
     try {
-      final r = await http
+      var r = await http
           .get(
             Uri.parse('${HauApiService.base}/TraCuuDiem/Index'),
             headers: HauApiService.authHeaders,
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 25));
 
       HauApiService.saveCookies(r);
-      if (r.statusCode != 200 || r.body.contains('name="Password"')) {
-        return [];
+      if (r.statusCode != 200 ||
+          HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+        if (HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+          final reauthed = await HauApiService.reauthenticateIfNeeded();
+          if (reauthed) {
+            r = await http
+                .get(
+                  Uri.parse('${HauApiService.base}/TraCuuDiem/Index'),
+                  headers: HauApiService.authHeaders,
+                )
+                .timeout(const Duration(seconds: 25));
+            HauApiService.saveCookies(r);
+          }
+        }
+        if (r.statusCode != 200 ||
+            HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+          return [];
+        }
       }
 
-      final rows = HauApiService.parseTable(r.body);
+      // Extract candidate table using Grade signature markers rather than relying on table[0]
+      final doc = HauApiService.parseHtml(r.body);
+      final tables = doc.querySelectorAll('table');
+      String targetTableHtml = r.body;
+      for (final t in tables) {
+        final text = t.text;
+        final id = t.attributes['id'] ?? '';
+        if (id == 'ctl00_ContentCP_ctl00_gvDiem' ||
+            (text.contains('Tên học phần') &&
+                (text.contains('TBCHP') ||
+                    text.contains('Điểm thi') ||
+                    text.contains('Điểm chữ')))) {
+          targetTableHtml = t.outerHtml;
+          break;
+        }
+      }
+
+      final rows = HauApiService.parseTable(targetTableHtml);
       return rows.map((row) {
         String col(List<String> keys, String fb) {
           for (final k in keys) {
@@ -208,20 +240,53 @@ class GradeApi {
         },
       );
 
-      final r = await http.get(url, headers: {
+      var r = await http.get(url, headers: {
         ...HauApiService.authHeaders,
         'Accept': 'text/html, */*; q=0.01',
         'X-Requested-With': 'XMLHttpRequest',
         'Referer': '${HauApiService.base}/TraCuuDiem/Index',
-      }).timeout(const Duration(seconds: 20));
+      }).timeout(const Duration(seconds: 25));
 
       HauApiService.saveCookies(r);
-      if (r.statusCode != 200 || r.body.length < 200) {
-        return (diem: <DiemMonHoc>[], summary: null, success: false);
+      if (r.statusCode != 200 ||
+          r.body.length < 200 ||
+          HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+        if (HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+          final reauthed = await HauApiService.reauthenticateIfNeeded();
+          if (reauthed) {
+            r = await http.get(url, headers: {
+              ...HauApiService.authHeaders,
+              'Accept': 'text/html, */*; q=0.01',
+              'X-Requested-With': 'XMLHttpRequest',
+              'Referer': '${HauApiService.base}/TraCuuDiem/Index',
+            }).timeout(const Duration(seconds: 25));
+            HauApiService.saveCookies(r);
+          }
+        }
+        if (r.statusCode != 200 ||
+            r.body.length < 200 ||
+            HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+          return (diem: <DiemMonHoc>[], summary: null, success: false);
+        }
       }
 
       final summary = _parseDiemSummary(r.body);
-      final rows = HauApiService.parseTable(r.body);
+      final doc = HauApiService.parseHtml(r.body);
+      final tables = doc.querySelectorAll('table');
+      String targetTableHtml = r.body;
+      for (final t in tables) {
+        final text = t.text;
+        final id = t.attributes['id'] ?? '';
+        if (id == 'ctl00_ContentCP_ctl00_gvDiem' ||
+            (text.contains('Tên học phần') &&
+                (text.contains('TBCHP') ||
+                    text.contains('Điểm thi') ||
+                    text.contains('Điểm chữ')))) {
+          targetTableHtml = t.outerHtml;
+          break;
+        }
+      }
+      final rows = HauApiService.parseTable(targetTableHtml);
       final diem = _mapRowsToDiem(rows, hocKy: hocKy, namHoc: namHoc);
       return (diem: diem, summary: summary, success: true);
     } catch (_) {

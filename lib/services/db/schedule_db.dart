@@ -14,18 +14,22 @@ class ScheduleDb {
       print(
           '💾 [DB] Saving ${list.length} lich hoc records (append-not-overwrite mode)');
 
-      int inserted = 0, skipped = 0;
+      int inserted = 0, updated = 0, skipped = 0;
       for (final item in list) {
-        // Check if record already exists by checking: ten_hoc_phan + ten_lop_tin_chi + thoi_gian
+        // Check existing record by full composite key including thu and tiet (fixing multi-day data loss BUG-02)
         final existing = await txn.query('lich_hoc',
             where:
-                'ten_hoc_phan = ? AND ten_lop_tin_chi = ? AND thoi_gian = ? AND hoc_ky = ? AND nam_hoc = ?',
+                'ten_hoc_phan = ? AND ten_lop_tin_chi = ? AND thoi_gian = ? AND thu = ? AND tiet = ? AND hoc_ky = ? AND nam_hoc = ? AND dot_hoc = ? AND chuyen_nganh = ?',
             whereArgs: [
               item.tenHocPhan,
               item.tenLopTinChi,
               item.thoiGian,
+              item.thu,
+              item.tiet,
               item.hocKy,
-              item.namHoc
+              item.namHoc,
+              item.dotHoc,
+              item.chuyenNganh,
             ],
             limit: 1);
 
@@ -35,10 +39,33 @@ class ScheduleDb {
               conflictAlgorithm: ConflictAlgorithm.ignore);
           inserted++;
         } else {
-          skipped++;
+          // Update room or teacher if changed on server for existing record (if not manual entry)
+          final row = existing.first;
+          final isManual = (row['is_manual'] as int?) ?? 0;
+          if (isManual == 0) {
+            final oldPhong = row['phong'] as String? ?? '';
+            final oldGv = row['giao_vien'] as String? ?? '';
+            if (oldPhong != item.phong || oldGv != item.giaoVien) {
+              await txn.update(
+                'lich_hoc',
+                {
+                  'phong': item.phong,
+                  'giao_vien': item.giaoVien,
+                  'last_updated': DateTime.now().toIso8601String(),
+                },
+                where: 'id = ?',
+                whereArgs: [row['id']],
+              );
+              updated++;
+            } else {
+              skipped++;
+            }
+          } else {
+            skipped++;
+          }
         }
       }
-      print('💾 [DB] Saved: inserted=$inserted, skipped=$skipped');
+      print('💾 [DB] Saved: inserted=$inserted, updated=$updated, skipped=$skipped');
     });
   }
 

@@ -524,6 +524,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   // ── Backward Compatibility Methods ──────────────────────────
 
   List<LichHoc> getLichHocHomNay() => scheduleProvider.getLichHocHomNay();
+  List<LichHoc> getLichHocNgayMai() => scheduleProvider.getLichHocNgayMai();
   List<LichThi> getUpcomingExams({int daysAhead = 7}) =>
       scheduleProvider.getUpcomingExams(daysAhead: daysAhead);
   List<LichHoc> getLichHocForDate(DateTime date) =>

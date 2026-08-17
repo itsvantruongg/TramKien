@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../models/models.dart';
@@ -470,10 +472,12 @@ class CountdownBadge extends StatelessWidget {
 
 class ScheduleCard extends StatelessWidget {
   final LichHoc lichHoc;
-  const ScheduleCard({super.key, required this.lichHoc});
+  final VoidCallback? onTap;
+  const ScheduleCard({super.key, required this.lichHoc, this.onTap});
 
   @override
   Widget build(BuildContext context) => SurfaceCard(
+        onTap: onTap,
         padding: const EdgeInsets.all(18),
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -539,7 +543,8 @@ class ScheduleCard extends StatelessWidget {
 
 class ExamCard extends StatelessWidget {
   final LichThi lichThi;
-  const ExamCard({super.key, required this.lichThi});
+  final VoidCallback? onTap;
+  const ExamCard({super.key, required this.lichThi, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -551,6 +556,7 @@ class ExamCard extends StatelessWidget {
         : lichThi.caThi; // fallback sang Ca thi nếu không có giờ
 
     return SurfaceCard(
+      onTap: onTap,
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -745,6 +751,80 @@ class _PressScaleState extends State<PressScale> {
           duration: widget.duration,
           child: widget.child,
         ),
+      ),
+    );
+  }
+}
+
+// ── TuitionWarningCard ────────────────────────────────────────
+
+class TuitionWarningCard extends StatelessWidget {
+  final double amount;
+  const TuitionWarningCard({super.key, required this.amount});
+
+  @override
+  Widget build(BuildContext context) {
+    final f = NumberFormat('#,###', 'vi_VN');
+    const redDark = Color(0xFFC62828);
+    const redDarker = Color(0xFFB71C1C);
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF2F2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFCA5A5), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                color: redDark,
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              const Text(
+                'Học phí chưa nộp: ',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: redDark,
+                ),
+              ),
+              Text(
+                '${f.format(amount)} VNĐ',
+                style: GoogleFonts.manrope(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: redDarker,
+                ),
+              ),
+            ],
+          ),
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 8),
+            child: Divider(
+              height: 1,
+              thickness: 0.8,
+              color: Color(0xFFFECACA),
+            ),
+          ),
+          const Text(
+            'Vui lòng thanh toán sớm để tránh ảnh hưởng đến việc đăng ký học phần kỳ tới.',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w400,
+              color: redDark,
+              height: 1.35,
+            ),
+          ),
+        ],
       ),
     );
   }

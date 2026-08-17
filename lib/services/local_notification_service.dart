@@ -463,7 +463,8 @@ class LocalNotificationService {
       // Lên lịch vào lúc 20:00 ngày hôm trước của dateOnly
       final yesterday = dateOnly.subtract(const Duration(days: 1));
       final notifyAt = DateTime(yesterday.year, yesterday.month, yesterday.day, 20, 0);
-      final summaryId = 'schedule_reminder_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}';
+      final summaryId = 'schedule_reminder_${mssv}_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}'; // FIX #6: thêm mssv scope
+
 
       if (!dismissedSet.contains(summaryId) && !existingIds.contains(summaryId)) {
         if (startTime == null || !notifyAt.isBefore(startTime)) {
@@ -497,7 +498,7 @@ class LocalNotificationService {
 
       // ── 2. NHẮC TRƯỚC 1 TIẾNG TỪNG CA HỌC ──
       for (final c in classes) {
-        final notifId = 'class_reminder_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}_${c.tenHocPhan}';
+        final notifId = 'class_reminder_${mssv}_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}_${c.tenHocPhan}';
 
         if (dismissedSet.contains(notifId)) continue;
         if (existingIds.contains(notifId)) continue;
@@ -536,7 +537,7 @@ class LocalNotificationService {
 
       // ── 3. NHẮC TRƯỚC 1 TIẾNG TỪNG CA THI ──
       for (final e in exams) {
-        final notifId = 'exam_reminder_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}_${e.tenMonHoc}';
+        final notifId = 'exam_reminder_${mssv}_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}_${e.tenMonHoc}';
 
         if (dismissedSet.contains(notifId)) continue;
         if (existingIds.contains(notifId)) continue;

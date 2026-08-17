@@ -9,9 +9,6 @@ import 'hau_api_service.dart';
 import 'notification_service.dart';
 import 'local_notification_service.dart';
 import 'database_service.dart';
-import 'api/grade_api.dart';
-import 'api/schedule_api.dart';
-import 'api/finance_api.dart';
 import '../models/models.dart';
 
 /// Tên task
@@ -106,37 +103,53 @@ Future<void> _runSyncLogic() async {
     // BUG CŨ: kết quả fetchDiem/fetchLichHoc/fetchLichThi bị bỏ qua (discard),
     // DB không được cập nhật → prevCount == newCount → không bao giờ thông báo.
     List<DiemMonHoc> fetchedDiem = [];
-    List<LichHoc> fetchedLichHoc = [];
-    List<LichThi> fetchedLichThi = [];
+    // FIX #3: Dùng WithStatus để kiểm tra complete trước khi ghi DB
+    LichHocScanResult fetchedLichHocResult =
+        (items: <LichHoc>[], complete: false);
+    LichThiScanResult fetchedLichThiResult =
+        (items: <LichThi>[], complete: false);
 
     try {
       // Giới hạn 20 giây để không bị iOS kill (iOS giới hạn 30s)
       final results = await Future.wait<dynamic>([
         GradeApi.fetchDiem(),
-        ScheduleApi.fetchLichHocFromStart(mssv: mssv),
-        ScheduleApi.fetchLichThiFromStart(mssv: mssv),
+        ScheduleApi.fetchLichHocFromStartWithStatus(mssv: mssv),
+        ScheduleApi.fetchLichThiFromStartWithStatus(mssv: mssv),
         FinanceApi.fetchAndSaveHocPhi(), // FinanceApi tự lưu vào DB
       ]).timeout(const Duration(seconds: 20));
 
       fetchedDiem = List<DiemMonHoc>.from(results[0] as List);
-      fetchedLichHoc = List<LichHoc>.from(results[1] as List);
-      fetchedLichThi = List<LichThi>.from(results[2] as List);
+      fetchedLichHocResult = results[1] as LichHocScanResult;
+      fetchedLichThiResult = results[2] as LichThiScanResult;
     } catch (e) {
       debugPrint('⚙️ [BG] Sync/Timeout error: $e');
     }
 
-    // Lưu vào DB (nếu fetch thành công)
+    // Lưu điểm vào DB (không có complete flag, giữ hành vi cũ)
     if (fetchedDiem.isNotEmpty) {
       await GradeDb.saveDiem(
         fetchedDiem.map((d) => d.toMap()).toList(),
         mssv: mssv,
       );
     }
-    if (fetchedLichHoc.isNotEmpty) {
-      await ScheduleDb.saveLichHoc(fetchedLichHoc);
+
+    // FIX #3: Chỉ ghi lịch học nếu fetch HOÀN TẤT (complete == true)
+    // Nếu không complete → giữ data cũ, tránh ghi data thiếu vào DB
+    if (fetchedLichHocResult.complete &&
+        fetchedLichHocResult.items.isNotEmpty) {
+      await ScheduleDb.saveLichHoc(fetchedLichHocResult.items);
+    } else if (!fetchedLichHocResult.complete) {
+      debugPrint('⚠️ [BG] LichHoc fetch không hoàn tất (complete=false) → '
+          'giữ nguyên data cũ, bỏ qua ghi DB');
     }
-    if (fetchedLichThi.isNotEmpty) {
-      await ScheduleDb.saveLichThi(fetchedLichThi);
+
+    // FIX #3: Chỉ ghi lịch thi nếu fetch HOÀN TẤT
+    if (fetchedLichThiResult.complete &&
+        fetchedLichThiResult.items.isNotEmpty) {
+      await ScheduleDb.saveLichThi(fetchedLichThiResult.items);
+    } else if (!fetchedLichThiResult.complete) {
+      debugPrint('⚠️ [BG] LichThi fetch không hoàn tất (complete=false) → '
+          'giữ nguyên data cũ, bỏ qua ghi DB');
     }
 
     // 7. Snapshot SAU sync (đọc lại từ DB sau khi đã lưu)
@@ -168,7 +181,7 @@ Future<void> _runSyncLogic() async {
     if (prevDiem.isNotEmpty && newDiem.length > prevDiem.length) {
       final diff = newDiem.length - prevDiem.length;
       await pushIfNew(
-        'grade_to_${newDiem.length}',
+        'notif_${mssv}_grade_${newDiem.length}',
         'Có điểm mới 📊',
         'Vừa có $diff môn học có điểm mới trên hệ thống.',
         2,
@@ -178,7 +191,7 @@ Future<void> _runSyncLogic() async {
 
     if (prevLichHoc.isNotEmpty && newLichHoc.length > prevLichHoc.length) {
       await pushIfNew(
-        'lich_to_${newLichHoc.length}',
+        'notif_${mssv}_lich_${newLichHoc.length}',
         'Lịch học được cập nhật 📅',
         'Có ${newLichHoc.length - prevLichHoc.length} buổi học mới.',
         1,
@@ -188,7 +201,7 @@ Future<void> _runSyncLogic() async {
 
     if (prevLichThi.isNotEmpty && newLichThi.length > prevLichThi.length) {
       await pushIfNew(
-        'thi_to_${newLichThi.length}',
+        'notif_${mssv}_thi_${newLichThi.length}',
         'Có lịch thi mới 📝',
         '${newLichThi.length - prevLichThi.length} lịch thi vừa được cập nhật.',
         1,
@@ -198,7 +211,7 @@ Future<void> _runSyncLogic() async {
 
     if (prevDaDong > 0 && newDaDong > prevDaDong) {
       await pushIfNew(
-        'finance_to_${newDaDong.toInt()}',
+        'notif_${mssv}_finance_${newDaDong.toInt()}',
         'Thanh toán được ghi nhận 💰',
         'Học phí đã được cập nhật trên hệ thống.',
         3,

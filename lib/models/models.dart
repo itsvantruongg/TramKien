@@ -312,15 +312,15 @@ class LichThi {
         isManual: (m['is_manual'] as int?) == 1,
       );
 
-// "15H00-17H00" → "15:00"
+// FIX #5: Regex nhận cả h thường và khoảng trắng (ví dụ: '07h30', '7H 30', '7h30-9h30')
   static String parseGioBatDau(String gioThi) {
-    final match = RegExp(r'(\d{1,2})H(\d{2})').firstMatch(gioThi);
+    final match = RegExp(r'(\d{1,2})\s*[Hh]\s*(\d{2})').firstMatch(gioThi);
     if (match == null) return '';
     return '${match.group(1)!.padLeft(2, '0')}:${match.group(2)}';
   }
 
   static String parseGioKetThuc(String gioThi) {
-    final matches = RegExp(r'(\d{1,2})H(\d{2})').allMatches(gioThi).toList();
+    final matches = RegExp(r'(\d{1,2})\s*[Hh]\s*(\d{2})').allMatches(gioThi).toList();
     if (matches.length < 2) return '';
     final m = matches[1];
     return '${m.group(1)!.padLeft(2, '0')}:${m.group(2)}';

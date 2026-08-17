@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import '../../models/models.dart';
 import '../hau_api_service.dart';
@@ -9,7 +11,37 @@ typedef LichHocScanResult = ({List<LichHoc> items, bool complete});
 typedef LichThiFetchResult = ({List<LichThi> items, bool success});
 typedef LichThiScanResult = ({List<LichThi> items, bool complete});
 
+/// Helper class for limiting concurrent network requests (e.g. max 3 requests at once)
+class ConcurrencyPool {
+  final int maxConcurrent;
+  int _activeCount = 0;
+  final _queue = <Completer<void>>[];
+
+  ConcurrencyPool(this.maxConcurrent);
+
+  Future<T> run<T>(Future<T> Function() task) async {
+    if (_activeCount >= maxConcurrent) {
+      final completer = Completer<void>();
+      _queue.add(completer);
+      await completer.future;
+    }
+    _activeCount++;
+    try {
+      return await task();
+    } finally {
+      _activeCount--;
+      if (_queue.isNotEmpty) {
+        final next = _queue.removeAt(0);
+        next.complete();
+      }
+    }
+  }
+}
+
 class ScheduleApi {
+  // Global concurrency throttle for schedule endpoints (Size 3)
+  static final ConcurrencyPool _pool = ConcurrencyPool(3);
+
   // ── LỊCH HỌC — single fetch ────────────────────────────
 
   static Future<LichHocFetchResult> fetchLichHocWithStatus({
@@ -30,13 +62,29 @@ class ScheduleApi {
         },
       );
 
-      final r = await http
+      var r = await http
           .get(url, headers: HauApiService.authHeaders)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 25));
       HauApiService.saveCookies(r);
 
-      if (r.statusCode != 200 || r.body.length < 200) {
-        return (items: <LichHoc>[], success: false);
+      // Check session expiration / login HTML
+      if (r.statusCode != 200 ||
+          r.body.length < 200 ||
+          HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+        if (HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+          final reauthed = await HauApiService.reauthenticateIfNeeded();
+          if (reauthed) {
+            r = await http
+                .get(url, headers: HauApiService.authHeaders)
+                .timeout(const Duration(seconds: 25));
+            HauApiService.saveCookies(r);
+          }
+        }
+        if (r.statusCode != 200 ||
+            r.body.length < 200 ||
+            HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+          return (items: <LichHoc>[], success: false);
+        }
       }
 
       final doc = HauApiService.parseHtml(r.body);
@@ -45,36 +93,13 @@ class ScheduleApi {
         return (items: <LichHoc>[], success: true);
       }
 
-      // ── Parse với rowspan carry-forward ────────────────────
-      // Cột API: STT(0) TenHP(1) TC(2) LopTC(3) ThoiGian(4) Thu(5) Tiet(6) Phong(7) GV(8)
+      // ── Parse với 2D grid allocation (hỗ trợ rowspan & colspan) ──────
       const numCols = 9;
-      final carryOver = <int, ({String val, int left})>{};
+      final grid = HauApiService.parseTableGrid(tableRows);
       final result = <LichHoc>[];
 
-      for (final tr in tableRows) {
-        final tds = tr.querySelectorAll('td');
-        if (tds.isEmpty) continue;
-
-        // Build row với rowspan
-        final cells = List<String>.filled(numCols, '');
-        int srcIdx = 0;
-        for (int col = 0; col < numCols; col++) {
-          if (carryOver.containsKey(col) && carryOver[col]!.left > 0) {
-            cells[col] = carryOver[col]!.val;
-            final rem = carryOver[col]!.left - 1;
-            if (rem == 0) {
-              carryOver.remove(col);
-            } else {
-              carryOver[col] = (val: carryOver[col]!.val, left: rem);
-            }
-          } else if (srcIdx < tds.length) {
-            final td = tds[srcIdx++];
-            final val = td.text.trim();
-            cells[col] = val;
-            final rs = int.tryParse(td.attributes['rowspan'] ?? '1') ?? 1;
-            if (rs > 1) carryOver[col] = (val: val, left: rs - 1);
-          }
-        }
+      for (final cells in grid) {
+        if (cells.length < numCols) continue;
 
         final tenHoc = cells[1];
         final thoiGian = cells[4];
@@ -139,21 +164,21 @@ class ScheduleApi {
       return (items: MockData.getLichHoc(), complete: true);
     }
 
-    // 8 đợt × 2 ngành = 16 request chạy song song
+    // 8 đợt × 2 ngành = 16 request chạy qua ConcurrencyPool(3)
     final futures = <Future<LichHocFetchResult>>[];
     for (int dot = 1; dot <= 8; dot++) {
       for (int cn = 0; cn <= 1; cn++) {
-        futures.add(_fetchLichHocWithRetry(
+        futures.add(_pool.run(() => _fetchLichHocWithRetry(
           hocKy: hocKy,
           namHoc: namHoc,
           chuyenNganh: cn,
           dotHoc: dot,
-        ));
+        )));
       }
     }
 
     print('📚 [LichHoc] Bắt đầu fetch: HK$hocKy ${namHoc}-${namHoc + 1} '
-        '(16 requests: 8 đợt × 2 ngành)');
+        '(16 requests via ConcurrencyPool poolSize=3)');
 
     final results = await Future.wait(futures);
 
@@ -177,7 +202,6 @@ class ScheduleApi {
     }
 
     final all = results.expand((r) => r.items).toList();
-    // Deduplicate
     final seen = <String>{};
     final unique = all.where((l) {
       final key = '${l.tenHocPhan}_${l.thoiGian}_${l.thu}_${l.tiet}';
@@ -209,9 +233,10 @@ class ScheduleApi {
     required int namHoc,
     required int chuyenNganh,
     required int dotHoc,
-    int maxAttempts = 2,
+    int maxAttempts = 3,
   }) async {
     LichHocFetchResult last = (items: <LichHoc>[], success: false);
+    final random = math.Random();
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       last = await fetchLichHocWithStatus(
         hocKy: hocKy,
@@ -221,7 +246,8 @@ class ScheduleApi {
       );
       if (last.success) return last;
       if (attempt < maxAttempts - 1) {
-        await Future.delayed(Duration(milliseconds: 300 * (attempt + 1)));
+        final delayMs = (400 * (1 << attempt)) + random.nextInt(250);
+        await Future.delayed(Duration(milliseconds: delayMs));
       }
     }
     return last;
@@ -237,10 +263,8 @@ class ScheduleApi {
     final startYear =
         mssv != null ? HauApiService.getNamBatDauFromMssv(mssv) : 2018;
     final now = DateTime.now();
-    // Năm học hiện tại (namHoc = năm bắt đầu của năm học)
     final currentNamHoc = now.month >= 8 ? now.year : now.year - 1;
 
-    // Fetch TẤT CẢ kỳ từ startYear → currentNamHoc, không skip gì cả
     final kyList = <({int ky, int nam})>[];
     for (int nam = startYear; nam <= currentNamHoc; nam++) {
       kyList.add((ky: 1, nam: nam));
@@ -250,9 +274,6 @@ class ScheduleApi {
     print('🗓️ [LichHoc] mssv=$mssv startYear=$startYear '
         'currentNamHoc=$currentNamHoc tháng=${now.month} '
         '→ ${kyList.length} kỳ cần fetch (không skip)');
-    for (final k in kyList) {
-      print('   📋 Sẽ fetch lịch: HK${k.ky} ${k.nam}-${k.nam + 1}');
-    }
 
     final allResults = <LichHoc>[];
     final globalSeen = <String>{};
@@ -308,6 +329,7 @@ class ScheduleApi {
     int maxAttempts = 2,
   }) async {
     LichHocScanResult last = (items: <LichHoc>[], complete: false);
+    final random = math.Random();
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       last = await fetchLichHocAllDotsWithStatus(
         hocKy: hocKy,
@@ -316,19 +338,18 @@ class ScheduleApi {
       );
       if (last.complete) return last;
       if (attempt < maxAttempts - 1) {
-        await Future.delayed(Duration(milliseconds: 400 * (attempt + 1)));
+        final delayMs = (400 * (1 << attempt)) + random.nextInt(250);
+        await Future.delayed(Duration(milliseconds: delayMs));
       }
     }
     return last;
   }
 
   /// Fetch lịch học cho năm 2025-2026, cả 2 học kỳ, song song
-  /// Giống fetch_lich_hoc_parallel trong Python nhưng chỉ 2025
   static Future<List<LichHoc>> fetchLichHoc2025() async {
     const namHoc = 2025;
     const hocKys = [1, 2];
 
-    // Chạy cả 2 HK song song
     final futures = hocKys.map((hk) => fetchLichHocAllDotsWithStatus(
           hocKy: hk,
           namHoc: namHoc,
@@ -363,28 +384,42 @@ class ScheduleApi {
 
       var r = await http
           .get(url, headers: HauApiService.authHeaders)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 25));
       HauApiService.saveCookies(r);
 
-      if (r.statusCode != 200 || r.body.length < 200) {
-        r = await http
-            .get(
-              Uri.parse('${HauApiService.base}/TraCuuLichThi/Index'),
-              headers: HauApiService.authHeaders,
-            )
-            .timeout(const Duration(seconds: 15));
-        HauApiService.saveCookies(r);
+      if (r.statusCode != 200 ||
+          r.body.length < 200 ||
+          HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+        if (HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+          final reauthed = await HauApiService.reauthenticateIfNeeded();
+          if (reauthed) {
+            r = await http
+                .get(url, headers: HauApiService.authHeaders)
+                .timeout(const Duration(seconds: 25));
+            HauApiService.saveCookies(r);
+          }
+        }
+        if (r.statusCode != 200 ||
+            r.body.length < 200 ||
+            HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
+          r = await http
+              .get(
+                Uri.parse('${HauApiService.base}/TraCuuLichThi/Index'),
+                headers: HauApiService.authHeaders,
+              )
+              .timeout(const Duration(seconds: 25));
+          HauApiService.saveCookies(r);
+        }
       }
 
-      if (r.statusCode != 200) {
+      if (r.statusCode != 200 ||
+          HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
         return (items: <LichThi>[], success: false);
       }
 
       final rows = HauApiService.parseTable(r.body);
-      // Sau khi parse, thêm log kiểm tra 1 record đầu:
       if (rows.isNotEmpty) {
         final first = rows.first;
-        // In tất cả columns để xác định đúng index
         print('🕐 [LichThi] All columns of first row:');
         first.forEach((k, v) {
           if (v.isNotEmpty) print('   $k = "$v"');
@@ -403,10 +438,8 @@ class ScheduleApi {
             col(['Tên học phần', 'Tên môn học', 'Môn học', '_col2'], '');
         final ngayThi = col(['Ngày thi', '_col4'], '');
 
-        // ✅ Giờ thi ở _col6 (không phải _col3_time hay _col4)
         final gioThiRaw = col(['Giờ thi', 'Giờ', '_col6'], '');
 
-        // Debug log để verify
         if (gioThiRaw.isNotEmpty) {
           print('🕐 gioThiRaw="$gioThiRaw" → '
               'start=${LichThi.parseGioBatDau(gioThiRaw)} '
@@ -432,18 +465,9 @@ class ScheduleApi {
           lastUpdated: DateTime.now(),
         );
       }).where((l) {
-        // FILTER: Course name cannot be empty or just digits
-        if (l.tenMonHoc.isEmpty) {
-          print('⚠️ WARN: Skipping lich thi with empty tenMonHoc');
-          return false;
-        }
-        if (RegExp(r'^[0-9\-]+$').hasMatch(l.tenMonHoc)) {
-          print('⚠️ WARN: Skipping invalid lich thi name: "${l.tenMonHoc}"');
-          return false;
-        }
-        // FILTER: ngayThi must be valid date format
+        if (l.tenMonHoc.isEmpty) return false;
+        if (RegExp(r'^[0-9\-]+$').hasMatch(l.tenMonHoc)) return false;
         if (l.ngayThi.isEmpty || !RegExp(r'\d+/\d+/\d+').hasMatch(l.ngayThi)) {
-          print('⚠️ WARN: Skipping lich thi with invalid date: "${l.ngayThi}"');
           return false;
         }
         return true;
@@ -474,7 +498,6 @@ class ScheduleApi {
     final now = DateTime.now();
     final currentNamHoc = now.month >= 8 ? now.year : now.year - 1;
 
-    // Fetch TẤT CẢ kỳ, không skip
     final kyList = <({int ky, int nam})>[];
     for (int nam = startYear; nam <= currentNamHoc; nam++) {
       kyList.add((ky: 1, nam: nam));
@@ -494,7 +517,7 @@ class ScheduleApi {
           : kyList.length;
       final batch = kyList.sublist(start, end);
       final results = await Future.wait(batch.map(
-          (k) => _fetchLichThiSemesterWithRetry(hocKy: k.ky, namHoc: k.nam)));
+          (k) => _pool.run(() => _fetchLichThiSemesterWithRetry(hocKy: k.ky, namHoc: k.nam))));
 
       for (int i = 0; i < batch.length; i++) {
         final k = batch[i];
@@ -529,11 +552,13 @@ class ScheduleApi {
     int maxAttempts = 2,
   }) async {
     LichThiFetchResult last = (items: <LichThi>[], success: false);
+    final random = math.Random();
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       last = await fetchLichThiWithStatus(hocKy: hocKy, namHoc: namHoc);
       if (last.success) return last;
       if (attempt < maxAttempts - 1) {
-        await Future.delayed(Duration(milliseconds: 300 * (attempt + 1)));
+        final delayMs = (400 * (1 << attempt)) + random.nextInt(250);
+        await Future.delayed(Duration(milliseconds: delayMs));
       }
     }
     return last;

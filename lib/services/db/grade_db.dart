@@ -1,6 +1,8 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:sqflite/sqflite.dart';
+
 import '../../models/models.dart';
 import '../database_service.dart';
 
@@ -45,8 +47,8 @@ class GradeDb {
           'mssv': resolvedMssv,
           'course_code': resolvedCourseCode.isNotEmpty
               ? resolvedCourseCode
-              : resolvedCourseName.substring(
-                  0, resolvedCourseName.length.clamp(0, 10)),
+              // FIX #4: Dùng MD5 thay hashCode — ổn định qua các lần restart app
+              : 'NO_CODE_${md5.convert(utf8.encode(resolvedCourseName)).toString().substring(0, 10)}',
           'course_name': resolvedCourseName,
           'credits': resolvedCredits,
           'coefficient': raw['coefficient'] ?? raw['Hệ số'],

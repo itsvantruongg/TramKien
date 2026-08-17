@@ -289,6 +289,8 @@ class ScheduleProvider extends ChangeNotifier {
   }
 
   List<LichHoc> getLichHocHomNay() => getLichHocForDate(DateTime.now());
+  List<LichHoc> getLichHocNgayMai() =>
+      getLichHocForDate(DateTime.now().add(const Duration(days: 1)));
 
   List<LichThi> getUpcomingExams({int daysAhead = 7}) {
     final now = DateTime.now();

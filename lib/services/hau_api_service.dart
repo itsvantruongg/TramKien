@@ -22,6 +22,63 @@ class HauApiService {
   static final Map<String, String> _cookies = {};
   static String? _currentMssv;
   static String? get currentMssv => _currentMssv;
+  static String? _savedMssv;
+  static String? _savedPassword;
+
+  // FIX #1: Mutex cho reauth — tránh Thundering Herd khi nhiều request
+  // phát hiện session hết hạn cùng lúc và gọi login song song
+  static bool _isReauthing = false;
+  static Completer<bool>? _reauthCompleter;
+
+  /// Check if an HTML response body or status code indicates session expiration / login page
+  static bool isLoginPage(String html, {int statusCode = 200}) {
+    if (statusCode == 401 || statusCode == 403) return true;
+    final lower = html.toLowerCase();
+    if (lower.contains('name="password"') ||
+        lower.contains('name="username"') ||
+        lower.contains('/account/login') ||
+        lower.contains('/dangnhap/login') ||
+        lower.contains('id="accountlogin"')) {
+      return true;
+    }
+    return false;
+  }
+
+  /// Re-authenticate using saved credentials if available.
+  /// FIX #1: Sử dụng Completer mutex — chỉ gọi login() 1 lần duy nhất.
+  /// Các caller đến sau trong khi reauth đang diễn ra sẽ await
+  /// cùng Completer thay vì tự gọi login() riêng.
+  static Future<bool> reauthenticateIfNeeded() async {
+    // Nếu đã có reauth đang chạy, chờ kết quả của nó thay vì gọi thêm
+    if (_isReauthing && _reauthCompleter != null) {
+      print('🔄 [Auth] Reauth đang chạy, chờ kết quả (coalesced)...');
+      return _reauthCompleter!.future;
+    }
+
+    if (_savedMssv == null || _savedPassword == null) return false;
+
+    _isReauthing = true;
+    final completer = Completer<bool>();
+    _reauthCompleter = completer;
+    bool success = false;
+
+    try {
+      print('🔄 [Auth] Attempting auto-reauth for $_savedMssv...');
+      final err = await login(_savedMssv!, _savedPassword!);
+      success = (err == null);
+      return success;
+    } catch (e) {
+      print('⚠️ [Auth] Reauth exception: $e');
+      return false;
+    } finally {
+      if (!completer.isCompleted) {
+        completer.complete(success);
+      }
+      _isReauthing = false;
+      _reauthCompleter = null;
+    }
+  }
+
 
   static Map<String, String> get _baseHeaders => {
         'User-Agent':
@@ -75,6 +132,8 @@ class HauApiService {
     try {
       if (mssv == 'admin' && password == 'admin@123') {
         _currentMssv = mssv;
+        _savedMssv = mssv;
+        _savedPassword = password;
         return null;
       }
 
@@ -83,7 +142,7 @@ class HauApiService {
       // Bước 1: GET trang login để lấy cookie session + __RequestVerificationToken
       final r1 = await http
           .get(Uri.parse('$base/DangNhap/Login'), headers: _baseHeaders)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 20));
       _saveCookies(r1);
 
       // Bước 2: Parse CSRF token từ HTML trang login
@@ -93,7 +152,7 @@ class HauApiService {
       if (resolvedToken.isEmpty) {
         final r0 = await http
             .get(Uri.parse(base), headers: _baseHeaders)
-            .timeout(const Duration(seconds: 15));
+            .timeout(const Duration(seconds: 20));
         _saveCookies(r0);
         resolvedToken = _parseCsrfToken(r0.body);
       }
@@ -120,7 +179,7 @@ class HauApiService {
       request.followRedirects = false;
 
       final streamed =
-          await request.send().timeout(const Duration(seconds: 15));
+          await request.send().timeout(const Duration(seconds: 20));
       final r2 = await http.Response.fromStream(streamed);
       _saveCookies(r2);
 
@@ -137,6 +196,8 @@ class HauApiService {
 
       // Đúng mật khẩu → location không chứa message, redirect về trang chủ
       _currentMssv = mssv;
+      _savedMssv = mssv;
+      _savedPassword = password;
       return null; // null = thành công
     } on SocketException {
       return 'Không có kết nối mạng';
@@ -152,6 +213,8 @@ class HauApiService {
   static void logout() {
     _cookies.clear();
     _currentMssv = null;
+    _savedMssv = null;
+    _savedPassword = null;
   }
 
   // ── SESSION CHECK ──────────────────────────────────────────
@@ -165,19 +228,58 @@ class HauApiService {
             Uri.parse('$base/TrangChu/Home'),
             headers: _authHeaders,
           )
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 15));
       _saveCookies(r);
-      return r.statusCode == 200 && !r.body.contains('name="Password"');
+      return r.statusCode == 200 && !isLoginPage(r.body);
     } catch (_) {
       return false;
     }
   }
 
-  // ── HTML TABLE PARSER ──────────────────────────────────────
-  // Expose for api/* classes
+  // ── HTML TABLE PARSER (2D Grid with Rowspan & Colspan Support) ──
   static List<Map<String, String>> parseTable(String html) => _parseTable(html);
   static dynamic parseHtml(String html) => html_parser.parse(html);
   static String hash(String s) => _hash(s);
+
+  /// Parse physical HTML rows into a 2D logical grid supporting both rowspan and colspan.
+  static List<List<String>> parseTableGrid(List<dynamic> trs) {
+    final grid = <List<String>>[];
+    final occupied = <String>{}; // Track occupied coordinates: "$r,$c"
+
+    for (int r = 0; r < trs.length; r++) {
+      final tds = trs[r].querySelectorAll('td');
+      if (tds.isEmpty) continue;
+
+      int c = 0;
+      for (final td in tds) {
+        while (occupied.contains('$r,$c')) {
+          c++;
+        }
+
+        final val = td.text.trim();
+        final rs = int.tryParse(td.attributes['rowspan'] ?? '1') ?? 1;
+        final cs = int.tryParse(td.attributes['colspan'] ?? '1') ?? 1;
+
+        for (int dr = 0; dr < rs; dr++) {
+          final targetRow = r + dr;
+          for (int dc = 0; dc < cs; dc++) {
+            final targetCol = c + dc;
+            occupied.add('$targetRow,$targetCol');
+
+            while (grid.length <= targetRow) {
+              grid.add(<String>[]);
+            }
+            while (grid[targetRow].length <= targetCol) {
+              grid[targetRow].add('');
+            }
+            grid[targetRow][targetCol] = val;
+          }
+        }
+        c += cs;
+      }
+    }
+    return grid;
+  }
 
   static List<Map<String, String>> _parseTable(String html) {
     try {
@@ -197,18 +299,20 @@ class HauApiService {
 
       if (headers.isEmpty) return [];
 
-      final rows = <Map<String, String>>[];
       final trs = table.querySelectorAll('tbody tr');
+      if (trs.isEmpty) return [];
 
-      for (final tr in trs) {
-        final cells = tr.querySelectorAll('td');
-        if (cells.isEmpty) continue;
+      final grid = parseTableGrid(trs);
+      final rows = <Map<String, String>>[];
+
+      for (final gridRow in grid) {
+        if (gridRow.isEmpty) continue;
         final row = <String, String>{};
-        for (var i = 0; i < headers.length && i < cells.length; i++) {
-          row[headers[i]] = cells[i].text.trim();
+        for (var i = 0; i < headers.length && i < gridRow.length; i++) {
+          row[headers[i]] = gridRow[i];
         }
-        for (var i = 0; i < cells.length; i++) {
-          row['_col$i'] = cells[i].text.trim();
+        for (var i = 0; i < gridRow.length; i++) {
+          row['_col$i'] = gridRow[i];
         }
         if (row.values.any((v) => v.isNotEmpty)) rows.add(row);
       }

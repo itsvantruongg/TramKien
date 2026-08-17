@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +9,7 @@ import 'curriculum_screen.dart';
 import 'feedback_screen.dart';
 import 'terms_screen.dart';
 import '../services/local_notification_service.dart';
+import 'debug_sync_screen.dart';
 
 // ════════════════════════════════════════════════════════════
 // PROFILE SCREEN
@@ -105,6 +107,23 @@ class ProfileScreen extends StatelessWidget {
                               iconColor: AppTheme.error,
                               textColor: AppTheme.error,
                             ),
+                            // ── DEBUG ONLY (hidden in release) ──────
+                            // if (kDebugMode) ...[
+                            //   const Divider(
+                            //       height: 1,
+                            //       color: AppTheme.surfaceContainerHigh),
+                            //   _Item(
+                            //     Icons.data_object,
+                            //     '[DEBUG] DB Verification & SQL Export',
+                            //     () => Navigator.push(
+                            //       context,
+                            //       MaterialPageRoute(
+                            //           builder: (_) =>
+                            //               const DebugSyncScreen())),
+                            //     iconColor: Colors.orange,
+                            //     textColor: Colors.orange,
+                            //   ),
+                            // ],
                           ]),
                         ),
 
@@ -112,7 +131,7 @@ class ProfileScreen extends StatelessWidget {
                         Center(
                             child: Column(
                           children: [
-                            Text('VERSION 1.0.4',
+                            Text('VERSION 1.0.5',
                                 style: Theme.of(context)
                                     .textTheme
                                     .labelSmall

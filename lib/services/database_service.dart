@@ -14,7 +14,7 @@ export 'db/finance_db.dart';
 
 class DatabaseService {
   static Database? _db;
-  static const _version = 14;
+  static const _version = 15;
   static String _currentMssv = '';
   static String get currentMssv => _currentMssv;
   static int _currentUserId = -1;
@@ -158,6 +158,15 @@ class DatabaseService {
         if (oldV < 14) {
           await db.execute(
               'ALTER TABLE student_grades ADD COLUMN display_order INTEGER DEFAULT 0');
+        }
+        if (oldV < 15) {
+          // FIX #4: Xóa các bản ghi điểm có course_code sinh bằng hashCode không ổn định.
+          // Chúng sẽ được tạo lại bằng MD5 (hash ổn định) ở lần sync tiếp theo.
+          await db.delete(
+            'student_grades',
+            where: "course_code LIKE 'NO_CODE_%'",
+          );
+          print('🗑️ [Migration v15] Đã xóa các bản ghi NO_CODE_% cũ (hashCode không ổn định)');
         }
       },
     );

@@ -23,24 +23,25 @@ class _MainShellState extends State<MainShell>
   int _navDirection = 1;
   DateTime? _lastBackPress;
   double? _navDragValue;
+  double? _pendingNavDragValue;
   bool _navDragging = false;
   Timer? _navHoldTimer;
-  double? _pendingNavDragValue;
-  late final List<Widget> _screens;
   int _prevIdx = 0;
   late final AnimationController _animController;
+  DateTime? _scheduleFocusDate;
 
-  String _screenNameForIndex(int idx) => switch (idx) {
-        0 => 'Dashboard',
-        1 => 'Schedule',
-        2 => 'Grades',
-        3 => 'Finance',
-        4 => 'Profile',
-        _ => 'MainShell',
-      };
-
-  void _navigate(int idx) {
-    if (idx == _idx) return;
+  void _navigate(int idx, {DateTime? focusDate}) {
+    if (idx == _idx) {
+      if (idx == 1 && focusDate != null && focusDate != _scheduleFocusDate) {
+        setState(() {
+          _scheduleFocusDate = focusDate;
+        });
+      }
+      return;
+    }
+    if (idx == 1 && focusDate != null) {
+      _scheduleFocusDate = focusDate;
+    }
     if (_animController.isAnimating) {
       _animController.stop();
     }
@@ -50,6 +51,14 @@ class _MainShellState extends State<MainShell>
     });
     _animController.forward(from: 0.0);
   }
+
+  List<Widget> get _screens => [
+        DashboardScreen(onNavigate: _navigate),
+        ScheduleScreen(onNavigate: _navigate, initialDate: _scheduleFocusDate),
+        GradesScreen(onNavigate: _navigate),
+        FinanceScreen(onNavigate: _navigate),
+        const ProfileScreen(),
+      ];
 
   double get _navBaseValue => _idx.toDouble();
 
@@ -123,13 +132,6 @@ class _MainShellState extends State<MainShell>
   @override
   void initState() {
     super.initState();
-    _screens = [
-      DashboardScreen(onNavigate: _navigate),
-      ScheduleScreen(onNavigate: _navigate),
-      GradesScreen(onNavigate: _navigate),
-      FinanceScreen(onNavigate: _navigate),
-      const ProfileScreen(),
-    ];
     _animController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 200),

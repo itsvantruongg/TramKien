@@ -64,7 +64,7 @@ class FinanceScreen extends StatelessWidget {
                                   ?.copyWith(
                                       color: AppTheme.outline,
                                       letterSpacing: 1.5)),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 16),
                           GradientCard(
                               child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,29 +135,39 @@ class FinanceScreen extends StatelessWidget {
                                     child: Container(
                                   padding: const EdgeInsets.all(14),
                                   decoration: BoxDecoration(
-                                    color: Colors.orange.withOpacity(0.2),
+                                    color: Colors.white.withOpacity(0.12),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
                                   child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text('Còn lại',
+                                        Text('Còn lại',
                                             style: TextStyle(
                                                 fontSize: 10,
-                                                color: Colors.white70)),
+                                                color: p.tongHocPhiAllConLai > 0
+                                                    ? const Color.fromARGB(
+                                                        255, 251, 111, 111)
+                                                    : Colors.white70)),
                                         const SizedBox(height: 4),
                                         Text(_fmt(p.tongHocPhiAllConLai, f),
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w700,
-                                                color: Colors.white,
+                                                color: p.tongHocPhiAllConLai > 0
+                                                    ? const Color.fromARGB(
+                                                        255, 255, 41, 83)
+                                                    : Colors.white,
                                                 height: 1.2)),
                                       ]),
                                 )),
                               ]),
                             ],
                           )),
+                          if (p.tongHocPhiConLai > 0) ...[
+                            const SizedBox(height: 16),
+                            TuitionWarningCard(amount: p.tongHocPhiConLai),
+                          ],
                         ]),
                   )),
 

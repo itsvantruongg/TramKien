@@ -8,8 +8,9 @@ import '../models/models.dart';
 import '../widgets/shared_widgets.dart';
 
 class ScheduleScreen extends StatefulWidget {
-  final void Function(int)? onNavigate;
-  const ScheduleScreen({super.key, this.onNavigate});
+  final void Function(int, {DateTime? focusDate})? onNavigate;
+  final DateTime? initialDate;
+  const ScheduleScreen({super.key, this.onNavigate, this.initialDate});
   @override
   State<ScheduleScreen> createState() => _ScheduleScreenState();
 }
@@ -101,8 +102,8 @@ class _ScheduleScreenState extends State<ScheduleScreen>
             child: TabBarView(
           controller: _tabCtrl,
           children: [
-            _MonthView(p: p),
-            _WeekView(p: p),
+            _MonthView(p: p, initialDate: widget.initialDate),
+            _WeekView(p: p, initialDate: widget.initialDate),
           ],
         )),
       ]),
@@ -116,7 +117,8 @@ class _ScheduleScreenState extends State<ScheduleScreen>
 
 class _MonthView extends StatefulWidget {
   final AppProvider p;
-  const _MonthView({required this.p});
+  final DateTime? initialDate;
+  const _MonthView({required this.p, this.initialDate});
   @override
   State<_MonthView> createState() => _MonthViewState();
 }
@@ -149,10 +151,27 @@ class _MonthViewState extends State<_MonthView> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _currentPage = _dateToPage(now.year, now.month);
-    _selected = now;
+    final target = widget.initialDate ?? DateTime.now();
+    _currentPage = _dateToPage(target.year, target.month);
+    _selected = target;
     _pageCtrl = PageController(initialPage: _currentPage);
+  }
+
+  @override
+  void didUpdateWidget(covariant _MonthView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialDate != null &&
+        widget.initialDate != oldWidget.initialDate) {
+      _selected = widget.initialDate!;
+      final newPage = _dateToPage(_selected.year, _selected.month);
+      if (newPage != _currentPage) {
+        _currentPage = newPage;
+        if (_pageCtrl.hasClients) {
+          _pageCtrl.jumpToPage(_currentPage);
+        }
+      }
+      setState(() {});
+    }
   }
 
   @override
@@ -851,7 +870,8 @@ class _MonthEventTile extends StatelessWidget {
 
 class _WeekView extends StatefulWidget {
   final AppProvider p;
-  const _WeekView({required this.p});
+  final DateTime? initialDate;
+  const _WeekView({required this.p, this.initialDate});
   @override
   State<_WeekView> createState() => _WeekViewState();
 }
@@ -879,11 +899,29 @@ class _WeekViewState extends State<_WeekView> {
   @override
   void initState() {
     super.initState();
-    final now = DateTime.now();
-    _selectedDay = now;
-    final monday = _getMondayOfWeek(now);
+    final target = widget.initialDate ?? DateTime.now();
+    _selectedDay = target;
+    final monday = _getMondayOfWeek(target);
     _currentPage = monday.difference(_baseMonday).inDays ~/ 7;
     _pageCtrl = PageController(initialPage: _currentPage);
+  }
+
+  @override
+  void didUpdateWidget(covariant _WeekView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialDate != null &&
+        widget.initialDate != oldWidget.initialDate) {
+      _selectedDay = widget.initialDate!;
+      final monday = _getMondayOfWeek(_selectedDay);
+      final newPage = monday.difference(_baseMonday).inDays ~/ 7;
+      if (newPage != _currentPage) {
+        _currentPage = newPage;
+        if (_pageCtrl.hasClients) {
+          _pageCtrl.jumpToPage(_currentPage);
+        }
+      }
+      setState(() {});
+    }
   }
 
   @override
