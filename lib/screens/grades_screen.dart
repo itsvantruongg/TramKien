@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../models/models.dart';
 import '../widgets/shared_widgets.dart';
+import '../widgets/help_sheets.dart';
 
 class GradesScreen extends StatefulWidget {
   final void Function(int)? onNavigate;
@@ -106,22 +107,41 @@ class _GradesScreenState extends State<GradesScreen> {
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-                child: Row(
-                  children: [
-                    const Text('Hiển thị theo:',
-                        style: TextStyle(
-                            fontSize: 13, color: AppTheme.onSurfaceVariant)),
-                    const SizedBox(width: 12),
-                    _ScaleToggle(
-                      value: _showHe10,
-                      swipeOffset:
-                          _swipeOffset, // 3. TRUYỀN OFFSET VÀO THANH CHỌN
-                      onChanged: (v) => setState(() => _showHe10 = v),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Flexible(
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text('Hiển thị theo:',
+                                    style: TextStyle(
+                                        fontSize: 13,
+                                        color: AppTheme.onSurfaceVariant)),
+                                const SizedBox(width: 12),
+                                _ScaleToggle(
+                                  value: _showHe10,
+                                  swipeOffset: _swipeOffset,
+                                  onChanged: (v) => setState(() => _showHe10 = v),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          HelpButton(
+                            onTap: () {
+                              showHelpDialog(
+                                context: context,
+                                title: 'Hướng dẫn Điểm học tập',
+                                child: const GradeHelpSheet(),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-              ),
-            ),
+                  ),
             // ── GPA Hero ──────────────────────────────────────────
             // SliverToBoxAdapter(
             //   child: Padding(
@@ -278,9 +298,6 @@ class _GradesScreenState extends State<GradesScreen> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
                   child: Row(children: [
-                    const Icon(Icons.school_outlined,
-                        size: 16, color: AppTheme.primary),
-                    const SizedBox(width: 8),
                     // Dropdown chọn kỳ
                     Expanded(
                       child: _SemesterSelector(
@@ -1120,6 +1137,10 @@ class _DiemSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final xepLoaiText = showHe10
+        ? (summary.xepLoaiHe10.isNotEmpty ? summary.xepLoaiHe10 : '—')
+        : (summary.xepLoaiHe4.isNotEmpty ? summary.xepLoaiHe4 : '—');
+
     return SurfaceCard(
       radius: 24,
       padding: const EdgeInsets.all(16),
@@ -1159,9 +1180,8 @@ class _DiemSummaryCard extends StatelessWidget {
         Row(children: [
           _SummaryItem(
             label: showHe10 ? 'Xếp loại (Hệ 10)' : 'Xếp loại (Hệ 4)',
-            fallbackText: showHe10
-                ? (summary.xepLoaiHe10.isNotEmpty ? summary.xepLoaiHe10 : '—')
-                : (summary.xepLoaiHe4.isNotEmpty ? summary.xepLoaiHe4 : '—'),
+            fallbackText: xepLoaiText,
+            textColor: _xepLoaiColor(xepLoaiText),
             highlight: true,
           ),
           _SummaryItem(
@@ -1192,6 +1212,17 @@ class _DiemSummaryCard extends StatelessWidget {
       ]),
     );
   }
+
+  Color _xepLoaiColor(String text) {
+    final clean = text.trim().toLowerCase();
+    if (clean.contains('xuất sắc')) return const Color(0xFF6A1B9A);
+    if (clean.contains('giỏi')) return const Color(0xFF1B5E20);
+    if (clean.contains('khá')) return AppTheme.primary;
+    if (clean.contains('trung bình')) return const Color(0xFFF57C00);
+    if (clean.contains('yếu')) return const Color(0xFFE65100);
+    if (clean.contains('kém')) return AppTheme.error;
+    return AppTheme.onSurface;
+  }
 }
 
 class _SummaryItem extends StatelessWidget {
@@ -1200,6 +1231,7 @@ class _SummaryItem extends StatelessWidget {
   final String fallbackText;
   final bool highlight;
   final int fractionDigits;
+  final Color? textColor;
 
   const _SummaryItem({
     required this.label,
@@ -1207,10 +1239,14 @@ class _SummaryItem extends StatelessWidget {
     this.fallbackText = '—',
     this.highlight = false,
     this.fractionDigits = 2,
+    this.textColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveColor =
+        textColor ?? (highlight ? AppTheme.primary : AppTheme.onSurface);
+
     return Expanded(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1233,7 +1269,7 @@ class _SummaryItem extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: highlight ? AppTheme.primary : AppTheme.onSurface,
+                color: effectiveColor,
               ),
             )
           else
@@ -1242,7 +1278,7 @@ class _SummaryItem extends StatelessWidget {
               style: TextStyle(
                 fontSize: 15,
                 fontWeight: FontWeight.w700,
-                color: highlight ? AppTheme.primary : AppTheme.onSurface,
+                color: effectiveColor,
               ),
             ),
         ],

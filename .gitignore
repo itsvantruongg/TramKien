@@ -76,4 +76,3 @@ temp_output.txt
 #db
 *.db
 *.sql
-*.py

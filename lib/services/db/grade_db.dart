@@ -91,31 +91,51 @@ class GradeDb {
           'attempt': raw['attempt'] ?? 1,
         };
 
+        final existing = await txn.query(
+          'student_grades',
+          columns: [
+            'status',
+            'is_overview',
+            'component_score',
+            'exam_score',
+            'raw_component_score',
+            'raw_exam_score'
+          ],
+          where:
+              'mssv = ? AND course_code = ? AND nam_hoc = ? AND hoc_ky = ?',
+          whereArgs: [
+            resolvedMssv,
+            item['course_code'],
+            resolvedNamHoc,
+            resolvedHocKy,
+          ],
+        );
+
+        if (existing.isNotEmpty) {
+          final oldRow = existing.first;
+          // 1. Nếu DB đang là 'completed' (đã vote) → giữ 'completed'
+          if (oldRow['status'] == 'completed' &&
+              resolvedStatus == 'pending_vote') {
+            item['status'] = 'completed';
+          }
+          // 2. [B3] Không hạ cấp data chi tiết (is_overview = 0) bởi overview (is_overview = 1)
+          final oldIsOverview = (oldRow['is_overview'] as int?) ?? 0;
+          final newIsOverview = (item['is_overview'] as int?) ?? 0;
+          if (oldIsOverview == 0 && newIsOverview == 1) {
+            item['is_overview'] = 0;
+            item['component_score'] ??= oldRow['component_score'];
+            item['exam_score'] ??= oldRow['exam_score'];
+            item['raw_component_score'] ??= oldRow['raw_component_score'];
+            item['raw_exam_score'] ??= oldRow['raw_exam_score'];
+          }
+        }
+
         if (isPendingVote) {
           // Môn cần vote: IGNORE để không đè lên bản ghi đã vote
           await txn.insert('student_grades', item,
               conflictAlgorithm: ConflictAlgorithm.ignore);
         } else {
           // Môn đã có điểm: REPLACE để lấy dữ liệu mới nhất
-          // Nhưng phải giữ nguyên status 'completed' nếu đã vote
-          final existing = await txn.query(
-            'student_grades',
-            columns: ['status'],
-            where:
-                'mssv = ? AND course_code = ? AND nam_hoc = ? AND hoc_ky = ?',
-            whereArgs: [
-              resolvedMssv,
-              item['course_code'],
-              resolvedNamHoc,
-              resolvedHocKy,
-            ],
-          );
-          // Nếu DB đang là 'completed' (đã vote) → giữ 'completed'
-          if (existing.isNotEmpty &&
-              existing.first['status'] == 'completed' &&
-              resolvedStatus == 'pending_vote') {
-            item['status'] = 'completed';
-          }
           await txn.insert('student_grades', item,
               conflictAlgorithm: ConflictAlgorithm.replace);
         }

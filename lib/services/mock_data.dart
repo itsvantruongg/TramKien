@@ -21,6 +21,7 @@ class MockData {
         lastUpdated: DateTime.now(),
       );
 
+  // ─── DEMO SET A (mặc định — baseline 4 môn) ────────────────────────────
   static List<LichHoc> getLichHoc() {
     final now = DateTime.now();
     // Start of current week (Monday)
@@ -87,6 +88,73 @@ class MockData {
         namHoc: '2024-2025',
         dotHoc: 1,
         chuyenNganh: 'CNTT',
+      ),
+    ];
+  }
+
+  // ─── DEMO SET B (test B10: bỏ "Tiếng Anh P3", thêm "Hệ điều hành") ───────
+  static List<LichHoc> getLichHocSetB() {
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final sunday = monday.add(const Duration(days: 6));
+    final thoiGianStr =
+        '${monday.day.toString().padLeft(2, '0')}/${monday.month.toString().padLeft(2, '0')}/${monday.year}'
+        '-${sunday.day.toString().padLeft(2, '0')}/${sunday.month.toString().padLeft(2, '0')}/${sunday.year}';
+    return [
+      LichHoc(
+        tenHocPhan: 'Lập trình Flutter',
+        soTinChi: 3, tenLopTinChi: 'FLUTTER_K21', thoiGian: thoiGianStr,
+        thu: 'Thứ 2', tiet: '1-3', phong: 'I.801', giaoVien: 'Lê Văn A',
+        hocKy: 2, namHoc: '2024-2025', dotHoc: 1, chuyenNganh: 'CNTT',
+      ),
+      LichHoc(
+        tenHocPhan: 'Kiến trúc máy tính',
+        soTinChi: 3, tenLopTinChi: 'KTMT_K21', thoiGian: thoiGianStr,
+        thu: 'Thứ 4', tiet: '4-6', phong: 'H.605', giaoVien: 'Trần Thị B',
+        hocKy: 2, namHoc: '2024-2025', dotHoc: 1, chuyenNganh: 'CNTT',
+      ),
+      LichHoc(
+        tenHocPhan: 'Trí tuệ nhân tạo',
+        soTinChi: 3, tenLopTinChi: 'AI_K21', thoiGian: thoiGianStr,
+        thu: 'Thứ 6', tiet: '7-9', phong: 'M.907', giaoVien: 'Nguyễn Văn C',
+        hocKy: 2, namHoc: '2024-2025', dotHoc: 1, chuyenNganh: 'CNTT',
+      ),
+      // ↓ Môn MỚI thêm vào (thay thế "Tiếng Anh P3" từ set A)
+      LichHoc(
+        tenHocPhan: 'Hệ điều hành',
+        soTinChi: 3, tenLopTinChi: 'OS_K21', thoiGian: thoiGianStr,
+        thu: 'Thứ 3', tiet: '1-3', phong: 'G.301', giaoVien: 'Hoàng Văn E',
+        hocKy: 2, namHoc: '2024-2025', dotHoc: 1, chuyenNganh: 'CNTT',
+      ),
+    ];
+  }
+
+  static List<LichThi> getLichThiSetB() {
+    final now = DateTime.now();
+    String formatDate(DateTime d) =>
+        '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+    return [
+      LichThi(
+        tenMonHoc: 'Lập trình Flutter', soTinChi: 3,
+        ngayThi: formatDate(now.add(const Duration(days: 1))),
+        caThi: 'Sáng', gioBatDau: '07:30', gioKetThuc: '09:30',
+        sooBaoDanh: '105', phong: 'I.801', hinhThucThi: 'Thực hành',
+        hocKy: 2, namHoc: '2024-2025',
+      ),
+      LichThi(
+        tenMonHoc: 'Kiến trúc máy tính', soTinChi: 3,
+        ngayThi: formatDate(now.add(const Duration(days: 7))),
+        caThi: 'Chiều', gioBatDau: '13:00', gioKetThuc: '15:00',
+        sooBaoDanh: '082', phong: 'H.605', hinhThucThi: 'Thi viết',
+        hocKy: 2, namHoc: '2024-2025',
+      ),
+      // ↓ Môn thi MỚI (Hệ điều hành thay Trí tuệ nhân tạo)
+      LichThi(
+        tenMonHoc: 'Hệ điều hành', soTinChi: 3,
+        ngayThi: formatDate(now.add(const Duration(days: 14))),
+        caThi: 'Sáng', gioBatDau: '09:00', gioKetThuc: '11:00',
+        sooBaoDanh: '077', phong: 'G.301', hinhThucThi: 'Thi viết',
+        hocKy: 2, namHoc: '2024-2025',
       ),
     ];
   }

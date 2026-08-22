@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/models.dart';
 import '../hau_api_service.dart';
 import '../database_service.dart';
@@ -161,7 +162,9 @@ class ScheduleApi {
     String? mssv,
   }) async {
     if (HauApiService.currentMssv == 'admin' && MockData.isEnabled) {
-      return (items: MockData.getLichHoc(), complete: true);
+      final prefs = await SharedPreferences.getInstance();
+      final useSetB = prefs.getBool('debug_demo_set_b') ?? false;
+      return (items: useSetB ? MockData.getLichHocSetB() : MockData.getLichHoc(), complete: true);
     }
 
     // 8 đợt × 2 ngành = 16 request chạy qua ConcurrencyPool(3)
@@ -257,7 +260,9 @@ class ScheduleApi {
     String? mssv,
   }) async {
     if (HauApiService.currentMssv == 'admin' && MockData.isEnabled) {
-      return (items: MockData.getLichHoc(), complete: true);
+      final prefs = await SharedPreferences.getInstance();
+      final useSetB = prefs.getBool('debug_demo_set_b') ?? false;
+      return (items: useSetB ? MockData.getLichHocSetB() : MockData.getLichHoc(), complete: true);
     }
 
     final startYear =
@@ -490,7 +495,9 @@ class ScheduleApi {
     String? mssv,
   }) async {
     if (HauApiService.currentMssv == 'admin' && MockData.isEnabled) {
-      return (items: MockData.getLichThi(), complete: true);
+      final prefs = await SharedPreferences.getInstance();
+      final useSetB = prefs.getBool('debug_demo_set_b') ?? false;
+      return (items: useSetB ? MockData.getLichThiSetB() : MockData.getLichThi(), complete: true);
     }
 
     final startYear =

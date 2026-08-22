@@ -15,10 +15,12 @@ import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 
 import '../providers/app_provider.dart';
 import '../services/database_service.dart';
+import '../services/background_sync_service.dart';
 import '../models/models.dart';
 
 class DebugSyncScreen extends StatefulWidget {
@@ -32,9 +34,18 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
   final List<String> _log = [];
   bool _running = false;
   String? _exportPath;
+  bool _useDemoSetB = false;
 
   final Map<String, int> _parserCounts = {};
   final Map<String, int> _dbCounts = {};
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((p) {
+      if (mounted) setState(() => _useDemoSetB = p.getBool('debug_demo_set_b') ?? false);
+    });
+  }
 
   void _emit(String line) {
     debugPrint('[DebugSync] $line');
@@ -169,6 +180,85 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
       _emit('❌ Sync 02 error: $e');
     } finally {
       if (mounted) setState(() => _running = false);
+    }
+  }
+
+  Future<void> _triggerBgTask() async {
+    _emit('▶ Registering One-off Background Task (BackgroundSyncService.runOnce())...');
+    try {
+      await BackgroundSyncService.runOnce();
+      _emit('✅ One-off task registered successfully!');
+      _emit('👉 Task ID registered as: tramkien_periodic_sync_once');
+      _emit('🚀 Android WorkManager will execute callbackDispatcher shortly!');
+    } catch (e) {
+      _emit('❌ Error registering background task: $e');
+    }
+  }
+
+  // ─── Việc 3: Fault inject giả lập mất mạng giữa Future.wait ─────────────
+  Future<void> _triggerFaultInject() async {
+    assert(kDebugMode, '_triggerFaultInject only available in debug mode');
+    _emit('');
+    _emit('⚡ [FAULT-INJECT] Bắt đầu sync + inject SocketException sau 300ms...');
+    _emit('   (Mục tiêu: xác nhận data cũ trong DB được giữ nguyên khi mạng mất giữa chừng)');
+    try {
+      await BackgroundSyncService.runOnceFaultInject(delayMs: 300);
+      _emit('✅ [FAULT-INJECT] Session hoàn tất. Xem log ở trên.');
+    } catch (e) {
+      _emit('❌ [FAULT-INJECT] Lỗi: $e');
+    }
+  }
+
+  // ─── Việc 4: Test B4 mutex — 2 lần sync đồng thời ───────────────────────
+  Future<void> _triggerMutexTest() async {
+    assert(kDebugMode, '_triggerMutexTest only available in debug mode');
+    _emit('');
+    _emit('⚡ [MUTEX-TEST] Firing 2 sync calls concurrently (<300ms gap)...');
+    _emit('   (Mục tiêu: 1 lần chạy, 1 lần bị mutex chặn → thấy log "bỏ qua")');
+    try {
+      await BackgroundSyncService.runOnceConcurrent();
+      _emit('✅ [MUTEX-TEST] Kết thúc. Xem log ở trên để xác nhận mutex hoạt động.');
+    } catch (e) {
+      _emit('❌ [MUTEX-TEST] Lỗi: $e');
+    }
+  }
+
+  // ─── Việc 2: Đổi demo set A ↔ B (test B10) ───────────────────────────────
+  Future<void> _switchDemoSet() async {
+    assert(kDebugMode, '_switchDemoSet only available in debug mode');
+    final prefs = await SharedPreferences.getInstance();
+    final next = !_useDemoSetB;
+    await prefs.setBool('debug_demo_set_b', next);
+    setState(() => _useDemoSetB = next);
+    final setLabel = next ? 'SET B (3 môn cũ + Hệ điều hành)' : 'SET A (baseline 4 môn)';
+    _emit('🔄 Đã đổi sang $setLabel');
+    _emit('▶ Đang trigger sync với bộ data mới...');
+    await _triggerBgTask();
+  }
+
+  // ─── Việc 3: Giả lập version cũ (test B2 reconcile) ─────────────────────
+  Future<void> _simulateOldVersion() async {
+    assert(kDebugMode, '_simulateOldVersion only available in debug mode');
+    try {
+      final d = await DatabaseService.db;
+      final oldVersion = '0.0.1';
+      final updated = await d.rawUpdate(
+        "UPDATE lich_hoc SET fetched_app_version = ? WHERE is_manual = 0",
+        [oldVersion],
+      );
+      final updatedThi = await d.rawUpdate(
+        "UPDATE lich_thi SET fetched_app_version = ? WHERE is_manual = 0",
+        [oldVersion],
+      );
+      _emit('✅ Đã set fetched_app_version = "$oldVersion" cho:');
+      _emit('   lich_hoc: $updated records');
+      _emit('   lich_thi: $updatedThi records');
+      _emit('');
+      _emit('⚠️  BẮT BUỘC: Kill app hoàn toàn (không chỉ hot reload),');
+      _emit('   rồi mở lại để trigger B2 reconcile trong app_provider.dart init().');
+      _emit('   Reconcile KHÔNG chạy trong background sync — chỉ chạy khi app khởi động.');
+    } catch (e) {
+      _emit('❌ Lỗi khi giả lập version cũ: $e');
     }
   }
 
@@ -444,35 +534,133 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
           Container(
             color: const Color(0xFF161B22),
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-            child: Row(
+            child: Column(
               children: [
-                Expanded(
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _running ? null : _runSync,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1F6FEB),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.sync, size: 14),
+                        label: const Text('Sync #1 + SQL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: (_running || _exportPath == null) ? null : _runSync02,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF238636),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        icon: const Icon(Icons.compare_arrows, size: 14),
+                        label: const Text('Sync #2 (Inc)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed: _running ? null : _runSync,
+                    onPressed: _running ? null : _triggerBgTask,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1F6FEB),
+                      backgroundColor: Colors.deepOrangeAccent,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                     ),
-                    icon: const Icon(Icons.sync, size: 16),
-                    label: const Text('Sync #1 + Export SQL', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                    icon: const Icon(Icons.bolt, size: 16),
+                    label: const Text('⚡ Trigger BG Task (BackgroundSyncService.runOnce)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   ),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: ElevatedButton.icon(
-                    onPressed: (_running || _exportPath == null) ? null : _runSync02,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF238636),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                // ─── DEBUG ONLY: chỉ xuất hiện trong kDebugMode ─────────────
+                if (kDebugMode) ...[
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _running ? null : _switchDemoSet,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _useDemoSetB
+                            ? const Color(0xFF9B59B6)
+                            : const Color(0xFF2D6A4F),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: Icon(_useDemoSetB ? Icons.swap_horiz : Icons.compare, size: 15),
+                      label: Text(
+                        _useDemoSetB
+                            ? '🟣 Đang dùng SET B — Bấm về SET A (baseline)'
+                            : '🟢 Đang dùng SET A — Bấm sang SET B (test B10)',
+                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                      ),
                     ),
-                    icon: const Icon(Icons.compare_arrows, size: 16),
-                    label: const Text('Sync #2 (Incremental)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
                   ),
-                ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _running ? null : _simulateOldVersion,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7B2D00),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.history, size: 15),
+                      label: const Text(
+                        '🕰 Giả lập version cũ (test B2 reconcile)',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _running ? null : _triggerFaultInject,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF5C2D91),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.flash_off, size: 15),
+                      label: const Text(
+                        '🔌 Mô phỏng mất mạng giữa sync (Fault Inject)',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: _running ? null : _triggerMutexTest,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF004D40),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                      icon: const Icon(Icons.layers, size: 15),
+                      label: const Text(
+                        '🔐 Test B4 Mutex — 2 sync đồng thời',
+                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

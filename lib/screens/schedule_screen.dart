@@ -36,17 +36,17 @@ class _ScheduleScreenState extends State<ScheduleScreen>
   Widget build(BuildContext context) {
     final p = context.watch<AppProvider>();
     return Scaffold(
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 80),
-        child: FloatingActionButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const ScheduleManageScreen()),
-          ),
-          backgroundColor: AppTheme.primary,
-          child: const Icon(Icons.add, color: Colors.white),
-        ),
-      ),
+      // floatingActionButton: Padding(
+      //   padding: const EdgeInsets.only(bottom: 80),
+      //   child: FloatingActionButton(
+      //     onPressed: () => Navigator.push(
+      //       context,
+      //       MaterialPageRoute(builder: (_) => const ScheduleManageScreen()),
+      //     ),
+      //     backgroundColor: AppTheme.primary,
+      //     child: const Icon(Icons.add, color: Colors.white),
+      //   ),
+      // ),
       body: Column(children: [
         AcademicAppBar(
           subtitle: 'LỊCH HỌC & THI',
@@ -1353,7 +1353,7 @@ class _DayList extends StatelessWidget {
       // Header ngày
       final label = DateFormat('EEEE, dd/MM', 'vi_VN').format(day);
       final dayLabel = label[0].toUpperCase() + label.substring(1);
-      final isSelected = _isSameDay(day, selectedDay);
+      final isToday = _isSameDay(day, DateTime.now());
 
       items.add(Padding(
         padding: const EdgeInsets.only(top: 16, bottom: 8),
@@ -1361,12 +1361,12 @@ class _DayList extends StatelessWidget {
           Text(
             dayLabel,
             style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: isSelected ? AppTheme.primary : AppTheme.outline,
+                  color: isToday ? AppTheme.primary : AppTheme.outline,
                   letterSpacing: 1,
-                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                 ),
           ),
-          if (isSelected) ...[
+          if (isToday) ...[
             const SizedBox(width: 8),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -1438,13 +1438,14 @@ class _ScheduleCardFull extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppTheme.primary.withOpacity(0.08),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: AppTheme.outlineVariant, width: 1),
               ),
               child: Text(lichHoc.gioHocFull,
                   style: const TextStyle(
                       fontSize: 11,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w600,
                       color: AppTheme.primary)),
             ),
           ]),

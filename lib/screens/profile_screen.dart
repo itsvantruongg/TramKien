@@ -50,16 +50,16 @@ class ProfileScreen extends StatelessWidget {
                                 .textTheme
                                 .titleMedium
                                 ?.copyWith(color: AppTheme.primary)),
-                        const SizedBox(height: 8),
-                        Row(children: [
-                          const StatusChip(label: 'ĐANG HỌC'),
-                          const SizedBox(width: 8),
-                          if (s?.chuyenNganh.isNotEmpty == true)
-                            StatusChip(
+                        if (s?.chuyenNganh.isNotEmpty == true) ...[
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: StatusChip(
                               label: s!.chuyenNganh.toUpperCase(),
                               color: AppTheme.secondary,
                             ),
-                        ]),
+                          ),
+                        ],
                         const SizedBox(height: 16),
 
                         // Settings list
@@ -108,22 +108,22 @@ class ProfileScreen extends StatelessWidget {
                               textColor: AppTheme.error,
                             ),
                             // ── DEBUG ONLY (hidden in release) ──────
-                            // if (kDebugMode) ...[
-                            //   const Divider(
-                            //       height: 1,
-                            //       color: AppTheme.surfaceContainerHigh),
-                            //   _Item(
-                            //     Icons.data_object,
-                            //     '[DEBUG] DB Verification & SQL Export',
-                            //     () => Navigator.push(
-                            //       context,
-                            //       MaterialPageRoute(
-                            //           builder: (_) =>
-                            //               const DebugSyncScreen())),
-                            //     iconColor: Colors.orange,
-                            //     textColor: Colors.orange,
-                            //   ),
-                            // ],
+                            if (kDebugMode) ...[
+                              const Divider(
+                                  height: 1,
+                                  color: AppTheme.surfaceContainerHigh),
+                              _Item(
+                                Icons.data_object,
+                                '[DEBUG] DB Verification & SQL Export',
+                                () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const DebugSyncScreen())),
+                                iconColor: Colors.orange,
+                                textColor: Colors.orange,
+                              ),
+                            ],
                           ]),
                         ),
 
@@ -131,7 +131,7 @@ class ProfileScreen extends StatelessWidget {
                         Center(
                             child: Column(
                           children: [
-                            Text('VERSION 1.0.5',
+                            Text('VERSION 1.0.6',
                                 style: Theme.of(context)
                                     .textTheme
                                     .labelSmall
@@ -413,16 +413,16 @@ class StudentInfoScreen extends StatelessWidget {
                                       ?.copyWith(
                                           color: AppTheme.primary,
                                           fontWeight: FontWeight.w600)),
-                              const SizedBox(height: 8),
-                              Row(children: [
-                                const StatusChip(label: 'ĐANG HỌC'),
-                                const SizedBox(width: 6),
-                                if (s?.gioiTinh.isNotEmpty == true)
-                                  StatusChip(
-                                    label: s!.gioiTinh.toUpperCase(),
-                                    color: AppTheme.secondary,
-                                  ),
-                              ]),
+                               if (s?.gioiTinh.isNotEmpty == true) ...[
+                                 const SizedBox(height: 8),
+                                 Align(
+                                   alignment: Alignment.centerLeft,
+                                   child: StatusChip(
+                                     label: s!.gioiTinh.toUpperCase(),
+                                     color: AppTheme.secondary,
+                                   ),
+                                 ),
+                               ],
                             ])),
                       ])),
                       const SizedBox(height: 12),

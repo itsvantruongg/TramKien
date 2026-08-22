@@ -9,6 +9,14 @@ class FinanceDb {
       List<Map<String, dynamic>> list) async {
     final d = await DatabaseService.db;
     await d.transaction((txn) async {
+      final scopes = list
+          .map((e) => (namHoc: e['nam_hoc']?.toString() ?? '', hocKy: (e['hoc_ky'] as int?) ?? 1))
+          .where((s) => s.namHoc.isNotEmpty)
+          .toSet();
+      for (final s in scopes) {
+        await txn.delete('payment_receipts',
+            where: 'nam_hoc = ? AND hoc_ky = ?', whereArgs: [s.namHoc, s.hocKy]);
+      }
       for (final item in list) {
         await txn.insert('payment_receipts', item,
             conflictAlgorithm: ConflictAlgorithm.replace);
@@ -48,45 +56,35 @@ class FinanceDb {
   static Future<void> saveFeeDetails(List<Map<String, dynamic>> list) async {
     final d = await DatabaseService.db;
     await d.transaction((txn) async {
-      // KHÔNG xóa - chỉ insert-or-ignore để giữ data cũ
-      print(
-          '💾 [DB] Saving ${list.length} fee_details records (append-not-overwrite mode)');
-
-      int inserted = 0, skipped = 0;
-      for (final raw in list) {
-        // Check if record already exists by: so_phieu + ten_hoc_phan
-        final existing = await txn.query('fee_details',
-            where:
-                'so_phieu = ? AND ten_hoc_phan = ? AND nam_hoc = ? AND hoc_ky = ?',
-            whereArgs: [
-              raw['so_phieu'],
-              raw['ten_hoc_phan'],
-              raw['nam_hoc'],
-              raw['hoc_ky']
-            ],
-            limit: 1);
-
-        if (existing.isEmpty) {
-          await txn.insert(
-              'fee_details',
-              {
-                'so_phieu': raw['so_phieu'],
-                'ten_hoc_phan': raw['ten_hoc_phan'],
-                'so_tien_phai_nop': raw['so_tien_phai_nop'],
-                'so_tien_da_nop': raw['so_tien_da_nop'],
-                'so_tien_thua_thieu': raw['so_tien_thua_thieu'],
-                'trang_thai': raw['trang_thai'],
-                'nam_hoc': raw['nam_hoc'],
-                'hoc_ky': raw['hoc_ky'],
-                'ngay_nop': raw['ngay_nop'],
-              },
-              conflictAlgorithm: ConflictAlgorithm.ignore);
-          inserted++;
-        } else {
-          skipped++;
-        }
+      print('💾 [DB] Saving ${list.length} fee_details records with scope replace');
+      final scopes = list
+          .map((e) => (namHoc: e['nam_hoc']?.toString() ?? '', hocKy: (e['hoc_ky'] as int?) ?? 1))
+          .where((s) => s.namHoc.isNotEmpty)
+          .toSet();
+      for (final s in scopes) {
+        await txn.delete('fee_details',
+            where: 'nam_hoc = ? AND hoc_ky = ?', whereArgs: [s.namHoc, s.hocKy]);
       }
-      print('💾 [DB] Saved: inserted=$inserted, skipped=$skipped');
+
+      int inserted = 0;
+      for (final raw in list) {
+        await txn.insert(
+            'fee_details',
+            {
+              'so_phieu': raw['so_phieu'],
+              'ten_hoc_phan': raw['ten_hoc_phan'],
+              'so_tien_phai_nop': raw['so_tien_phai_nop'],
+              'so_tien_da_nop': raw['so_tien_da_nop'],
+              'so_tien_thua_thieu': raw['so_tien_thua_thieu'],
+              'trang_thai': raw['trang_thai'],
+              'nam_hoc': raw['nam_hoc'],
+              'hoc_ky': raw['hoc_ky'],
+              'ngay_nop': raw['ngay_nop'],
+            },
+            conflictAlgorithm: ConflictAlgorithm.replace);
+        inserted++;
+      }
+      print('💾 [DB] Saved fee_details: inserted=$inserted');
     });
   }
 

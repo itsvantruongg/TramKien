@@ -3,69 +3,83 @@ import '../../models/models.dart';
 import '../database_service.dart';
 
 class ScheduleDb {
+  /// Kiểm tra xem có bản ghi SQLite nào mang fetched_app_version khác với phiên bản hiện tại (hoặc NULL) hay không. (B2)
+  static Future<bool> needsReconcile(String currentAppVersion, {Database? db}) async {
+    try {
+      final d = db ?? await DatabaseService.db;
+      final lichHocRows = await d.query(
+        'lich_hoc',
+        columns: ['fetched_app_version'],
+        where: 'is_manual = 0 AND (fetched_app_version IS NULL OR fetched_app_version != ?)',
+        whereArgs: [currentAppVersion],
+        limit: 1,
+      );
+      if (lichHocRows.isNotEmpty) return true;
+
+      final lichThiRows = await d.query(
+        'lich_thi',
+        columns: ['fetched_app_version'],
+        where: 'is_manual = 0 AND (fetched_app_version IS NULL OR fetched_app_version != ?)',
+        whereArgs: [currentAppVersion],
+        limit: 1,
+      );
+      return lichThiRows.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ── LỊCH HỌC ─────────────────────────────
 
-  static Future<void> saveLichHoc(List<LichHoc> list,
-      {int? hocKy, String? namHoc}) async {
-    final d = await DatabaseService.db;
+  static Future<void> saveLichHoc(
+    List<LichHoc> list, {
+    int? hocKy,
+    String? namHoc,
+    List<({int hocKy, String namHoc, int dotHoc})>? scopesToClear,
+    bool clearScope = true,
+    Database? db,
+  }) async {
+    final d = db ?? await DatabaseService.db;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final appVersion = DatabaseService.currentAppVersion;
+
     await d.transaction((txn) async {
-      // KHÔNG xóa - chỉ insert-or-ignore để giữ data cũ
-      // Chỉ xóa nếu có dòng NEW (khác về thời gian, phòng, etc.) với cùng course
-      print(
-          '💾 [DB] Saving ${list.length} lich hoc records (append-not-overwrite mode)');
-
-      int inserted = 0, updated = 0, skipped = 0;
-      for (final item in list) {
-        // Check existing record by full composite key including thu and tiet (fixing multi-day data loss BUG-02)
-        final existing = await txn.query('lich_hoc',
-            where:
-                'ten_hoc_phan = ? AND ten_lop_tin_chi = ? AND thoi_gian = ? AND thu = ? AND tiet = ? AND hoc_ky = ? AND nam_hoc = ? AND dot_hoc = ? AND chuyen_nganh = ?',
-            whereArgs: [
-              item.tenHocPhan,
-              item.tenLopTinChi,
-              item.thoiGian,
-              item.thu,
-              item.tiet,
-              item.hocKy,
-              item.namHoc,
-              item.dotHoc,
-              item.chuyenNganh,
-            ],
-            limit: 1);
-
-        if (existing.isEmpty) {
-          // New record - insert
-          await txn.insert('lich_hoc', item.toMap(),
-              conflictAlgorithm: ConflictAlgorithm.ignore);
-          inserted++;
-        } else {
-          // Update room or teacher if changed on server for existing record (if not manual entry)
-          final row = existing.first;
-          final isManual = (row['is_manual'] as int?) ?? 0;
-          if (isManual == 0) {
-            final oldPhong = row['phong'] as String? ?? '';
-            final oldGv = row['giao_vien'] as String? ?? '';
-            if (oldPhong != item.phong || oldGv != item.giaoVien) {
-              await txn.update(
-                'lich_hoc',
-                {
-                  'phong': item.phong,
-                  'giao_vien': item.giaoVien,
-                  'last_updated': DateTime.now().toIso8601String(),
-                },
-                where: 'id = ?',
-                whereArgs: [row['id']],
-              );
-              updated++;
-            } else {
-              skipped++;
-            }
-          } else {
-            skipped++;
+      if (clearScope) {
+        final scopes = <({int hocKy, String namHoc, int dotHoc})>{};
+        if (scopesToClear != null) {
+          scopes.addAll(scopesToClear);
+        }
+        for (final item in list) {
+          scopes.add((hocKy: item.hocKy, namHoc: item.namHoc, dotHoc: item.dotHoc));
+        }
+        if (hocKy != null && namHoc != null && scopes.isEmpty) {
+          for (int dot = 1; dot <= 8; dot++) {
+            scopes.add((hocKy: hocKy, namHoc: namHoc, dotHoc: dot));
           }
         }
+
+        int deletedCount = 0;
+        for (final s in scopes) {
+          final count = await txn.delete(
+            'lich_hoc',
+            where: 'hoc_ky = ? AND nam_hoc = ? AND dot_hoc = ? AND is_manual = 0',
+            whereArgs: [s.hocKy, s.namHoc, s.dotHoc],
+          );
+          deletedCount += count;
+        }
+        print('🗑️ [DB] diff-delete lich_hoc: $deletedCount records cũ (is_manual=0) đã bị xóa ở ${scopes.length} scopes');
       }
-      print('💾 [DB] Saved: inserted=$inserted, updated=$updated, skipped=$skipped');
+
+      int inserted = 0;
+      for (final item in list) {
+        final map = item.toMap();
+        map['fetched_app_version'] = appVersion;
+        map['synced_at'] = nowMs;
+        await txn.insert('lich_hoc', map,
+            conflictAlgorithm: ConflictAlgorithm.replace);
+        inserted++;
+      }
+      print('💾 [DB] saveLichHoc: inserted=$inserted records mới');
     });
   }
 
@@ -127,38 +141,53 @@ class ScheduleDb {
 
   // ── LỊCH THI ─────────────────────────────
 
-  static Future<void> saveLichThi(List<LichThi> list,
-      {int? hocKy, String? namHoc}) async {
-    final d = await DatabaseService.db;
+  static Future<void> saveLichThi(
+    List<LichThi> list, {
+    int? hocKy,
+    String? namHoc,
+    List<({int hocKy, String namHoc})>? scopesToClear,
+    bool clearScope = true,
+    Database? db,
+  }) async {
+    final d = db ?? await DatabaseService.db;
+    final nowMs = DateTime.now().millisecondsSinceEpoch;
+    final appVersion = DatabaseService.currentAppVersion;
+
     await d.transaction((txn) async {
-      // KHÔNG xóa - chỉ insert-or-ignore để giữ data cũ
-      print(
-          '💾 [DB] Saving ${list.length} lich thi records (append-not-overwrite mode)');
-
-      int inserted = 0, skipped = 0;
-      for (final item in list) {
-        // Check if record already exists by: ma_hoc_phan + ngay_thi + ca_thi
-        final existing = await txn.query('lich_thi',
-            where:
-                'ma_hoc_phan = ? AND ngay_thi = ? AND ca_thi = ? AND hoc_ky = ? AND nam_hoc = ?',
-            whereArgs: [
-              item.maMonHoc,
-              item.ngayThi,
-              item.caThi,
-              item.hocKy,
-              item.namHoc
-            ],
-            limit: 1);
-
-        if (existing.isEmpty) {
-          await txn.insert('lich_thi', item.toMap(),
-              conflictAlgorithm: ConflictAlgorithm.ignore);
-          inserted++;
-        } else {
-          skipped++;
+      if (clearScope) {
+        final scopes = <({int hocKy, String namHoc})>{};
+        if (scopesToClear != null) {
+          scopes.addAll(scopesToClear);
         }
+        for (final item in list) {
+          scopes.add((hocKy: item.hocKy, namHoc: item.namHoc));
+        }
+        if (hocKy != null && namHoc != null && scopes.isEmpty) {
+          scopes.add((hocKy: hocKy, namHoc: namHoc));
+        }
+
+        int deletedCount = 0;
+        for (final s in scopes) {
+          final count = await txn.delete(
+            'lich_thi',
+            where: 'hoc_ky = ? AND nam_hoc = ? AND is_manual = 0',
+            whereArgs: [s.hocKy, s.namHoc],
+          );
+          deletedCount += count;
+        }
+        print('🗑️ [DB] diff-delete lich_thi: $deletedCount records cũ (is_manual=0) đã bị xóa ở ${scopes.length} scopes');
       }
-      print('💾 [DB] Saved: inserted=$inserted, skipped=$skipped');
+
+      int inserted = 0;
+      for (final item in list) {
+        final map = item.toMap();
+        map['fetched_app_version'] = appVersion;
+        map['synced_at'] = nowMs;
+        await txn.insert('lich_thi', map,
+            conflictAlgorithm: ConflictAlgorithm.replace);
+        inserted++;
+      }
+      print('💾 [DB] saveLichThi: inserted=$inserted records mới');
     });
   }
 

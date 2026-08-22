@@ -253,14 +253,16 @@ class _MainShellState extends State<MainShell>
       padding: const EdgeInsets.fromLTRB(3, 3, 3, 3),
       decoration: BoxDecoration(
         // Tạo độ bóng 3D cho bề mặt kính bằng Gradient (thay vì dùng màu trơn)
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppTheme.surface.withOpacity(0.3), // Sáng hơn ở góc trên trái
-            AppTheme.surface.withOpacity(0.1), // Trong suốt hơn ở góc dưới phải
-          ],
-        ),
+        // gradient: LinearGradient(
+        //   begin: Alignment.topLeft,
+        //   end: Alignment.bottomRight,
+        //   colors: [
+        //     AppTheme.surface.withOpacity(0.3), // Sáng hơn ở góc trên trái
+        //     AppTheme.surface.withOpacity(0.1), // Trong suốt hơn ở góc dưới phải
+        //   ],
+        // ),
+        color: AppTheme.surface.withOpacity(
+            0.2), // Chỉnh con số 0.2 theo độ mờ bạn muốn (từ 0.0 đến 1.0)
         borderRadius: BorderRadius.circular(24),
 
         // Viền trắng mờ để tạo hiệu ứng ánh sáng đập vào mép kính

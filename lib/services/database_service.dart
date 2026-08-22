@@ -14,7 +14,8 @@ export 'db/finance_db.dart';
 
 class DatabaseService {
   static Database? _db;
-  static const _version = 15;
+  static const _version = 16;
+  static const String currentAppVersion = '1.0.6+4';
   static String _currentMssv = '';
   static String get currentMssv => _currentMssv;
   static int _currentUserId = -1;
@@ -84,8 +85,10 @@ class DatabaseService {
 
   // Sửa hàm _init(), thêm onUpgrade:
   static Future<Database> _init() async {
-    // Mỗi user có 1 file DB riêng: schedify_uid0.db (admin), schedify_uid1.db, ...
-    final uid = _currentUserId >= 0 ? _currentUserId : 0;
+    if (_currentUserId < 0) {
+      throw StateError('Cannot access DatabaseService.db when unauthenticated (_currentUserId == -1). Call DatabaseService.setMssv(mssv) first.');
+    }
+    final uid = _currentUserId;
     final path = join(await getDatabasesPath(), 'schedify_uid$uid.db');
     return openDatabase(
       path,
@@ -168,6 +171,13 @@ class DatabaseService {
           );
           print('🗑️ [Migration v15] Đã xóa các bản ghi NO_CODE_% cũ (hashCode không ổn định)');
         }
+        if (oldV < 16) {
+          await db.execute('ALTER TABLE lich_hoc ADD COLUMN fetched_app_version TEXT');
+          await db.execute('ALTER TABLE lich_hoc ADD COLUMN synced_at INTEGER');
+          await db.execute('ALTER TABLE lich_thi ADD COLUMN fetched_app_version TEXT');
+          await db.execute('ALTER TABLE lich_thi ADD COLUMN synced_at INTEGER');
+          print('📌 [Migration v16] Đã thêm cột fetched_app_version & synced_at vào lich_hoc & lich_thi');
+        }
       },
     );
   }
@@ -184,7 +194,7 @@ class DatabaseService {
       )
     ''');
 
-    // 2. Bảng Lịch học (Giữ nguyên)
+    // 2. Bảng Lịch học
     await db.execute('''
       CREATE TABLE lich_hoc (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -193,11 +203,12 @@ class DatabaseService {
         thu TEXT, tiet TEXT, phong TEXT, giao_vien TEXT,
         hoc_ky INTEGER, nam_hoc TEXT, dot_hoc INTEGER,
         chuyen_nganh TEXT, last_updated TEXT,
-        note TEXT DEFAULT "", is_manual INTEGER DEFAULT 0
+        note TEXT DEFAULT "", is_manual INTEGER DEFAULT 0,
+        fetched_app_version TEXT, synced_at INTEGER
       )
     ''');
 
-    // 3. Bảng Lịch thi (Giữ nguyên)
+    // 3. Bảng Lịch thi
     await db.execute('''
     CREATE TABLE lich_thi (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -206,7 +217,8 @@ class DatabaseService {
       lan_thi INTEGER, dot_thi INTEGER,
       so_bao_danh TEXT, phong_thi TEXT, hinh_thuc TEXT, hoan_thi TEXT,
       hoc_ky INTEGER, nam_hoc TEXT, last_updated TEXT,
-      note TEXT DEFAULT "", is_manual INTEGER DEFAULT 0
+      note TEXT DEFAULT "", is_manual INTEGER DEFAULT 0,
+      fetched_app_version TEXT, synced_at INTEGER
     )
   ''');
 

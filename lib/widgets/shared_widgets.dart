@@ -232,14 +232,20 @@ class GradientCard extends StatelessWidget {
 class StatusChip extends StatelessWidget {
   final String label;
   final Color? color;
+  final Color? backgroundColor;
 
-  const StatusChip({super.key, required this.label, this.color});
+  const StatusChip({
+    super.key,
+    required this.label,
+    this.color,
+    this.backgroundColor,
+  });
 
   @override
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: (color ?? AppTheme.primary).withOpacity(0.1),
+          color: backgroundColor ?? (color ?? AppTheme.primary).withOpacity(0.1),
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(label,
@@ -250,6 +256,76 @@ class StatusChip extends StatelessWidget {
               color: color ?? AppTheme.primary,
             )),
       );
+}
+
+enum StudentAcademicStatus {
+  dangHoc,
+  baoLuu,
+  thoiHoc,
+  daTotNghiep,
+  dinhChi,
+}
+
+extension StudentAcademicStatusExt on StudentAcademicStatus {
+  String get label {
+    switch (this) {
+      case StudentAcademicStatus.dangHoc:
+        return 'ĐANG HỌC';
+      case StudentAcademicStatus.baoLuu:
+        return 'BẢO LƯU';
+      case StudentAcademicStatus.thoiHoc:
+        return 'THÔI HỌC';
+      case StudentAcademicStatus.daTotNghiep:
+        return 'ĐÃ TỐT NGHIỆP';
+      case StudentAcademicStatus.dinhChi:
+        return 'ĐÌNH CHỈ';
+    }
+  }
+
+  Color get textColor {
+    switch (this) {
+      case StudentAcademicStatus.dangHoc:
+        return AppTheme.primary;
+      case StudentAcademicStatus.baoLuu:
+        return const Color(0xFFF9A825);
+      case StudentAcademicStatus.thoiHoc:
+        return AppTheme.error;
+      case StudentAcademicStatus.daTotNghiep:
+        return const Color(0xFF2E7D32);
+      case StudentAcademicStatus.dinhChi:
+        return const Color(0xFFE65100);
+    }
+  }
+
+  Color get backgroundColor {
+    switch (this) {
+      case StudentAcademicStatus.dangHoc:
+        return AppTheme.primary.withOpacity(0.1);
+      case StudentAcademicStatus.baoLuu:
+        return const Color(0xFFFFF9C4);
+      case StudentAcademicStatus.thoiHoc:
+        return AppTheme.error.withOpacity(0.1);
+      case StudentAcademicStatus.daTotNghiep:
+        return const Color(0xFFE8F5E9);
+      case StudentAcademicStatus.dinhChi:
+        return const Color(0xFFFFF3E0);
+    }
+  }
+}
+
+class AcademicStatusChip extends StatelessWidget {
+  final StudentAcademicStatus status;
+  const AcademicStatusChip(
+      {super.key, this.status = StudentAcademicStatus.dangHoc});
+
+  @override
+  Widget build(BuildContext context) {
+    return StatusChip(
+      label: status.label,
+      color: status.textColor,
+      backgroundColor: status.backgroundColor,
+    );
+  }
 }
 
 // ── CircularProgressWidget ────────────────────────────────────
@@ -565,14 +641,15 @@ class ExamCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: AppTheme.error.withOpacity(0.08),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: AppTheme.outlineVariant, width: 1),
               ),
               child: Text(
                 gioHienThi,
                 style: const TextStyle(
                   fontSize: 11,
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w600,
                   color: AppTheme.error,
                 ),
               ),
@@ -593,81 +670,63 @@ class ExamCard extends StatelessWidget {
         ],
         const SizedBox(height: 10),
 
-        // Hàng 1: Ngày thi + Ca thi + Phòng thi
+        // Chi tiết lịch thi (thứ tự: địa điểm -> Ca thi -> Hình thức -> Lần thi -> Đợt thi -> Số tín chỉ)
         Wrap(spacing: 16, runSpacing: 6, children: [
-          if (lichThi.ngayThi.isNotEmpty)
-            _ExamChip(Icons.calendar_today_outlined, lichThi.ngayThi),
+          if (lichThi.phong.isNotEmpty)
+            _ExamChip(Icons.location_on_outlined, lichThi.phong, isBold: true),
           if (lichThi.caThi.isNotEmpty)
             _ExamChip(Icons.wb_sunny_outlined, lichThi.caThi),
-          if (lichThi.phong.isNotEmpty)
-            _ExamChip(Icons.location_on_outlined, lichThi.phong),
-        ]),
-        const SizedBox(height: 6),
-
-        // Hàng 2: Hình thức + Lần thi + Đợt thi
-        Wrap(spacing: 16, runSpacing: 6, children: [
           if (lichThi.hinhThucThi.isNotEmpty)
             _ExamChip(Icons.edit_outlined, lichThi.hinhThucThi),
           if (lichThi.lanThi != null && lichThi.lanThi! > 0)
             _ExamChip(Icons.repeat_outlined, 'Lần ${lichThi.lanThi}'),
           if (lichThi.dotThi != null && lichThi.dotThi! > 0)
             _ExamChip(Icons.event_note_outlined, 'Đợt ${lichThi.dotThi}'),
+          if (lichThi.soTinChi > 0)
+            _ExamChip(Icons.school_outlined, '${lichThi.soTinChi} tín chỉ'),
         ]),
 
-        // Hàng 3: Số tín chỉ
-        if (lichThi.soTinChi > 0) ...[
-          const SizedBox(height: 6),
-          Wrap(spacing: 16, children: [
-            _ExamChip(Icons.school_outlined, '${lichThi.soTinChi} tín chỉ'),
-          ]),
-        ],
-        if (lichThi.gioBatDau.isNotEmpty && lichThi.gioKetThuc.isNotEmpty) ...[
-          const SizedBox(height: 6),
-          Wrap(spacing: 16, children: [
-            _ExamChip(Icons.schedule_outlined,
-                '${lichThi.gioBatDau} - ${lichThi.gioKetThuc}'),
-          ]),
-        ],
-        // Số báo danh: chỉ chữ in nghiêng
+        // Số báo danh (được làm đậm)
         if (lichThi.sooBaoDanh.isNotEmpty) ...[
           const Divider(height: 20),
           Text(
             'Báo danh: ${lichThi.sooBaoDanh}',
             style: const TextStyle(
               fontSize: 12,
+              fontWeight: FontWeight.w700,
               fontStyle: FontStyle.italic,
-              color: AppTheme.onSurfaceVariant,
+              color: AppTheme.onSurface,
             ),
           ),
-          if (lichThi.note != null && lichThi.note!.isNotEmpty) ...[
-            const Divider(height: 24),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber.withOpacity(0.2)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.lightbulb_outline_rounded,
-                      size: 14, color: Colors.orange),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      lichThi.note!,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.brown,
-                      ),
+        ],
+        if (lichThi.note != null && lichThi.note!.isNotEmpty) ...[
+          const Divider(height: 24),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.amber.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.amber.withOpacity(0.2)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lightbulb_outline_rounded,
+                    size: 14, color: Colors.orange),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    lichThi.note!,
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                      color: Colors.brown,
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ]
+          ),
+        ],
       ]),
     );
   }
@@ -676,18 +735,19 @@ class ExamCard extends StatelessWidget {
 class _ExamChip extends StatelessWidget {
   final IconData icon;
   final String label;
-  const _ExamChip(this.icon, this.label);
+  final bool isBold;
+  const _ExamChip(this.icon, this.label, {this.isBold = false});
 
   @override
   Widget build(BuildContext context) =>
       Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 13, color: AppTheme.outline),
+        Icon(icon, size: 13, color: isBold ? AppTheme.onSurface : AppTheme.outline),
         const SizedBox(width: 4),
         Text(label,
-            style: Theme.of(context)
-                .textTheme
-                .bodySmall
-                ?.copyWith(color: AppTheme.onSurfaceVariant)),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: isBold ? AppTheme.onSurface : AppTheme.onSurfaceVariant,
+                  fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
+                )),
       ]);
 }
 

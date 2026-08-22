@@ -37,9 +37,8 @@ Future<void> main() async {
     },
     onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
   );
-  // Khởi tạo và lên lịch đồng bộ nền
+  // Khởi tạo đồng bộ nền (chỉ đăng ký task định kỳ sau khi đăng nhập thành công)
   await BackgroundSyncService.initialize();
-  await BackgroundSyncService.schedulePeriodicSync();
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppProvider()..init(),
@@ -72,8 +71,17 @@ class SchedifyApp extends StatelessWidget {
           final contentWidth =
               size.width < maxContentWidth ? size.width : maxContentWidth;
 
-          // Tự động tính toán scale factor toàn cục dựa trên chiều rộng màn hình (Reference: 390px)
-          final scaleFactor = (size.width / 390).clamp(0.8, 1.1);
+          // Tính toán scale factor toàn cục dựa trên breakpoint kích thước màn hình
+          final double scaleFactor;
+          if (size.width < 360) {
+            scaleFactor = 0.85;
+          } else if (size.width < 480) {
+            scaleFactor = 1.0;
+          } else if (size.width < 600) {
+            scaleFactor = 1.08;
+          } else {
+            scaleFactor = 1.15;
+          }
 
           // Cập nhật textScaler dựa trên scaleFactor
           final clampedTextScaler = mediaQuery.textScaler.clamp(

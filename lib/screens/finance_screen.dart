@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../widgets/shared_widgets.dart';
+import '../widgets/help_sheets.dart';
 
 class FinanceScreen extends StatelessWidget {
   final void Function(int)? onNavigate;
@@ -51,25 +52,45 @@ class FinanceScreen extends StatelessWidget {
                     child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Tài chính',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .headlineSmall
-                                  ?.copyWith(fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 4),
-                          Text('HK${p.currentHocKy} · ${p.namHocLabel}',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .labelSmall
-                                  ?.copyWith(
-                                      color: AppTheme.outline,
-                                      letterSpacing: 1.5)),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Tài chính',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .headlineSmall
+                                          ?.copyWith(fontWeight: FontWeight.w800)),
+                                  const SizedBox(height: 4),
+                                  Text('HK${p.currentHocKy} · ${p.namHocLabel}',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                              color: AppTheme.outline,
+                                              letterSpacing: 1.5)),
+                                ],
+                              ),
+                              HelpButton(
+                                onTap: () {
+                                  showHelpDialog(
+                                    context: context,
+                                    title: 'Hướng dẫn Tài chính',
+                                    child: const FinanceHelpSheet(),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 16),
                           GradientCard(
                               child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text('TỔNG HỌC PHÍ ĐÃ NỘP',
+                              const Text('TỔNG ĐÃ THANH TOÁN',
                                   style: TextStyle(
                                       fontSize: 10,
                                       color: Colors.white70,
@@ -117,7 +138,7 @@ class FinanceScreen extends StatelessWidget {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text('Phải nộp',
+                                        const Text('Tổng học phí',
                                             style: TextStyle(
                                                 fontSize: 10,
                                                 color: Colors.white70)),
@@ -142,12 +163,11 @@ class FinanceScreen extends StatelessWidget {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        Text('Còn lại',
+                                        Text('Còn phải nộp',
                                             style: TextStyle(
                                                 fontSize: 10,
                                                 color: p.tongHocPhiAllConLai > 0
-                                                    ? const Color.fromARGB(
-                                                        255, 251, 111, 111)
+                                                    ? const Color(0xFFFFB74D)
                                                     : Colors.white70)),
                                         const SizedBox(height: 4),
                                         Text(_fmt(p.tongHocPhiAllConLai, f),
@@ -155,8 +175,7 @@ class FinanceScreen extends StatelessWidget {
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w700,
                                                 color: p.tongHocPhiAllConLai > 0
-                                                    ? const Color.fromARGB(
-                                                        255, 255, 41, 83)
+                                                    ? const Color(0xFFFFAB40)
                                                     : Colors.white,
                                                 height: 1.2)),
                                       ]),

@@ -95,7 +95,7 @@ class DashboardScreen extends StatelessWidget {
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text('ĐIỂM HIỆN TẠI',
+                                          Text('GPA TÍCH LŨY',
                                               style: GoogleFonts.inter(
                                                 fontSize: 10,
                                                 letterSpacing: 1.5,
@@ -303,19 +303,19 @@ class DashboardScreen extends StatelessWidget {
                           const SizedBox(height: 12),
                           Row(children: [
                             Expanded(
-                              child: _FinStat('Phải nộp',
+                              child: _FinStat('Tổng học phí',
                                   _fmt(p.tongHocPhiAllPhaiDong), Colors.white),
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: _FinStat(
-                                'Còn lại',
+                                'Còn phải nộp',
                                 _fmt(p.tongHocPhiAllConLai),
                                 p.tongHocPhiAllConLai > 0
-                                    ? const Color(0xFFFF6B6B)
+                                    ? const Color(0xFFFFAB40)
                                     : Colors.white.withOpacity(0.8),
                                 labelColor: p.tongHocPhiAllConLai > 0
-                                    ? const Color(0xFFFF8A80)
+                                    ? const Color(0xFFFFB74D)
                                     : null,
                               ),
                             ),

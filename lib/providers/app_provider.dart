@@ -100,9 +100,19 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
           // Login nền để lấy session mới
           final error = await HauApiService.login(mssv, pw);
           if (error == null) {
-            // Force refresh khi cold start: luôn fetch API bất kể TTL cache
-            // để đảm bảo data luôn mới nhất ngay khi user mở app
-            await syncAll(forceRefresh: true);
+            // [B2 Reconcile] Kiểm tra trực tiếp fetched_app_version trong các bản ghi SQLite
+            final currentVer = DatabaseService.currentAppVersion;
+            final bool needsDbReconcile = await ScheduleDb.needsReconcile(currentVer);
+            final lastReconciledVer = prefs.getString('last_reconciled_app_version');
+            final bool needsReconcile = needsDbReconcile || (lastReconciledVer != currentVer);
+            if (needsReconcile) {
+              debugPrint('🔄 [Reconcile] Phát hiện bản ghi DB có fetched_app_version != $currentVer (hoặc NULL) → Ép sync full & diff-delete');
+            }
+            await syncAll(forceRefresh: needsReconcile);
+            await prefs.setString('last_reconciled_app_version', currentVer);
+
+            // [B5] Chỉ đăng ký periodic sync sau khi đăng nhập thành công
+            await BackgroundSyncService.schedulePeriodicSync();
           }
           // Nếu login thất bại do mất mạng, vẫn giữ cached data
           return;
@@ -237,7 +247,11 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   }
 
   Future<void> syncAll({bool forceRefresh = false}) async {
-    if (_isSyncing) return;
+    final acquired = await SyncMutex.acquireLock(_currentMssv);
+    if (_isSyncing || BackgroundSyncService.isSyncing || !acquired) {
+      debugPrint('⚙️ [AppProvider] Sync bị hoãn do sync/BG sync đang chạy (Mutex active)');
+      return;
+    }
     _isSyncing = true;
 
     try {
@@ -281,6 +295,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       debugPrint('⚠️ syncAll error: $e');
     } finally {
       _isSyncing = false;
+      await SyncMutex.releaseLock(_currentMssv);
       _lastSyncTime = DateTime.now(); // Cập nhật thời điểm sync xong
       await refreshUnreadCount();
       notifyListeners(); // Đảm bảo icon quay sẽ dừng

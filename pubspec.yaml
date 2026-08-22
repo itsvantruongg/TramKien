@@ -1,7 +1,7 @@
 name: Tram_Kien
 description: Cổng thông tin sinh viên HAU
 publish_to: 'none'
-version: 1.0.5+3
+version: 1.0.6+4
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
@@ -13,6 +13,7 @@ dependencies:
   # UI
   google_fonts: ^6.1.0
   material_symbols_icons: ^4.2719.1
+  flutter_math_fork: ^0.7.2
 
   # HTTP & parsing
   http: ^1.1.0
@@ -47,6 +48,7 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.13.1
+  sqflite_common_ffi: ^2.3.4+4
 
 flutter:
   uses-material-design: true
