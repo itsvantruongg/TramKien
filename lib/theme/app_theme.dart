@@ -41,44 +41,57 @@ class AppTheme {
     colors: [primary, primaryContainer],
   );
 
-  // ── Typography: Manrope (headline) + Inter (body) ──
+  // ── Typography: 10 Bậc chuẩn (Manrope cho Headlines/Display, Inter cho Body/Label) ──
   static TextTheme _buildTextTheme(double scale) => TextTheme(
-        displayLarge: GoogleFonts.manrope(
-            fontSize: 57 * scale, fontWeight: FontWeight.w800),
+        // 48px: Hero number (GPA, số liệu chính)
         displayMedium: GoogleFonts.manrope(
-            fontSize: 45 * scale, fontWeight: FontWeight.w800),
+            fontSize: 48 * scale, fontWeight: FontWeight.w800),
+        displayLarge: GoogleFonts.manrope(
+            fontSize: 48 * scale, fontWeight: FontWeight.w800),
         displaySmall: GoogleFonts.manrope(
-            fontSize: 36 * scale, fontWeight: FontWeight.w700),
+            fontSize: 32 * scale, fontWeight: FontWeight.w700),
+        // 32px: Số tiền / GPA card vừa
         headlineLarge: GoogleFonts.manrope(
             fontSize: 32 * scale, fontWeight: FontWeight.w700),
+        // 28px: Tiêu đề màn hình chính, thống kê tổng
         headlineMedium: GoogleFonts.manrope(
             fontSize: 28 * scale, fontWeight: FontWeight.w700),
+        // 24px: Tiêu đề section quan trọng
         headlineSmall: GoogleFonts.manrope(
             fontSize: 24 * scale, fontWeight: FontWeight.w700),
+        // 22px: AppBar title lớn, card title quan trọng
         titleLarge: GoogleFonts.manrope(
             fontSize: 22 * scale, fontWeight: FontWeight.w600),
+        // 16px: Tên môn học, tiêu đề card vừa
         titleMedium: GoogleFonts.inter(
             fontSize: 16 * scale,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.15),
+        // 14px: Tên item, body text chính
         titleSmall: GoogleFonts.inter(
             fontSize: 14 * scale,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.1),
+        // 16px: Body text lớn
         bodyLarge: GoogleFonts.inter(
             fontSize: 16 * scale, fontWeight: FontWeight.w400),
+        // 14px: Body text vừa
         bodyMedium: GoogleFonts.inter(
             fontSize: 14 * scale, fontWeight: FontWeight.w400),
+        // 12px: Chú thích phụ, chip info, sub-score
         bodySmall: GoogleFonts.inter(
             fontSize: 12 * scale, fontWeight: FontWeight.w400),
+        // 14px: Button label
         labelLarge: GoogleFonts.inter(
             fontSize: 14 * scale,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.1),
+        // 12px: Label medium, tab bar
         labelMedium: GoogleFonts.inter(
             fontSize: 12 * scale,
             fontWeight: FontWeight.w500,
             letterSpacing: 0.5),
+        // 10px: Label in hoa, subtitle AppBar, badge nhỏ
         labelSmall: GoogleFonts.inter(
             fontSize: 10 * scale,
             fontWeight: FontWeight.w700,
@@ -178,4 +191,12 @@ class AppTheme {
       ),
     );
   }
+}
+
+extension AppTextThemeExtension on TextTheme {
+  /// Token 18px Manrope w700 cho AppBar branding title, KPI số vừa
+  TextStyle get titleBrand => GoogleFonts.manrope(
+        fontSize: 18,
+        fontWeight: FontWeight.w700,
+      );
 }

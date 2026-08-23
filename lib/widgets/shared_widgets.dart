@@ -65,13 +65,14 @@ class AcademicAppBar extends StatelessWidget implements PreferredSizeWidget {
                         'Đại học Kiến trúc Hà Nội',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontSize: 18,
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleBrand
+                            .copyWith(
                               color: AppTheme.primary,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.5,
-                              height:
-                                  1.2, // Tăng nhẹ từ 1.1 lên 1.2 để chữ thoáng hơn
+                              height: 1.2,
                             ),
                       ),
                       if (subtitle != null) ...[
@@ -84,7 +85,7 @@ class AcademicAppBar extends StatelessWidget implements PreferredSizeWidget {
                               Theme.of(context).textTheme.labelSmall?.copyWith(
                                     color: AppTheme.outline,
                                     letterSpacing: 1.2,
-                                    height: 1.2, // Tăng nhẹ từ 1.0 lên 1.2
+                                    height: 1.2,
                                   ),
                         ),
                       ],
@@ -141,11 +142,11 @@ class NotificationBell extends StatelessWidget {
               child: Center(
                 child: Text(
                   p.unreadNotifCount > 9 ? '9+' : '${p.unreadNotifCount}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 9,
-                    fontWeight: FontWeight.w800,
-                  ),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0,
+                      ),
                 ),
               ),
             ),
@@ -248,13 +249,12 @@ class StatusChip extends StatelessWidget {
           color: backgroundColor ?? (color ?? AppTheme.primary).withOpacity(0.1),
           borderRadius: BorderRadius.circular(999),
         ),
-        child: Text(label,
-            style: TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.5,
-              color: color ?? AppTheme.primary,
-            )),
+        child: Text(
+          label,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: color ?? AppTheme.primary,
+              ),
+        ),
       );
 }
 
@@ -411,9 +411,13 @@ class GradeBadge extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
         ),
         alignment: Alignment.center,
-        child: Text(grade,
-            style: TextStyle(
-                fontSize: 14, fontWeight: FontWeight.w800, color: _color)),
+        child: Text(
+          grade,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: _color,
+              ),
+        ),
       );
 }
 
@@ -449,11 +453,13 @@ class SectionHeader extends StatelessWidget {
                   child: Padding(
                     padding:
                         const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    child: Text(action!,
-                        style: const TextStyle(
-                            fontSize: 12,
+                    child: Text(
+                      action!,
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: AppTheme.primary,
-                            fontWeight: FontWeight.w700)),
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
                   ),
                 ),
               ),
@@ -537,9 +543,12 @@ class CountdownBadge extends StatelessWidget {
         color: color.withOpacity(0.1),
         borderRadius: BorderRadius.circular(999),
       ),
-      child: Text(label,
-          style: TextStyle(
-              fontSize: 11, fontWeight: FontWeight.w700, color: color)),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+              color: color,
+            ),
+      ),
     );
   }
 }
@@ -562,7 +571,7 @@ class ScheduleCard extends StatelessWidget {
               const Icon(Icons.schedule_outlined,
                   size: 14, color: AppTheme.outline),
               const SizedBox(width: 4),
-              Text(lichHoc.gioHoc,
+              Text(lichHoc.gioHocFull,
                   style: Theme.of(context)
                       .textTheme
                       .labelMedium
@@ -600,11 +609,10 @@ class ScheduleCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       lichHoc.note!,
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.brown,
-                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: Colors.brown,
+                          ),
                     ),
                   ),
                 ],
@@ -638,22 +646,17 @@ class ExamCard extends StatelessWidget {
         Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
           const StatusChip(label: 'LỊCH THI', color: AppTheme.error),
           if (gioHienThi.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: AppTheme.outlineVariant, width: 1),
-              ),
-              child: Text(
+            Row(children: [
+              const Icon(Icons.schedule_outlined,
+                  size: 14, color: AppTheme.outline),
+              const SizedBox(width: 4),
+              Text(
                 gioHienThi,
-                style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.error,
-                ),
+                style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: AppTheme.onSurfaceVariant,
+                    ),
               ),
-            ),
+            ]),
         ]),
         const SizedBox(height: 10),
 
@@ -664,9 +667,12 @@ class ExamCard extends StatelessWidget {
                 ?.copyWith(fontWeight: FontWeight.w700)),
         if (lichThi.maMonHoc.isNotEmpty) ...[
           const SizedBox(height: 2),
-          Text('Mã: ${lichThi.maMonHoc}',
-              style: const TextStyle(
-                  fontSize: 12, color: AppTheme.onSurfaceVariant)),
+          Text(
+            'Mã: ${lichThi.maMonHoc}',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: AppTheme.onSurfaceVariant,
+                ),
+          ),
         ],
         const SizedBox(height: 10),
 
@@ -691,12 +697,11 @@ class ExamCard extends StatelessWidget {
           const Divider(height: 20),
           Text(
             'Báo danh: ${lichThi.sooBaoDanh}',
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              fontStyle: FontStyle.italic,
-              color: AppTheme.onSurface,
-            ),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  fontStyle: FontStyle.italic,
+                  color: AppTheme.onSurface,
+                ),
           ),
         ],
         if (lichThi.note != null && lichThi.note!.isNotEmpty) ...[
@@ -716,11 +721,10 @@ class ExamCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     lichThi.note!,
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontStyle: FontStyle.italic,
-                      color: Colors.brown,
-                    ),
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          fontStyle: FontStyle.italic,
+                          color: Colors.brown,
+                        ),
                   ),
                 ),
               ],
@@ -849,21 +853,19 @@ class TuitionWarningCard extends StatelessWidget {
                 size: 18,
               ),
               const SizedBox(width: 6),
-              const Text(
+              Text(
                 'Học phí chưa nộp: ',
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: redDark,
-                ),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: redDark,
+                    ),
               ),
               Text(
                 '${f.format(amount)} VNĐ',
-                style: GoogleFonts.manrope(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: redDarker,
-                ),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: redDarker,
+                    ),
               ),
             ],
           ),
@@ -875,14 +877,13 @@ class TuitionWarningCard extends StatelessWidget {
               color: Color(0xFFFECACA),
             ),
           ),
-          const Text(
+          Text(
             'Vui lòng thanh toán sớm để tránh ảnh hưởng đến việc đăng ký học phần kỳ tới.',
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w400,
-              color: redDark,
-              height: 1.35,
-            ),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  fontWeight: FontWeight.w400,
+                  color: redDark,
+                  height: 1.35,
+                ),
           ),
         ],
       ),

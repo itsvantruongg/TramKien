@@ -277,22 +277,34 @@ class _KyBadge extends StatelessWidget {
   final String ky;
   const _KyBadge({required this.ky});
   @override
-  Widget build(BuildContext context) => Row(children: [
-        Container(
-          margin: const EdgeInsets.only(left: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppTheme.primaryFixed,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
-          ),
-          child: Text('Kỳ thứ $ky',
-              style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.primary)),
+  Widget build(BuildContext context) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          children: [
+            Icon(
+              Icons.event_outlined,
+              size: 16,
+              color: AppTheme.onSurface.withOpacity(0.7),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Kỳ thứ $ky',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: AppTheme.onSurface.withOpacity(0.8),
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Container(
+                height: 1,
+                color: AppTheme.outline.withOpacity(0.2),
+              ),
+            ),
+          ],
         ),
-      ]);
+      );
 }
 
 class _CourseCard extends StatelessWidget {

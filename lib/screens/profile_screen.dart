@@ -590,7 +590,6 @@ class _Row extends StatelessWidget {
                       .textTheme
                       .bodyMedium
                       ?.copyWith(fontWeight: FontWeight.w600, height: 1.3),
-                  maxLines: 3, // Cho phép hiện 3 dòng
                   softWrap: true,
                 ),
               ])),

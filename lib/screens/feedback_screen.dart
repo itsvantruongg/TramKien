@@ -263,7 +263,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                       icon: Icons.edit_note_outlined,
                       hint:
                           'Mô tả chi tiết ý kiến, lỗi hoặc đề xuất của bạn...',
-                      maxLines: 5,
+                      minLines: 3,
+                      maxLines: 8,
                       maxLength: 500,
                       validator: (v) => (v?.trim().isEmpty ?? true)
                           ? 'Vui lòng nhập nội dung'
@@ -304,7 +305,7 @@ class _Field extends StatelessWidget {
   final TextEditingController controller;
   final String label, hint;
   final IconData icon;
-  final int? maxLines, maxLength;
+  final int? minLines, maxLines, maxLength;
   final TextInputType? keyboardType;
   final String? Function(String?)? validator;
   const _Field({
@@ -312,6 +313,7 @@ class _Field extends StatelessWidget {
     required this.label,
     required this.icon,
     required this.hint,
+    this.minLines,
     this.maxLines = 1,
     this.maxLength,
     this.keyboardType,
@@ -334,6 +336,7 @@ class _Field extends StatelessWidget {
       const SizedBox(height: 6),
       TextFormField(
         controller: controller,
+        minLines: minLines,
         maxLines: maxLines,
         maxLength: maxLength,
         keyboardType: keyboardType,

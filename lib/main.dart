@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'providers/app_provider.dart';
 import 'screens/login_screen.dart';
@@ -21,30 +23,38 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: AppTheme.surface,
+    statusBarIconBrightness: Brightness.dark,
+    statusBarBrightness: Brightness.light,
+  ));
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
   await initializeDateFormatting('vi_VN', null);
-  
-  await LocalNotificationService.init(
-    onDidReceiveNotificationResponse: (response) {
-      if (navigatorKey.currentState != null) {
-        navigatorKey.currentState!.push(
-          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-        );
-      }
-    },
-    onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
-  );
-  // Khởi tạo đồng bộ nền (chỉ đăng ký task định kỳ sau khi đăng nhập thành công)
-  await BackgroundSyncService.initialize();
+
   runApp(
     ChangeNotifierProvider(
-      create: (_) => AppProvider()..init(),
+      create: (_) => AppProvider(),
       child: const SchedifyApp(),
     ),
   );
+
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(LocalNotificationService.init(
+      onDidReceiveNotificationResponse: (response) {
+        if (navigatorKey.currentState != null) {
+          navigatorKey.currentState!.push(
+            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+          );
+        }
+      },
+      onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
+    ));
+    unawaited(BackgroundSyncService.initialize());
+  });
 }
 
 class SchedifyApp extends StatelessWidget {
@@ -73,7 +83,9 @@ class SchedifyApp extends StatelessWidget {
 
           // Tính toán scale factor toàn cục dựa trên breakpoint kích thước màn hình
           final double scaleFactor;
-          if (size.width < 360) {
+          if (size.width <= 0) {
+            scaleFactor = 1.0;
+          } else if (size.width < 360) {
             scaleFactor = 0.85;
           } else if (size.width < 480) {
             scaleFactor = 1.0;
@@ -120,48 +132,80 @@ class AppRouter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final p = context.watch<AppProvider>();
-    return switch (p.authState) {
-      AuthState.unknown => const _SplashScreen(),
-      AuthState.loggedOut => const LoginScreen(),
-      AuthState.loggedIn => const MainShell(),
+    final child = switch (p.authState) {
+      AuthState.unknown => const _SplashScreen(key: ValueKey('splash')),
+      AuthState.loggedOut => const LoginScreen(key: ValueKey('login')),
+      AuthState.loggedIn => const MainShell(key: ValueKey('main')),
     };
+
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 350),
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      child: child,
+    );
   }
 }
 
 class _SplashScreen extends StatelessWidget {
-  const _SplashScreen();
+  const _SplashScreen({super.key});
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: AppTheme.surface,
+        backgroundColor: Colors.white,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                width: 80,
-                height: 80,
+                width: 88,
+                height: 88,
                 decoration: BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
                   borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.school, color: Colors.white, size: 40),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: Image.asset(
+                    'assets/logo.png',
+                    width: 88,
+                    height: 88,
+                    fit: BoxFit.cover,
+                  ),
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
               Text(
                 'Trạm Kiến',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      color: AppTheme.primary,
-                      fontWeight: FontWeight.w800,
-                    ),
+                style: GoogleFonts.manrope(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF1E3B59),
+                  letterSpacing: -0.5,
+                ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 6),
+              Text(
+                'Trợ Lý Học Tập HAU',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF1E3B59).withOpacity(0.7),
+                ),
+              ),
+              const SizedBox(height: 40),
               const SizedBox(
-                width: 32,
-                height: 32,
+                width: 28,
+                height: 28,
                 child: CircularProgressIndicator(
                   strokeWidth: 3,
-                  color: AppTheme.primary,
+                  color: Color(0xFF1E3B59),
                 ),
               ),
             ],

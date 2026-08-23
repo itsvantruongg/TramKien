@@ -591,20 +591,17 @@ class BackgroundSyncService {
   /// Flag kiểm tra task đồng bộ có đang chạy hay không (B4 Mutex)
   static bool get isSyncing => _isSyncing;
 
+  static bool _isWorkmanagerInitialized = false;
+
   static void _setSyncing(bool value) {
     _isSyncing = value;
   }
 
-  /// Khởi tạo — gọi một lần trong main().
+  /// Khởi tạo nhẹ — gọi một lần sau runApp().
   static Future<void> initialize() async {
     try {
-      if (Platform.isAndroid) {
-        await wm.Workmanager().initialize(
-          callbackDispatcher,
-          isInDebugMode: false,
-        );
-      } else if (Platform.isIOS) {
-        // Đăng ký headless task handler cho trường hợp app bị kill
+      if (Platform.isIOS) {
+        // Đăng ký headless task handler cho trường hợp app bị kill trên iOS
         bf.BackgroundFetch.registerHeadlessTask(backgroundFetchHeadlessTask);
       }
     } catch (e) {
@@ -612,48 +609,77 @@ class BackgroundSyncService {
     }
   }
 
+  /// Đảm bảo Workmanager Android được khởi tạo (chỉ gọi khi user đăng nhập/cần dùng)
+  static Future<void> ensureWorkmanagerInitialized() async {
+    if (Platform.isAndroid && !_isWorkmanagerInitialized) {
+      try {
+        await wm.Workmanager().initialize(
+          callbackDispatcher,
+          isInDebugMode: false,
+        );
+        _isWorkmanagerInitialized = true;
+        debugPrint('✅ [Android BG] Workmanager initialized');
+      } catch (e) {
+        debugPrint('❌ BackgroundSyncService Workmanager Init Error: $e');
+      }
+    }
+  }
+
   /// Đăng ký sync định kỳ sau khi đăng nhập.
-  static Future<void> schedulePeriodicSync() async {
-    if (Platform.isAndroid) {
-      await wm.Workmanager().registerPeriodicTask(
-        kBgSyncTaskUniqueName,
-        kBgSyncTaskName,
-        frequency: const Duration(hours: 6),
-        constraints: wm.Constraints(
-          networkType: wm.NetworkType.connected,
-          requiresBatteryNotLow: true,
-        ),
-        existingWorkPolicy: wm.ExistingPeriodicWorkPolicy.replace,
-        backoffPolicy: wm.BackoffPolicy.linear,
-        backoffPolicyDelay: const Duration(minutes: 30),
-      );
-      debugPrint('✅ [Android BG] Đã đăng ký periodic sync (mỗi 6 tiếng)');
-    } else if (Platform.isIOS) {
-      // B9 Note: Giữ cả cấu hình constraint iOS (`requiredNetworkType: NetworkType.ANY`)
-      // và kiểm tra thủ công `_checkNetwork()` trong `_runSyncLogic()` nhằm đảm bảo tính tương thích
-      // giữa cơ chế lập lịch của iOS BackgroundFetch và kiểm tra HTTP động trước khi gọi API.
-      await bf.BackgroundFetch.configure(
-        bf.BackgroundFetchConfig(
-          minimumFetchInterval: 360, // phút (6 tiếng = 360 phút)
-          stopOnTerminate: false, // tiếp tục chạy kể cả khi app bị kill
-          enableHeadless: true, // bắt buộc để headless task hoạt động
-          startOnBoot: true,
-          requiredNetworkType: bf.NetworkType.ANY,
-          requiresBatteryNotLow: true,
-        ),
-        // Callback khi app đang foreground/background
-        (taskId) async {
-          debugPrint('⚙️ [iOS BG] Fetch event: $taskId');
-          await _runSyncLogic();
-          bf.BackgroundFetch.finish(taskId);
-        },
-        // Callback timeout
-        (taskId) async {
-          debugPrint('⚙️ [iOS BG] TIMEOUT: $taskId');
-          bf.BackgroundFetch.finish(taskId);
-        },
-      );
-      debugPrint('✅ [iOS BG] Đã cấu hình background_fetch (mỗi 6 tiếng)');
+  static Future<void> schedulePeriodicSync({bool force = false}) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final mssv = prefs.getString('saved_mssv') ?? '';
+      final key = 'bg_sync_scheduled_$mssv';
+
+      if (!force && prefs.getBool(key) == true) {
+        debugPrint('ℹ️ [BG] Periodic sync đã được đăng ký trước đó, bỏ qua re-init Workmanager');
+        return;
+      }
+
+      if (Platform.isAndroid) {
+        await ensureWorkmanagerInitialized();
+        await wm.Workmanager().registerPeriodicTask(
+          kBgSyncTaskUniqueName,
+          kBgSyncTaskName,
+          frequency: const Duration(hours: 6),
+          constraints: wm.Constraints(
+            networkType: wm.NetworkType.connected,
+            requiresBatteryNotLow: true,
+          ),
+          existingWorkPolicy: wm.ExistingPeriodicWorkPolicy.keep,
+          backoffPolicy: wm.BackoffPolicy.linear,
+          backoffPolicyDelay: const Duration(minutes: 30),
+        );
+        await prefs.setBool(key, true);
+        debugPrint('✅ [Android BG] Đã đăng ký periodic sync (mỗi 6 tiếng)');
+      } else if (Platform.isIOS) {
+        await bf.BackgroundFetch.configure(
+          bf.BackgroundFetchConfig(
+            minimumFetchInterval: 360, // phút (6 tiếng = 360 phút)
+            stopOnTerminate: false, // tiếp tục chạy kể cả khi app bị kill
+            enableHeadless: true, // bắt buộc để headless task hoạt động
+            startOnBoot: true,
+            requiredNetworkType: bf.NetworkType.ANY,
+            requiresBatteryNotLow: true,
+          ),
+          // Callback khi app đang foreground/background
+          (taskId) async {
+            debugPrint('⚙️ [iOS BG] Fetch event: $taskId');
+            await _runSyncLogic();
+            bf.BackgroundFetch.finish(taskId);
+          },
+          // Callback timeout
+          (taskId) async {
+            debugPrint('⚙️ [iOS BG] TIMEOUT: $taskId');
+            bf.BackgroundFetch.finish(taskId);
+          },
+        );
+        await prefs.setBool(key, true);
+        debugPrint('✅ [iOS BG] Đã cấu hình background_fetch (mỗi 6 tiếng)');
+      }
+    } catch (e) {
+      debugPrint('❌ schedulePeriodicSync error: $e');
     }
   }
 
@@ -683,18 +709,29 @@ class BackgroundSyncService {
 
   /// Hủy background task — gọi khi đăng xuất.
   static Future<void> cancelAll() async {
-    if (Platform.isAndroid) {
-      await wm.Workmanager().cancelAll();
-      debugPrint('🛑 [Android BG] Đã hủy tất cả background task');
-    } else if (Platform.isIOS) {
-      await bf.BackgroundFetch.stop();
-      debugPrint('🛑 [iOS BG] Đã dừng background_fetch');
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final mssv = prefs.getString('saved_mssv') ?? '';
+      if (mssv.isNotEmpty) {
+        await prefs.remove('bg_sync_scheduled_$mssv');
+      }
+      if (Platform.isAndroid) {
+        await ensureWorkmanagerInitialized();
+        await wm.Workmanager().cancelAll();
+        debugPrint('🛑 [Android BG] Đã hủy tất cả background task');
+      } else if (Platform.isIOS) {
+        await bf.BackgroundFetch.stop();
+        debugPrint('🛑 [iOS BG] Đã dừng background_fetch');
+      }
+    } catch (e) {
+      debugPrint('❌ cancelAll error: $e');
     }
   }
 
   /// Chạy thử ngay lập tức — dùng để debug.
   static Future<void> runOnce() async {
     if (Platform.isAndroid) {
+      await ensureWorkmanagerInitialized();
       await wm.Workmanager().registerOneOffTask(
         '${kBgSyncTaskUniqueName}_once',
         kBgSyncTaskName,

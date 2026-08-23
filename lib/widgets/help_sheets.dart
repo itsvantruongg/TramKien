@@ -120,12 +120,14 @@ class FinanceHelpSheet extends StatelessWidget {
         children: [
           // Section: Cách nộp học phí
           _buildSectionCard(
+            context: context,
             title: 'Cách nộp học phí',
             icon: Icons.account_balance_outlined,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildPaymentSubBlock(
+                  context: context,
                   number: '①',
                   title: 'Có tài khoản BIDV:',
                   content:
@@ -133,6 +135,7 @@ class FinanceHelpSheet extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 _buildPaymentSubBlock(
+                  context: context,
                   number: '②',
                   title: 'Có tài khoản ngân hàng khác:',
                   content:
@@ -159,30 +162,30 @@ class FinanceHelpSheet extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Row(
+                Row(
                   children: [
-                    Icon(Icons.warning_amber_rounded,
+                    const Icon(Icons.warning_amber_rounded,
                         color: Color(0xFFF57F17), size: 20),
-                    SizedBox(width: 8),
+                    const SizedBox(width: 8),
                     Text(
                       'Lưu ý quan trọng',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Color(0xFFF57F17),
-                      ),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFFF57F17),
+                          ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 10),
                 _buildBulletItem(
-                    'Lưu lại thông tin chuyển khoản để đối chiếu khi cần.'),
+                    context, 'Lưu lại thông tin chuyển khoản để đối chiếu khi cần.'),
                 const SizedBox(height: 6),
                 _buildBulletItem(
+                    context,
                     'Hóa đơn điện tử tự động gửi về email đã khai tại tinchi.hau.edu.vn → Sinh viên → Thông tin cá nhân → Hồ sơ cá nhân.'),
                 const SizedBox(height: 6),
                 _buildBulletItem(
-                    'Thời hạn nộp học phí theo thông báo đầu mỗi học kỳ.'),
+                    context, 'Thời hạn nộp học phí theo thông báo đầu mỗi học kỳ.'),
               ],
             ),
           ),
@@ -192,6 +195,7 @@ class FinanceHelpSheet extends StatelessWidget {
   }
 
   Widget _buildSectionCard({
+    required BuildContext context,
     required String title,
     required IconData icon,
     required Widget child,
@@ -212,11 +216,10 @@ class FinanceHelpSheet extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                  color: AppTheme.onSurface,
-                ),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.onSurface,
+                    ),
               ),
             ],
           ),
@@ -228,6 +231,7 @@ class FinanceHelpSheet extends StatelessWidget {
   }
 
   Widget _buildPaymentSubBlock({
+    required BuildContext context,
     required String number,
     required String title,
     required String content,
@@ -246,37 +250,34 @@ class FinanceHelpSheet extends StatelessWidget {
             children: [
               Text(
                 number,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primary,
-                ),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primary,
+                    ),
               ),
               const SizedBox(width: 6),
               Text(
                 title,
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                ),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             content,
-            style: const TextStyle(
-              fontSize: 12.5,
-              height: 1.4,
-              color: AppTheme.onSurfaceVariant,
-            ),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  height: 1.4,
+                  color: AppTheme.onSurfaceVariant,
+                ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildBulletItem(String text) {
+  Widget _buildBulletItem(BuildContext context, String text) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -286,11 +287,10 @@ class FinanceHelpSheet extends StatelessWidget {
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
-              fontSize: 12.5,
-              height: 1.35,
-              color: Colors.black87,
-            ),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  height: 1.35,
+                  color: Colors.black87,
+                ),
           ),
         ),
       ],

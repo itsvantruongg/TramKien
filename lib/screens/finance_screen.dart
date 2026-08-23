@@ -275,8 +275,7 @@ class FinanceScreen extends StatelessWidget {
                                               .bodySmall
                                               ?.copyWith(
                                                   color:
-                                                      AppTheme.onSurfaceVariant,
-                                                  fontSize: 10)),
+                                                      AppTheme.onSurfaceVariant)),
                                     ])),
                                 Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,

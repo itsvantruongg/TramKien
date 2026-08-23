@@ -703,8 +703,8 @@ class _MonthGrid extends StatelessWidget {
 
         return GestureDetector(
           onTap: () => onSelect(date),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
+            alignment: Alignment.center,
             children: [
               AnimatedContainer(
                 duration: const Duration(milliseconds: 150),
@@ -736,22 +736,34 @@ class _MonthGrid extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 2),
-              Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                if (cls)
-                  Container(
-                      width: 5,
-                      height: 5,
-                      margin: const EdgeInsets.only(right: 2),
-                      decoration: BoxDecoration(
-                          color: AppTheme.primary, shape: BoxShape.circle)),
-                if (exam)
-                  Container(
-                      width: 5,
-                      height: 5,
-                      decoration: BoxDecoration(
-                          color: AppTheme.error, shape: BoxShape.circle)),
-              ]),
+              if (cls || exam)
+                Positioned(
+                  bottom: 2,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (cls)
+                        Container(
+                          width: 5,
+                          height: 5,
+                          margin: EdgeInsets.only(right: exam ? 2 : 0),
+                          decoration: const BoxDecoration(
+                            color: AppTheme.primary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      if (exam)
+                        Container(
+                          width: 5,
+                          height: 5,
+                          decoration: const BoxDecoration(
+                            color: AppTheme.error,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
             ],
           ),
         );
@@ -1435,19 +1447,16 @@ class _ScheduleCardFull extends StatelessWidget {
           Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
             const StatusChip(label: 'LỊCH HỌC', color: AppTheme.primary),
             // Giờ bắt đầu - kết thúc
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: AppTheme.outlineVariant, width: 1),
-              ),
-              child: Text(lichHoc.gioHocFull,
-                  style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primary)),
-            ),
+            Row(children: [
+              const Icon(Icons.schedule_outlined,
+                  size: 14, color: AppTheme.outline),
+              const SizedBox(width: 4),
+              Text(lichHoc.gioHocFull,
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelMedium
+                      ?.copyWith(color: AppTheme.onSurfaceVariant)),
+            ]),
           ]),
           const SizedBox(height: 10),
           Text(lichHoc.tenHocPhan,

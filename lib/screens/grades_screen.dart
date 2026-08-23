@@ -312,14 +312,18 @@ class _GradesScreenState extends State<GradesScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppTheme.primaryFixed,
-                        borderRadius: BorderRadius.circular(99),
+                        color: Colors.transparent,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: AppTheme.outline.withOpacity(0.3),
+                          width: 1,
+                        ),
                       ),
                       child: Text('${diemHienThi.length} môn',
-                          style: const TextStyle(
-                              fontSize: 11,
-                              color: AppTheme.primary,
-                              fontWeight: FontWeight.w600)),
+                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                color: AppTheme.onSurfaceVariant,
+                                fontWeight: FontWeight.w500,
+                              )),
                     ),
                     // GPA kỳ hoặc Badge Tổng kết
                     if (currentKy == 'overview')
@@ -521,16 +525,20 @@ class _GpaLineChart extends StatelessWidget {
                 color: AppTheme.outline,
               )),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: AppTheme.primaryFixed,
-              borderRadius: BorderRadius.circular(99),
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppTheme.outline.withOpacity(0.3),
+                width: 1,
+              ),
             ),
             child: Text(isHe10 ? 'Thang 10' : 'Thang 4',
-                style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.primary)),
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: AppTheme.onSurfaceVariant,
+                      fontWeight: FontWeight.w500,
+                    )),
           ),
         ]),
         const SizedBox(height: 4),

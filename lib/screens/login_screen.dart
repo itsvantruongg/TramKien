@@ -127,243 +127,263 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
 
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Column(children: [
-                const SizedBox(height: 40),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minHeight: constraints.maxHeight - 32,
+                    ),
+                    child: IntrinsicHeight(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const SizedBox(height: 12),
 
-                // Logo
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    gradient: AppTheme.primaryGradient,
-                    borderRadius: BorderRadius.circular(24),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primary.withOpacity(0.3),
-                        blurRadius: 20,
-                        offset: const Offset(0, 8),
-                      )
-                    ],
-                  ),
-                  child:
-                      const Icon(Icons.school, color: Colors.white, size: 40),
-                ),
-                const SizedBox(height: 24),
-
-                Text('Đại học Kiến trúc Hà Nội',
-                    style: GoogleFonts.manrope(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: AppTheme.onSurface,
-                      letterSpacing: -0.5,
-                    )),
-                const SizedBox(height: 8),
-                Text('Đăng nhập bằng tài khoản trường cấp',
-                    style: GoogleFonts.manrope(
-                      fontSize: 13,
-                      color: AppTheme.onSurfaceVariant,
-                      fontWeight: FontWeight.w500,
-                    )),
-                const SizedBox(height: 48),
-
-                // Form card
-                SurfaceCard(
-                  padding: const EdgeInsets.all(28),
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // MSSV
-                        Text('MÃ SINH VIÊN',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                    color: AppTheme.onSurfaceVariant,
-                                    letterSpacing: 1.5)),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _mssvCtrl,
-                          keyboardType: TextInputType.text,
-                          textInputAction: TextInputAction.next,
-                          decoration: _inputDeco(
-                            hint: 'Nhập mã sinh viên',
-                            icon: Icons.person_outline,
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-
-                        // Password
-                        Text('MẬT KHẨU',
-                            style: Theme.of(context)
-                                .textTheme
-                                .labelSmall
-                                ?.copyWith(
-                                    color: AppTheme.onSurfaceVariant,
-                                    letterSpacing: 1.5)),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _pwCtrl,
-                          obscureText: _obscure,
-                          textInputAction: TextInputAction.done,
-                          onSubmitted: (_) => _login(),
-                          decoration: _inputDeco(
-                            hint: 'Nhập mật khẩu',
-                            icon: Icons.lock_outline,
-                            suffix: IconButton(
-                              icon: Icon(
-                                _obscure
-                                    ? Icons.visibility_outlined
-                                    : Icons.visibility_off_outlined,
-                                color: AppTheme.outline,
-                              ),
-                              onPressed: () =>
-                                  setState(() => _obscure = !_obscure),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // ── Ghi nhớ đăng nhập ──────────────────
-                        GestureDetector(
-                          onTap: () => setState(() => _remember = !_remember),
-                          child: Row(children: [
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 200),
-                              width: 22,
-                              height: 22,
-                              decoration: BoxDecoration(
-                                color: _remember
-                                    ? AppTheme.primary
-                                    : Colors.transparent,
-                                border: Border.all(
-                                  color: _remember
-                                      ? AppTheme.primary
-                                      : AppTheme.outline,
-                                  width: 2,
-                                ),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: _remember
-                                  ? const Icon(Icons.check,
-                                      color: Colors.white, size: 14)
-                                  : null,
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Ghi nhớ đăng nhập',
-                                      style: GoogleFonts.manrope(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppTheme.onSurface,
-                                      )),
-                                  Text(
-                                      'Tự động đăng nhập lần sau, xem được khi không có mạng',
-                                      style: GoogleFonts.manrope(
-                                        fontSize: 10,
-                                        color: AppTheme.onSurfaceVariant,
-                                      )),
-                                ],
-                              ),
-                            ),
-                          ]),
-                        ),
-                        const SizedBox(height: 24),
-
-                        // Login button
-                        SizedBox(
-                          width: double.infinity,
-                          height: 54,
-                          child: DecoratedBox(
+                          // Logo
+                          Container(
+                            width: 72,
+                            height: 72,
                             decoration: BoxDecoration(
-                              gradient: AppTheme.primaryGradient,
-                              borderRadius: BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
-                                  color: AppTheme.primary.withOpacity(0.3),
+                                  color: Colors.black.withOpacity(0.12),
                                   blurRadius: 16,
-                                  offset: const Offset(0, 8),
+                                  offset: const Offset(0, 6),
                                 )
                               ],
                             ),
-                            child: MaterialButton(
-                              onPressed: _loading ? null : _login,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16)),
-                              child: _loading
-                                  ? const SizedBox(
-                                      width: 22,
-                                      height: 22,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2, color: Colors.white))
-                                  : Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                          Text('Đăng nhập',
-                                              style: GoogleFonts.manrope(
-                                                fontSize: 17,
-                                                fontWeight: FontWeight.w700,
-                                                color: Colors.white,
-                                              )),
-                                          const SizedBox(width: 8),
-                                          const Icon(Icons.arrow_forward,
-                                              color: Colors.white, size: 20),
-                                        ]),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Image.asset(
+                                'assets/logo.png',
+                                width: 72,
+                                height: 72,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
-                        ),
-                      ]),
-                ),
+                          const SizedBox(height: 22),
 
-                const SizedBox(height: 28),
+                          Text('Đại học Kiến trúc Hà Nội',
+                              style: GoogleFonts.manrope(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF1E3B59),
+                                letterSpacing: -0.5,
+                              )),
+                          const SizedBox(height: 4),
+                          Text('Đăng nhập bằng tài khoản trường cấp',
+                              style: GoogleFonts.manrope(
+                                fontSize: 13,
+                                color: const Color(0xFF1E3B59).withOpacity(0.75),
+                                fontWeight: FontWeight.w600,
+                              )),
+                          const SizedBox(height: 24),
 
-                // Ghi chú
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryFixed.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
+                          // Form card
+                          SurfaceCard(
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // MSSV
+                                  Text('MÃ SINH VIÊN',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                              color: AppTheme.onSurfaceVariant,
+                                              letterSpacing: 1.5)),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: _mssvCtrl,
+                                    keyboardType: TextInputType.text,
+                                    textInputAction: TextInputAction.next,
+                                    decoration: _inputDeco(
+                                      hint: 'Nhập mã sinh viên',
+                                      icon: Icons.person_outline,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // Password
+                                  Text('MẬT KHẨU',
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .labelSmall
+                                          ?.copyWith(
+                                              color: AppTheme.onSurfaceVariant,
+                                              letterSpacing: 1.5)),
+                                  const SizedBox(height: 6),
+                                  TextField(
+                                    controller: _pwCtrl,
+                                    obscureText: _obscure,
+                                    textInputAction: TextInputAction.done,
+                                    onSubmitted: (_) => _login(),
+                                    decoration: _inputDeco(
+                                      hint: 'Nhập mật khẩu',
+                                      icon: Icons.lock_outline,
+                                      suffix: IconButton(
+                                        icon: Icon(
+                                          _obscure
+                                              ? Icons.visibility_outlined
+                                              : Icons.visibility_off_outlined,
+                                          color: AppTheme.outline,
+                                        ),
+                                        onPressed: () =>
+                                            setState(() => _obscure = !_obscure),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+
+                                  // ── Ghi nhớ đăng nhập ──────────────────
+                                  GestureDetector(
+                                    onTap: () => setState(() => _remember = !_remember),
+                                    child: Row(children: [
+                                      AnimatedContainer(
+                                        duration: const Duration(milliseconds: 200),
+                                        width: 22,
+                                        height: 22,
+                                        decoration: BoxDecoration(
+                                          color: _remember
+                                              ? AppTheme.primary
+                                              : Colors.transparent,
+                                          border: Border.all(
+                                            color: _remember
+                                                ? AppTheme.primary
+                                                : AppTheme.outline,
+                                            width: 2,
+                                          ),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: _remember
+                                            ? const Icon(Icons.check,
+                                                color: Colors.white, size: 14)
+                                            : null,
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text('Ghi nhớ đăng nhập',
+                                                style: GoogleFonts.manrope(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppTheme.onSurface,
+                                                )),
+                                            Text(
+                                                'Tự động đăng nhập lần sau, xem được khi không có mạng',
+                                                style: GoogleFonts.manrope(
+                                                  fontSize: 10,
+                                                  color: AppTheme.onSurfaceVariant,
+                                                )),
+                                          ],
+                                        ),
+                                      ),
+                                    ]),
+                                  ),
+                                  const SizedBox(height: 22),
+
+                                  // Login button
+                                  SizedBox(
+                                    width: double.infinity,
+                                    height: 50,
+                                    child: DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: AppTheme.primaryGradient,
+                                        borderRadius: BorderRadius.circular(16),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: AppTheme.primary.withOpacity(0.3),
+                                            blurRadius: 16,
+                                            offset: const Offset(0, 8),
+                                          )
+                                        ],
+                                      ),
+                                      child: MaterialButton(
+                                        onPressed: _loading ? null : _login,
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(16)),
+                                        child: _loading
+                                            ? const SizedBox(
+                                                width: 22,
+                                                height: 22,
+                                                child: CircularProgressIndicator(
+                                                    strokeWidth: 2, color: Colors.white))
+                                            : Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                    Text('Đăng nhập',
+                                                        style: GoogleFonts.manrope(
+                                                          fontSize: 16,
+                                                          fontWeight: FontWeight.w700,
+                                                          color: Colors.white,
+                                                        )),
+                                                    const SizedBox(width: 8),
+                                                    const Icon(Icons.arrow_forward,
+                                                        color: Colors.white, size: 20),
+                                                  ]),
+                                      ),
+                                    ),
+                                  ),
+                                ]),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Ghi chú
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryFixed.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(children: [
+                              const Icon(Icons.info_outline,
+                                  size: 16, color: AppTheme.primary),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                  child: Text(
+                                'Sử dụng tài khoản và mật khẩu do trường HAU cấp '
+                                '(giống khi đăng nhập tinchi.hau.edu.vn)',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .bodySmall
+                                    ?.copyWith(color: AppTheme.primary),
+                              )),
+                            ]),
+                          ),
+
+                          const SizedBox(height: 16),
+                          Text('Tài khoản trải nghiệm: admin / admin@123',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .labelSmall
+                                  ?.copyWith(color: AppTheme.outline)),
+
+                          const SizedBox(height: 12),
+                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                            const Icon(Icons.verified_user_outlined,
+                                size: 14, color: AppTheme.outline),
+                            const SizedBox(width: 6),
+                            Text('Trợ Lý Học Tập HAU v1.0.6',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .labelSmall
+                                    ?.copyWith(color: AppTheme.outline)),
+                          ]),
+                        ],
+                      ),
+                    ),
                   ),
-                  child: Row(children: [
-                    const Icon(Icons.info_outline,
-                        size: 16, color: AppTheme.primary),
-                    const SizedBox(width: 8),
-                    Expanded(
-                        child: Text(
-                      'Sử dụng tài khoản và mật khẩu do trường HAU cấp '
-                      '(giống khi đăng nhập tinchi.hau.edu.vn)',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: AppTheme.primary),
-                    )),
-                  ]),
-                ),
-
-                const SizedBox(height: 12),
-                Text('Tài khoản trải nghiệm: admin / admin@123',
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelSmall
-                        ?.copyWith(color: AppTheme.outline)),
-
-                const SizedBox(height: 12),
-                Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                  const Icon(Icons.verified_user_outlined,
-                      size: 14, color: AppTheme.outline),
-                  const SizedBox(width: 6),
-                  Text('Trợ Lý Học Tập HAU v1.0.6',
-                      style: Theme.of(context)
-                          .textTheme
-                          .labelSmall
-                          ?.copyWith(color: AppTheme.outline)),
-                ]),
-              ]),
+                );
+              },
             ),
           ),
         ]),

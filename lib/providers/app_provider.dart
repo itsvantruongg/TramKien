@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
@@ -64,6 +66,11 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     // Đăng ký lắng nghe trạng thái vòng đời của ứng dụng
     WidgetsBinding.instance.addObserver(this);
+
+    // Chạy init() SAU KHI UI đã dựng xong frame đầu tiên
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      init();
+    });
   }
 
   void _onSubProviderChanged() {
@@ -77,6 +84,12 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
 
     try {
+      // Preload hai bộ font chính (Manrope & Inter) trong lúc Splash Screen đang hiển thị
+      await GoogleFonts.pendingFonts([
+        GoogleFonts.manrope(),
+        GoogleFonts.inter(),
+      ]);
+
       // Thử auto-login bằng credentials đã lưu
       final prefs = await SharedPreferences.getInstance();
       final remember = prefs.getBool(_kRemember) ?? false;
@@ -97,24 +110,9 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
           await _loadFromCache();
           _authState = AuthState.loggedIn;
           notifyListeners();
-          // Login nền để lấy session mới
-          final error = await HauApiService.login(mssv, pw);
-          if (error == null) {
-            // [B2 Reconcile] Kiểm tra trực tiếp fetched_app_version trong các bản ghi SQLite
-            final currentVer = DatabaseService.currentAppVersion;
-            final bool needsDbReconcile = await ScheduleDb.needsReconcile(currentVer);
-            final lastReconciledVer = prefs.getString('last_reconciled_app_version');
-            final bool needsReconcile = needsDbReconcile || (lastReconciledVer != currentVer);
-            if (needsReconcile) {
-              debugPrint('🔄 [Reconcile] Phát hiện bản ghi DB có fetched_app_version != $currentVer (hoặc NULL) → Ép sync full & diff-delete');
-            }
-            await syncAll(forceRefresh: needsReconcile);
-            await prefs.setString('last_reconciled_app_version', currentVer);
 
-            // [B5] Chỉ đăng ký periodic sync sau khi đăng nhập thành công
-            await BackgroundSyncService.schedulePeriodicSync();
-          }
-          // Nếu login thất bại do mất mạng, vẫn giữ cached data
+          // Login nền và sync ngầm ở background, KHÔNG await làm đơ UI frame 1
+          unawaited(_asyncBackgroundLoginAndSync(mssv, pw, prefs));
           return;
         }
       }
@@ -126,6 +124,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         await _loadFromCache();
         await _syncStudent();
       } else {
+        // Đảm bảo Splash Screen hiển thị mượt mà tối thiểu 400ms, tránh chớp nháy 16ms
+        await Future.delayed(const Duration(milliseconds: 400));
         _authState = AuthState.loggedOut;
       }
     } catch (e) {
@@ -133,6 +133,34 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       _authState = AuthState.loggedOut;
     }
     notifyListeners();
+  }
+
+  Future<void> _asyncBackgroundLoginAndSync(
+      String mssv, String pw, SharedPreferences prefs) async {
+    try {
+      final error = await HauApiService.login(mssv, pw);
+      if (error == null) {
+        // [B2 Reconcile] Kiểm tra trực tiếp fetched_app_version trong các bản ghi SQLite
+        final currentVer = DatabaseService.currentAppVersion;
+        final bool needsDbReconcile =
+            await ScheduleDb.needsReconcile(currentVer);
+        final lastReconciledVer =
+            prefs.getString('last_reconciled_app_version');
+        final bool needsReconcile =
+            needsDbReconcile || (lastReconciledVer != currentVer);
+        if (needsReconcile) {
+          debugPrint(
+              '🔄 [Reconcile] Phát hiện bản ghi DB có fetched_app_version != $currentVer (hoặc NULL) → Ép sync full & diff-delete');
+        }
+        await syncAll(forceRefresh: needsReconcile);
+        await prefs.setString('last_reconciled_app_version', currentVer);
+
+        // [B5] Chỉ đăng ký periodic sync sau khi đăng nhập thành công
+        await BackgroundSyncService.schedulePeriodicSync();
+      }
+    } catch (e) {
+      debugPrint('⚠️ Lỗi background login & sync: $e');
+    }
   }
 
   Future<bool> login(String mssv, String password,
@@ -458,9 +486,9 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       _curriculumMandatoryCredits =
           prefs.getInt('curriculum_mandatory_tc') ?? 144;
 
-      // Sinh thẻ thông báo lịch học/thi (cho cả quá khứ/catch-up và tương lai)
-      await LocalNotificationService.generateScheduleCards(
-          _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi);
+      // Sinh thẻ thông báo lịch học/thi (cho cả quá khứ/catch-up và tương lai) ngầm ở background
+      unawaited(LocalNotificationService.generateScheduleCards(
+          _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi));
 
       // Load danh sách thông báo vào state (reactive)
       await refreshNotifications();

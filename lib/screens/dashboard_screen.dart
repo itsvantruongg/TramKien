@@ -96,12 +96,12 @@ class DashboardScreen extends StatelessWidget {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text('GPA TÍCH LŨY',
-                                              style: GoogleFonts.inter(
-                                                fontSize: 10,
-                                                letterSpacing: 1.5,
-                                                color: Colors.white70,
-                                                fontWeight: FontWeight.w700,
-                                              )),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .labelSmall
+                                                  ?.copyWith(
+                                                    color: Colors.white70,
+                                                  )),
                                           const SizedBox(height: 8),
                                           Row(
                                               crossAxisAlignment:
@@ -112,28 +112,32 @@ class DashboardScreen extends StatelessWidget {
                                                                 ?.tbcTichLuyHe4 ??
                                                             0.0)
                                                         .toStringAsFixed(2),
-                                                    style: GoogleFonts.manrope(
-                                                      fontSize: 52,
-                                                      fontWeight:
-                                                          FontWeight.w800,
-                                                      color: Colors.white,
-                                                      height: 1,
-                                                    )),
-                                                const Padding(
-                                                  padding: EdgeInsets.only(
+                                                    style: Theme.of(context)
+                                                        .textTheme
+                                                        .displayMedium
+                                                        ?.copyWith(
+                                                          color: Colors.white,
+                                                          height: 1,
+                                                        )),
+                                                Padding(
+                                                  padding: const EdgeInsets.only(
                                                       bottom: 8, left: 4),
                                                   child: Text('/ 4.0',
-                                                      style: TextStyle(
-                                                          fontSize: 16,
-                                                          color:
-                                                              Colors.white70)),
+                                                      style: Theme.of(context)
+                                                          .textTheme
+                                                          .titleMedium
+                                                          ?.copyWith(
+                                                              color:
+                                                                  Colors.white70)),
                                                 ),
                                               ]),
                                           const SizedBox(height: 16),
-                                          const Text('Tiến độ học tập',
-                                              style: TextStyle(
-                                                  fontSize: 11,
-                                                  color: Colors.white70)),
+                                          Text('Tiến độ học tập',
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                      color: Colors.white70)),
                                           const SizedBox(height: 6),
                                           LinearProgressIndicator(
                                             value: (p.totalCredits /
@@ -150,11 +154,13 @@ class DashboardScreen extends StatelessWidget {
                                           const SizedBox(height: 4),
                                           Text(
                                               '${p.totalCredits} / ${p.curriculumTotalCredits} tín chỉ',
-                                              style: const TextStyle(
-                                                fontSize: 11,
-                                                color: Colors.white70,
-                                                fontWeight: FontWeight.w600,
-                                              )),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .bodySmall
+                                                  ?.copyWith(
+                                                    color: Colors.white70,
+                                                    fontWeight: FontWeight.w600,
+                                                  )),
                                         ]),
                                   ),
                                 )),
@@ -255,24 +261,27 @@ class DashboardScreen extends StatelessWidget {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
-                                        const Text('TỔNG ĐÃ NỘP',
-                                            style: TextStyle(
-                                              fontSize: 10,
-                                              color: Colors.white70,
-                                              letterSpacing: 1.5,
-                                              fontWeight: FontWeight.w700,
-                                            )),
+                                        Text('TỔNG ĐÃ NỘP',
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .labelSmall
+                                                ?.copyWith(
+                                                  color: Colors.white70,
+                                                )),
                                         const SizedBox(height: 4),
                                         FittedBox(
                                           fit: BoxFit.scaleDown,
                                           alignment: Alignment.centerLeft,
                                           child:
                                               Text(_fmt(p.tongHocPhiAllDaDong),
-                                                  style: GoogleFonts.manrope(
-                                                    fontSize: 28,
-                                                    fontWeight: FontWeight.w800,
-                                                    color: Colors.white,
-                                                  )),
+                                                  style: Theme.of(context)
+                                                      .textTheme
+                                                      .headlineMedium
+                                                      ?.copyWith(
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                        color: Colors.white,
+                                                      )),
                                         ),
                                       ]),
                                 ),
@@ -285,9 +294,13 @@ class DashboardScreen extends StatelessWidget {
                                   ),
                                   child: Text(
                                     '${(p.progressHocPhiAll * 100).toStringAsFixed(0)}%',
-                                    style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w700),
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelMedium
+                                        ?.copyWith(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                   ),
                                 ),
                               ]),
@@ -443,7 +456,10 @@ class _EmptyCard extends StatelessWidget {
             child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 8),
           child: Text(msg,
-              style: const TextStyle(color: AppTheme.onSurfaceVariant)),
+              style: Theme.of(ctx)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: AppTheme.onSurfaceVariant)),
         )),
       );
 }

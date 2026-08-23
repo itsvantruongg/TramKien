@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -20,15 +19,31 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell>
     with SingleTickerProviderStateMixin {
   int _idx = 0;
-  int _navDirection = 1;
   DateTime? _lastBackPress;
   double? _navDragValue;
   double? _pendingNavDragValue;
+  double? _startDragDx;
+  int? _initialTapIdx;
   bool _navDragging = false;
-  Timer? _navHoldTimer;
-  int _prevIdx = 0;
-  late final AnimationController _animController;
   DateTime? _scheduleFocusDate;
+
+  late AnimationController _animController;
+  double _slideDirection = 1.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 130),
+    )..value = 1.0;
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
 
   void _navigate(int idx, {DateTime? focusDate}) {
     if (idx == _idx) {
@@ -39,26 +54,15 @@ class _MainShellState extends State<MainShell>
       }
       return;
     }
+    _slideDirection = idx > _idx ? 1.0 : -1.0;
     if (idx == 1 && focusDate != null) {
       _scheduleFocusDate = focusDate;
     }
-    if (_animController.isAnimating) {
-      _animController.stop();
-    }
     setState(() {
-      _prevIdx = _idx;
       _idx = idx;
     });
     _animController.forward(from: 0.0);
   }
-
-  List<Widget> get _screens => [
-        DashboardScreen(onNavigate: _navigate),
-        ScheduleScreen(onNavigate: _navigate, initialDate: _scheduleFocusDate),
-        GradesScreen(onNavigate: _navigate),
-        FinanceScreen(onNavigate: _navigate),
-        const ProfileScreen(),
-      ];
 
   double get _navBaseValue => _idx.toDouble();
 
@@ -66,26 +70,26 @@ class _MainShellState extends State<MainShell>
       (_navDragValue ?? _navBaseValue).clamp(0.0, 4.0);
 
   void _startNavDrag(double dx, double itemWidth) {
-    _navHoldTimer?.cancel();
+    _startDragDx = dx;
+    _initialTapIdx = (dx / itemWidth).floor().clamp(0, 4);
     _pendingNavDragValue = ((dx / itemWidth) - 0.5).clamp(0.0, 4.0);
-
-    // Bắt đầu timer 300ms trước khi cho phép kéo theo tay
-    _navHoldTimer = Timer(const Duration(milliseconds: 100), () {
-      if (mounted) {
-        setState(() {
-          _navDragging = true;
-          _navDragValue = _pendingNavDragValue;
-        });
-        //HapticFeedback.selectionClick();
-      }
-    });
+    _navDragging = false;
+    _navDragValue = null;
   }
 
   void _updateNavDrag(double dx, double itemWidth) {
     final newValue = ((dx / itemWidth) - 0.5).clamp(0.0, 4.0);
     _pendingNavDragValue = newValue;
 
-    if (_navDragging) {
+    // Ngưỡng di chuyển (touch slop) = 8.0 logical pixels để xác nhận kéo
+    if (!_navDragging && _startDragDx != null) {
+      if ((dx - _startDragDx!).abs() > 8.0) {
+        setState(() {
+          _navDragging = true;
+          _navDragValue = newValue;
+        });
+      }
+    } else if (_navDragging) {
       setState(() {
         _navDragValue = newValue;
       });
@@ -93,20 +97,17 @@ class _MainShellState extends State<MainShell>
   }
 
   void _endNavDrag() {
-    _navHoldTimer?.cancel();
-    _navHoldTimer = null;
-
     if (_navDragging) {
-      // Nếu đang trong chế độ kéo -> về index gần nhất
+      // Nếu đang trong chế độ kéo -> về index gần nhất dựa trên vị trí viên thuốc
       final nextIdx = _navVisualValue.round().clamp(0, 4);
       if (nextIdx != _idx) {
         _navigate(nextIdx);
       }
     } else {
-      // Nếu nhả tay trước 500ms -> coi như là một cú chạm (tap)
-      if (_pendingNavDragValue != null) {
-        final nextIdx = _pendingNavDragValue!.round().clamp(0, 4);
-        _navigate(nextIdx);
+      // Nhả tay trước khi vượt ngưỡng kéo -> coi là Tap thật sự.
+      // Dùng _initialTapIdx (vị trí chạm ban đầu) để đảm bảo không bị nhảy nhầm tab nếu tay run nhẹ
+      if (_initialTapIdx != null) {
+        _navigate(_initialTapIdx!);
       }
     }
 
@@ -115,43 +116,40 @@ class _MainShellState extends State<MainShell>
       _navDragging = false;
       _navDragValue = null;
       _pendingNavDragValue = null;
+      _startDragDx = null;
+      _initialTapIdx = null;
     });
   }
 
   void _cancelNavDrag() {
-    _navHoldTimer?.cancel();
-    _navHoldTimer = null;
     if (!mounted) return;
     setState(() {
       _navDragging = false;
       _navDragValue = null;
       _pendingNavDragValue = null;
+      _startDragDx = null;
+      _initialTapIdx = null;
     });
   }
 
   @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 200),
-    )..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          setState(() {
-            _prevIdx = _idx;
-          });
-        }
-      });
-  }
-
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final slideAnimation = Tween<Offset>(
+      begin: Offset(_slideDirection * 0.04, 0),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutCubic,
+    ));
+
+    final fadeAnimation = Tween<double>(
+      begin: 0.7,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _animController,
+      curve: Curves.easeOutCubic,
+    ));
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
@@ -191,48 +189,23 @@ class _MainShellState extends State<MainShell>
       },
       child: Scaffold(
         extendBody: true,
-        body: AnimatedBuilder(
-          animation: _animController,
-          builder: (context, child) {
-            final bool isAnimating = _idx != _prevIdx;
-
-            if (!isAnimating) {
-              return RepaintBoundary(
-                key: ValueKey('screen_$_idx'),
-                child: TickerMode(enabled: true, child: _screens[_idx]),
-              );
-            }
-
-            final animationValue =
-                Curves.easeInOut.transform(_animController.value);
-
-            return Stack(
+        body: SlideTransition(
+          position: slideAnimation,
+          child: FadeTransition(
+            opacity: fadeAnimation,
+            child: IndexedStack(
+              index: _idx,
               children: [
-                // 1. Trang cũ (mờ dần đi)
-                Opacity(
-                  opacity: (1.0 - animationValue).clamp(0.0, 1.0),
-                  child: RepaintBoundary(
-                    key: ValueKey('screen_$_prevIdx'),
-                    child: TickerMode(
-                      enabled: false,
-                      child: _screens[_prevIdx],
-                    ),
-                  ),
-                ),
-                // 2. Trang mới (hiện dần lên)
-                Opacity(
-                  opacity: animationValue.clamp(0.0, 1.0),
-                  child: RepaintBoundary(
-                    key: ValueKey('screen_$_idx'),
-                    child: TickerMode(
-                      enabled: true,
-                      child: _screens[_idx],
-                    ),
-                  ),
-                ),
+                RepaintBoundary(child: DashboardScreen(onNavigate: _navigate)),
+                RepaintBoundary(
+                    child: ScheduleScreen(
+                        onNavigate: _navigate, initialDate: _scheduleFocusDate)),
+                RepaintBoundary(child: GradesScreen(onNavigate: _navigate)),
+                RepaintBoundary(child: FinanceScreen(onNavigate: _navigate)),
+                const RepaintBoundary(child: ProfileScreen()),
               ],
-            );
-          },
+            ),
+          ),
         ),
         bottomNavigationBar: _buildNav(),
       ),

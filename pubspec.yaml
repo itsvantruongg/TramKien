@@ -54,8 +54,9 @@ flutter:
   uses-material-design: true
   assets:
     - assets/qrcode_itsvantruongg.github.io.png
+    - assets/logo.png
 
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/logo3.png" # Đường dẫn tới bức ảnh bạn vừa bỏ vào
+  image_path: "assets/logo.png" # Đường dẫn tới bức ảnh bạn vừa bỏ vào
