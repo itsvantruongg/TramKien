@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'schedule_manage_screen.dart';
+import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../models/models.dart';
@@ -18,11 +18,12 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
-  bool _showFilter = false;
+  late DateTime _selectedDate;
 
   @override
   void initState() {
     super.initState();
+    _selectedDate = widget.initialDate ?? DateTime.now();
     _tabCtrl = TabController(length: 2, vsync: this, initialIndex: 1);
   }
 
@@ -32,21 +33,20 @@ class _ScheduleScreenState extends State<ScheduleScreen>
     super.dispose();
   }
 
+  void _updateSelectedDate(DateTime d) {
+    if (_selectedDate.year != d.year ||
+        _selectedDate.month != d.month ||
+        _selectedDate.day != d.day) {
+      setState(() {
+        _selectedDate = d;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final p = context.watch<AppProvider>();
     return Scaffold(
-      // floatingActionButton: Padding(
-      //   padding: const EdgeInsets.only(bottom: 80),
-      //   child: FloatingActionButton(
-      //     onPressed: () => Navigator.push(
-      //       context,
-      //       MaterialPageRoute(builder: (_) => const ScheduleManageScreen()),
-      //     ),
-      //     backgroundColor: AppTheme.primary,
-      //     child: const Icon(Icons.add, color: Colors.white),
-      //   ),
-      // ),
       body: Column(children: [
         AcademicAppBar(
           subtitle: 'LỊCH HỌC & THI',
@@ -66,13 +66,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
             ),
           ],
         ),
-
-        // Filter panel
-        // AnimatedSize(
-        //   duration: const Duration(milliseconds: 250),
-        //   curve: Curves.easeInOut,
-        //   child: _showFilter ? _FilterPanel(p: p) : const SizedBox.shrink(),
-        // ),
 
         // Tab bar: Tháng | Tuần
         Container(
@@ -102,8 +95,16 @@ class _ScheduleScreenState extends State<ScheduleScreen>
             child: TabBarView(
           controller: _tabCtrl,
           children: [
-            _MonthView(p: p, initialDate: widget.initialDate),
-            _WeekView(p: p, initialDate: widget.initialDate),
+            _MonthView(
+              p: p,
+              initialDate: _selectedDate,
+              onDateSelected: _updateSelectedDate,
+            ),
+            _WeekView(
+              p: p,
+              initialDate: _selectedDate,
+              onDateSelected: _updateSelectedDate,
+            ),
           ],
         )),
       ]),
@@ -118,7 +119,8 @@ class _ScheduleScreenState extends State<ScheduleScreen>
 class _MonthView extends StatefulWidget {
   final AppProvider p;
   final DateTime? initialDate;
-  const _MonthView({required this.p, this.initialDate});
+  final ValueChanged<DateTime>? onDateSelected;
+  const _MonthView({required this.p, this.initialDate, this.onDateSelected});
   @override
   State<_MonthView> createState() => _MonthViewState();
 }
@@ -155,6 +157,34 @@ class _MonthViewState extends State<_MonthView> {
     _currentPage = _dateToPage(target.year, target.month);
     _selected = target;
     _pageCtrl = PageController(initialPage: _currentPage);
+  }
+
+  void _selectDate(DateTime d) {
+    final newPage = _dateToPage(d.year, d.month);
+    if (newPage != _currentPage && _pageCtrl.hasClients) {
+      _pageCtrl.animateToPage(
+        newPage,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.fastOutSlowIn,
+      );
+    }
+    setState(() {
+      _selected = d;
+    });
+    widget.onDateSelected?.call(d);
+  }
+
+  void _goToToday() {
+    final now = DateTime.now();
+    final page = _dateToPage(now.year, now.month);
+    if (page != _currentPage && _pageCtrl.hasClients) {
+      _pageCtrl.animateToPage(
+        page,
+        duration: const Duration(milliseconds: 320),
+        curve: Curves.fastOutSlowIn,
+      );
+    }
+    _selectDate(now);
   }
 
   @override
@@ -246,7 +276,7 @@ class _MonthViewState extends State<_MonthView> {
                           month: date.month,
                           p: widget.p,
                           selected: _selected,
-                          onSelect: (d) => setState(() => _selected = d),
+                          onSelect: _selectDate,
                         );
                       },
                     ),
@@ -276,43 +306,90 @@ class _MonthViewState extends State<_MonthView> {
 // Sửa _buildMonthHeader() - thêm onTap vào title:
 
   Widget _buildMonthHeader() {
+    final now = DateTime.now();
+    final isTodayVisible = _displayYear == now.year &&
+        _displayMonth == now.month &&
+        _isSameDay(_selected, now);
     final monthLabel = DateFormat('MMMM yyyy', 'vi_VN')
         .format(DateTime(_displayYear, _displayMonth));
     final title = monthLabel[0].toUpperCase() + monthLabel.substring(1);
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // ✅ Tap vào title để mở date picker
-        GestureDetector(
-          onTap: _showMonthYearPicker,
-          child: Row(children: [
-            Text(title,
-                style: const TextStyle(
-                  fontFamily: 'Manrope',
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.onSurface,
-                )),
-            const SizedBox(width: 4),
-            const Icon(Icons.keyboard_arrow_down_rounded,
-                color: AppTheme.primary, size: 22),
-          ]),
+        // Tap vào title để mở date picker (bọc Expanded chống overflow)
+        Expanded(
+          child: GestureDetector(
+            onTap: _showMonthYearPicker,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: AppTheme.onSurface,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 2),
+                const Icon(Icons.keyboard_arrow_down_rounded,
+                    color: AppTheme.primary, size: 20),
+              ],
+            ),
+          ),
         ),
-        Row(children: [
-          _NavBtn(
-            icon: Icons.chevron_left_rounded,
-            onTap: () => _pageCtrl.previousPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut),
-          ),
-          const SizedBox(width: 4),
-          _NavBtn(
-            icon: Icons.chevron_right_rounded,
-            onTap: () => _pageCtrl.nextPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut),
-          ),
-        ]),
+        const SizedBox(width: 4),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (!isTodayVisible)
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: GestureDetector(
+                  onTap: _goToToday,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryFixed,
+                      borderRadius: BorderRadius.circular(12),
+                      border:
+                          Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.today_rounded,
+                            size: 13, color: AppTheme.primary),
+                        SizedBox(width: 3),
+                        Text('Hôm nay',
+                            style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.primary)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            IconButton(
+              icon: const Icon(Icons.chevron_left, color: AppTheme.primary),
+              onPressed: () => _pageCtrl.previousPage(
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.fastOutSlowIn),
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right, color: AppTheme.primary),
+              onPressed: () => _pageCtrl.nextPage(
+                  duration: const Duration(milliseconds: 320),
+                  curve: Curves.fastOutSlowIn),
+            ),
+          ],
+        ),
       ],
     );
   }
@@ -424,7 +501,6 @@ class _MonthYearPickerDialogState extends State<_MonthYearPickerDialog> {
 
   // Page 0 = Jan 2018
   static const _baseYear = 2018;
-  static const _baseMonth = 1;
 
   static const _months = [
     'Tháng 1',
@@ -678,19 +754,65 @@ class _MonthGrid extends StatelessWidget {
       itemBuilder: (ctx, index) {
         if (index < startOffset) {
           final d = prevMonthDays - startOffset + index + 1;
-          return Center(
-            child: Text('$d',
-                style: const TextStyle(
-                    fontSize: 13, color: AppTheme.outlineVariant)),
+          final date = DateTime(year, month - 1, d);
+          final isSel = _isSameDay(date, selected);
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onSelect(date),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              margin: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: isSel ? AppTheme.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$d',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: isSel ? FontWeight.w800 : FontWeight.w500,
+                      color: isSel ? Colors.white : AppTheme.outlineVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                ],
+              ),
+            ),
           );
         }
         final dayNum = index - startOffset + 1;
         if (dayNum > daysInMonth) {
           final d = dayNum - daysInMonth;
-          return Center(
-            child: Text('$d',
-                style: const TextStyle(
-                    fontSize: 13, color: AppTheme.outlineVariant)),
+          final date = DateTime(year, month + 1, d);
+          final isSel = _isSameDay(date, selected);
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onSelect(date),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              margin: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: isSel ? AppTheme.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$d',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: isSel ? FontWeight.w800 : FontWeight.w500,
+                      color: isSel ? Colors.white : AppTheme.outlineVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                ],
+              ),
+            ),
           );
         }
 
@@ -702,69 +824,67 @@ class _MonthGrid extends StatelessWidget {
         final exam = hasExam[dayNum] ?? false;
 
         return GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () => onSelect(date),
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: isSel
-                      ? AppTheme.primary
-                      : isToday
-                          ? AppTheme.primaryFixed
-                          : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    '$dayNum',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight:
-                          isSel || isToday ? FontWeight.w800 : FontWeight.w500,
-                      color: isSel
-                          ? Colors.white
-                          : isToday
-                              ? AppTheme.primary
-                              : isSunday
-                                  ? AppTheme.tertiary
-                                  : AppTheme.onSurface,
-                    ),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            margin: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: isSel
+                  ? AppTheme.primary
+                  : isToday
+                      ? AppTheme.primaryFixed
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  '$dayNum',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight:
+                        isSel || isToday ? FontWeight.w800 : FontWeight.w500,
+                    color: isSel
+                        ? Colors.white
+                        : isToday
+                            ? AppTheme.primary
+                            : isSunday
+                                ? AppTheme.tertiary
+                                : AppTheme.onSurface,
                   ),
                 ),
-              ),
-              if (cls || exam)
-                Positioned(
-                  bottom: 2,
-                  child: Row(
+                if (cls || exam) ...[
+                  const SizedBox(height: 2),
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       if (cls)
                         Container(
-                          width: 5,
-                          height: 5,
+                          width: 4,
+                          height: 4,
                           margin: EdgeInsets.only(right: exam ? 2 : 0),
-                          decoration: const BoxDecoration(
-                            color: AppTheme.primary,
+                          decoration: BoxDecoration(
+                            color: isSel ? Colors.white : AppTheme.primary,
                             shape: BoxShape.circle,
                           ),
                         ),
                       if (exam)
                         Container(
-                          width: 5,
-                          height: 5,
-                          decoration: const BoxDecoration(
-                            color: AppTheme.error,
+                          width: 4,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: isSel ? Colors.amberAccent : AppTheme.error,
                             shape: BoxShape.circle,
                           ),
                         ),
                     ],
                   ),
-                ),
-            ],
+                ] else
+                  const SizedBox(height: 6),
+              ],
+            ),
           ),
         );
       },
@@ -772,110 +892,6 @@ class _MonthGrid extends StatelessWidget {
   }
 }
 
-// ── Helper Widgets for Month View ───────────────────────────
-
-class _NavBtn extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-  const _NavBtn({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-        onTap: onTap,
-        child: Container(
-          width: 36,
-          height: 36,
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Icon(icon, color: AppTheme.primary, size: 20),
-        ),
-      );
-}
-
-class _MonthEventTile extends StatelessWidget {
-  final String label, title, time, room;
-  final bool isExam;
-  const _MonthEventTile({
-    required this.label,
-    required this.title,
-    required this.time,
-    required this.room,
-    required this.isExam,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isExam ? AppTheme.error : AppTheme.primary;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: AppTheme.onSurface.withOpacity(0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
-      ),
-      child: Row(children: [
-        Container(
-            width: 3,
-            height: 48,
-            decoration: BoxDecoration(
-                color: color, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(width: 14),
-        Expanded(
-          child:
-              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(label,
-                  style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1,
-                      color: color)),
-            ),
-            const SizedBox(height: 4),
-            Text(title,
-                style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppTheme.onSurface),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis),
-            const SizedBox(height: 2),
-            Row(children: [
-              Icon(Icons.schedule_outlined, size: 12, color: AppTheme.outline),
-              const SizedBox(width: 4),
-              Text(time,
-                  style: TextStyle(
-                      fontSize: 12, color: AppTheme.onSurfaceVariant)),
-              const SizedBox(width: 12),
-              Icon(Icons.location_on_outlined,
-                  size: 12, color: AppTheme.outline),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(room,
-                    style: TextStyle(
-                        fontSize: 12, color: AppTheme.onSurfaceVariant),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis),
-              ),
-            ]),
-          ]),
-        ),
-      ]),
-    );
-  }
-}
 // ════════════════════════════════════════════════════════════
 // WEEK VIEW
 // ════════════════════════════════════════════════════════════
@@ -883,7 +899,8 @@ class _MonthEventTile extends StatelessWidget {
 class _WeekView extends StatefulWidget {
   final AppProvider p;
   final DateTime? initialDate;
-  const _WeekView({required this.p, this.initialDate});
+  final ValueChanged<DateTime>? onDateSelected;
+  const _WeekView({required this.p, this.initialDate, this.onDateSelected});
   @override
   State<_WeekView> createState() => _WeekViewState();
 }
@@ -918,6 +935,32 @@ class _WeekViewState extends State<_WeekView> {
     _pageCtrl = PageController(initialPage: _currentPage);
   }
 
+  bool _isProgrammaticPageChange = false;
+
+  void _selectDate(DateTime d) {
+    setState(() {
+      _selectedDay = d;
+    });
+    widget.onDateSelected?.call(d);
+  }
+
+  void _goToToday() async {
+    final now = DateTime.now();
+    final monday = _getMondayOfWeek(now);
+    final page = monday.difference(_baseMonday).inDays ~/ 7;
+    _isProgrammaticPageChange = true;
+    _selectDate(now);
+    if (page != _currentPage && _pageCtrl.hasClients) {
+      await _pageCtrl.animateToPage(
+        page,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeInOut,
+      );
+    }
+    _currentPage = page;
+    _isProgrammaticPageChange = false;
+  }
+
   @override
   void didUpdateWidget(covariant _WeekView oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -945,10 +988,13 @@ class _WeekViewState extends State<_WeekView> {
   @override
   Widget build(BuildContext context) {
     final p = widget.p;
+    final now = DateTime.now();
+    final isTodaySelected = _isSameDay(_selectedDay, now);
+
     return Column(children: [
-      // Week label + arrows
+      // Week label + arrows + Today button
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         child: Row(children: [
           IconButton(
             icon: const Icon(Icons.chevron_left, color: AppTheme.primary),
@@ -959,7 +1005,7 @@ class _WeekViewState extends State<_WeekView> {
           Expanded(
             child: Center(
               child: GestureDetector(
-                onTap: () => _showWeekPicker(p), // ✅ thêm tap
+                onTap: () => _showWeekPicker(p),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Text(
                     _weekLabel(_currentMonday),
@@ -975,6 +1021,31 @@ class _WeekViewState extends State<_WeekView> {
               ),
             ),
           ),
+          if (!isTodaySelected)
+            GestureDetector(
+              onTap: _goToToday,
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryFixed,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.today_rounded,
+                        size: 14, color: AppTheme.primary),
+                    SizedBox(width: 4),
+                    Text('Hôm nay',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primary)),
+                  ],
+                ),
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.chevron_right, color: AppTheme.primary),
             onPressed: () => _pageCtrl.nextPage(
@@ -984,35 +1055,35 @@ class _WeekViewState extends State<_WeekView> {
         ]),
       ),
 
-      // 7-day strip — luôn fit vừa màn hình
+      // 7-day strip
       SizedBox(
         height: 80,
         child: PageView.builder(
           controller: _pageCtrl,
           onPageChanged: (page) => setState(() {
             _currentPage = page;
-            // Auto-select thứ 2 khi chuyển tuần
-            _selectedDay = _baseMonday.add(Duration(days: page * 7));
+            if (!_isProgrammaticPageChange) {
+              _selectDate(_baseMonday.add(Duration(days: page * 7)));
+            }
           }),
           itemBuilder: (ctx, page) {
             final monday = _baseMonday.add(Duration(days: page * 7));
             return _WeekStrip(
               monday: monday,
               selected: _selectedDay,
-              onSelect: (d) => setState(() => _selectedDay = d),
+              onSelect: _selectDate,
             );
           },
         ),
       ),
 
       // Schedule list for selected day
-      // Trong _WeekView.build(), thay _DayList cũ:
       Expanded(
           child: RefreshIndicator(
         onRefresh: () => p.syncSchedule(),
         child: _DayList(
           selectedDay: _selectedDay,
-          weekMonday: _currentMonday, // ← truyền thêm
+          weekMonday: _currentMonday,
           p: p,
         ),
       )),
@@ -1029,12 +1100,15 @@ class _WeekViewState extends State<_WeekView> {
     );
     if (picked != null && mounted) {
       final page = picked.difference(_baseMonday).inDays ~/ 7;
-      _pageCtrl.animateToPage(page,
-          duration: const Duration(milliseconds: 350), curve: Curves.easeInOut);
-      setState(() {
-        _currentPage = page;
-        _selectedDay = picked;
-      });
+      _isProgrammaticPageChange = true;
+      _selectDate(picked);
+      if (page != _currentPage && _pageCtrl.hasClients) {
+        await _pageCtrl.animateToPage(page,
+            duration: const Duration(milliseconds: 350),
+            curve: Curves.easeInOut);
+      }
+      _currentPage = page;
+      _isProgrammaticPageChange = false;
     }
   }
 
@@ -1054,43 +1128,44 @@ class _WeekPickerDialog extends StatefulWidget {
 }
 
 class _WeekPickerDialogState extends State<_WeekPickerDialog> {
-  late ScrollController _scrollCtrl;
+  final ItemScrollController _itemScrollController = ItemScrollController();
   late DateTime _selected;
+  late DateTime _todayMonday;
 
   // Tạo list tuần: 26 tuần trước → 26 tuần sau (tổng 53)
   static const _range = 26;
   late List<DateTime> _weeks;
 
+  static DateTime _getMonday(DateTime d) {
+    final m = d.subtract(Duration(days: d.weekday - 1));
+    return DateTime(m.year, m.month, m.day);
+  }
+
   @override
   void initState() {
     super.initState();
     _selected = widget.currentMonday;
-    // Tạo danh sách tuần xung quanh tuần hiện tại
+    _todayMonday = _getMonday(DateTime.now());
+
+    // Căn danh sách tuần xoay quanh TUẦN HIỆN TẠI (Today's Week)
     _weeks = List.generate(
       _range * 2 + 1,
-      (i) => widget.currentMonday.add(Duration(days: (i - _range) * 7)),
+      (i) => _todayMonday.add(Duration(days: (i - _range) * 7)),
     );
-    // Scroll đến tuần hiện tại (index = _range)
-    _scrollCtrl = ScrollController(
-      initialScrollOffset: _range * 72.0 - 100, // 72px/item, căn giữa
-    );
+
+    final selectedIndex = _weeks.indexWhere((w) => w == _selected);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && selectedIndex >= 0 && _itemScrollController.isAttached) {
+        _itemScrollController.jumpTo(index: selectedIndex, alignment: 0.4);
+      }
+    });
   }
 
-  @override
-  void dispose() {
-    _scrollCtrl.dispose();
-    super.dispose();
-  }
-
-  /// Trả về số tuần ISO (tuần đầu tiên chứa thứ Hai đầu tiên của năm = Tuần 1)
   int _weekNumber(DateTime monday) {
-    // Tìm thứ Hai đầu tiên của năm
     final jan1 = DateTime(monday.year, 1, 1);
-    // weekday: 1=Mon ... 7=Sun
     final daysToFirstMonday = (8 - jan1.weekday) % 7;
     final firstMonday = jan1.add(Duration(days: daysToFirstMonday));
     if (monday.isBefore(firstMonday)) {
-      // Thuộc tuần cuối năm trước
       return _weekNumber(DateTime(monday.year - 1, 12, 28));
     }
     final diff = monday.difference(firstMonday).inDays;
@@ -1110,17 +1185,38 @@ class _WeekPickerDialogState extends State<_WeekPickerDialog> {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         // Header
         Padding(
-          padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+          padding: const EdgeInsets.fromLTRB(20, 16, 12, 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('Chọn tuần',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800)),
-              IconButton(
-                icon: const Icon(Icons.close, size: 20),
-                onPressed: () => Navigator.pop(context),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
+              Row(
+                children: [
+                  TextButton.icon(
+                    onPressed: () => Navigator.pop(context, _todayMonday),
+                    icon: const Icon(Icons.today_rounded,
+                        size: 16, color: AppTheme.primary),
+                    label: const Text('Về tuần này',
+                        style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppTheme.primary)),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(context),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1128,16 +1224,15 @@ class _WeekPickerDialogState extends State<_WeekPickerDialog> {
         const Divider(height: 1),
         // List tuần
         SizedBox(
-          height: 320,
-          child: ListView.builder(
-            controller: _scrollCtrl,
+          height: 340,
+          child: ScrollablePositionedList.builder(
+            itemScrollController: _itemScrollController,
             itemCount: _weeks.length,
             itemBuilder: (ctx, i) {
               final monday = _weeks[i];
               final isSelected = monday == _selected;
-              final isCurrent = monday == widget.currentMonday;
+              final isTodayWeek = monday == _todayMonday;
               final weekNum = _weekNumber(monday);
-              // Hiển thị divider năm khi đây là Tuần 1 của một năm mới
               final isFirstWeekOfYear = weekNum == 1;
 
               return Column(
@@ -1157,7 +1252,7 @@ class _WeekPickerDialogState extends State<_WeekPickerDialog> {
                           padding: const EdgeInsets.symmetric(horizontal: 10),
                           child: Text(
                             '${monday.year}',
-                            style: TextStyle(
+                            style: const TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
                               color: AppTheme.primary,
@@ -1185,27 +1280,59 @@ class _WeekPickerDialogState extends State<_WeekPickerDialog> {
                       decoration: BoxDecoration(
                         color: isSelected
                             ? AppTheme.primary
-                            : (isCurrent
+                            : (isTodayWeek
                                 ? AppTheme.primaryFixed
                                 : Colors.transparent),
                         borderRadius: BorderRadius.circular(12),
+                        border: isTodayWeek && !isSelected
+                            ? Border.all(
+                                color: AppTheme.primary.withOpacity(0.4),
+                                width: 1.5)
+                            : null,
                       ),
                       child: Row(children: [
-                        // Nội dung tuần
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(
-                                'Tuần $weekNum',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w800,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : AppTheme.onSurface,
-                                ),
+                              Row(
+                                children: [
+                                  Text(
+                                    'Tuần $weekNum',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w800,
+                                      color: isSelected
+                                          ? Colors.white
+                                          : AppTheme.onSurface,
+                                    ),
+                                  ),
+                                  if (isTodayWeek) ...[
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: isSelected
+                                            ? Colors.white.withOpacity(0.25)
+                                            : AppTheme.primary
+                                                .withOpacity(0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        'Tuần này',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: isSelected
+                                              ? Colors.white
+                                              : AppTheme.primary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
                               const SizedBox(height: 2),
                               Text(
@@ -1218,13 +1345,6 @@ class _WeekPickerDialogState extends State<_WeekPickerDialog> {
                                       : AppTheme.onSurfaceVariant,
                                 ),
                               ),
-                              if (isCurrent && !isSelected)
-                                Text('Tuần hiện tại',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      color: AppTheme.primary,
-                                      fontWeight: FontWeight.w600,
-                                    )),
                             ],
                           ),
                         ),
@@ -1472,7 +1592,7 @@ class _ScheduleCardFull extends StatelessWidget {
             if (lichHoc.giaoVien.isNotEmpty)
               _Chip(Icons.person_outline, lichHoc.giaoVien),
           ]),
-          if (lichHoc.note != null && lichHoc.note!.isNotEmpty) ...[
+          if (lichHoc.note.isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -1488,7 +1608,7 @@ class _ScheduleCardFull extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      lichHoc.note!,
+                      lichHoc.note,
                       style: const TextStyle(
                         fontSize: 11,
                         fontStyle: FontStyle.italic,
