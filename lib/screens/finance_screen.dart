@@ -78,7 +78,7 @@ class FinanceScreen extends StatelessWidget {
                                 onTap: () {
                                   showHelpDialog(
                                     context: context,
-                                    title: 'Hướng dẫn Tài chính',
+                                    title: 'Hướng dẫn nộp học phí',
                                     child: const FinanceHelpSheet(),
                                   );
                                 },

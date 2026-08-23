@@ -133,7 +133,7 @@ class _GradesScreenState extends State<GradesScreen> {
                             onTap: () {
                               showHelpDialog(
                                 context: context,
-                                title: 'Hướng dẫn Điểm học tập',
+                                title: 'Quy chế & Công thức tính điểm',
                                 child: const GradeHelpSheet(),
                               );
                             },
