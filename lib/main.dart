@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+
 import 'providers/app_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
@@ -22,7 +24,8 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
 }
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: AppTheme.surface,
@@ -126,29 +129,71 @@ class SchedifyApp extends StatelessWidget {
       );
 }
 
-class AppRouter extends StatelessWidget {
+class AppRouter extends StatefulWidget {
   const AppRouter({super.key});
+
+  @override
+  State<AppRouter> createState() => _AppRouterState();
+}
+
+class _AppRouterState extends State<AppRouter> {
+  bool _authFinished = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initAuth();
+  }
+
+  Future<void> _initAuth() async {
+    final p = context.read<AppProvider>();
+    await p.authReady;
+    if (mounted) {
+      setState(() {
+        _authFinished = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final p = context.watch<AppProvider>();
-    final child = switch (p.authState) {
-      AuthState.unknown => const _SplashScreen(key: ValueKey('splash')),
-      AuthState.loggedOut => const LoginScreen(key: ValueKey('login')),
-      AuthState.loggedIn => const MainShell(key: ValueKey('main')),
-    };
+
+    final Widget child;
+    if (!_authFinished || p.authState == AuthState.unknown) {
+      child = const _SplashScreen(key: ValueKey('splash'));
+    } else if (p.authState == AuthState.loggedOut) {
+      child = const LoginScreen(key: ValueKey('login'));
+    } else {
+      child = const MainShell(key: ValueKey('main'));
+    }
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 350),
-      switchInCurve: Curves.easeOut,
-      switchOutCurve: Curves.easeIn,
+      duration: const Duration(milliseconds: 300),
+      transitionBuilder: (child, animation) => FadeTransition(
+        opacity: animation,
+        child: child,
+      ),
       child: child,
     );
   }
 }
 
-class _SplashScreen extends StatelessWidget {
+class _SplashScreen extends StatefulWidget {
   const _SplashScreen({super.key});
+
+  @override
+  State<_SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<_SplashScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FlutterNativeSplash.remove();
+    });
+  }
 
   @override
   Widget build(BuildContext context) => Scaffold(
@@ -161,6 +206,7 @@ class _SplashScreen extends StatelessWidget {
                 width: 88,
                 height: 88,
                 decoration: BoxDecoration(
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: [
                     BoxShadow(
@@ -172,11 +218,12 @@ class _SplashScreen extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(24),
-                  child: Image.asset(
-                    'assets/logo.png',
-                    width: 88,
-                    height: 88,
-                    fit: BoxFit.cover,
+                  child: Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: Image.asset(
+                      'assets/logo.png',
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ),
               ),

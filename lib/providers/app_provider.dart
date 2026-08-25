@@ -42,6 +42,10 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   DateTime?
       _lastSyncTime; // Theo dõi lần sync cuối để tránh sync quá thường xuyên
 
+  // ── Completer theo dõi thời điểm auth check hoàn tất ────────────
+  Completer<void> _authCompleter = Completer<void>();
+  Future<void> get authReady => _authCompleter.future;
+
   // ── Getters ─────────────────────────────
   AuthState get authState => _authState;
   String get currentMssv => _currentMssv;
@@ -80,6 +84,9 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   // ── Methods ─────────────────────────────
 
   Future<void> init() async {
+    if (_authCompleter.isCompleted) {
+      _authCompleter = Completer<void>();
+    }
     _authState = AuthState.unknown;
     notifyListeners();
 
@@ -110,6 +117,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
           await _loadFromCache();
           _authState = AuthState.loggedIn;
           notifyListeners();
+          if (!_authCompleter.isCompleted) _authCompleter.complete();
 
           // Login nền và sync ngầm ở background, KHÔNG await làm đơ UI frame 1
           unawaited(_asyncBackgroundLoginAndSync(mssv, pw, prefs));
@@ -124,14 +132,13 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         await _loadFromCache();
         await _syncStudent();
       } else {
-        // Đảm bảo Splash Screen hiển thị mượt mà tối thiểu 400ms, tránh chớp nháy 16ms
-        await Future.delayed(const Duration(milliseconds: 400));
         _authState = AuthState.loggedOut;
       }
     } catch (e) {
       _authError = 'Lỗi khởi tạo: $e';
       _authState = AuthState.loggedOut;
     }
+    if (!_authCompleter.isCompleted) _authCompleter.complete();
     notifyListeners();
   }
 

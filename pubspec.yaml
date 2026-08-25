@@ -42,7 +42,8 @@ dependencies:
   crypto: ^3.0.3
   url_launcher: ^6.3.0
   mailer: ^6.1.0
-  path_provider: ^2.1.3
+  # Splash Screen
+  flutter_native_splash: ^2.4.1
 
 dev_dependencies:
   flutter_test:
@@ -56,8 +57,21 @@ flutter:
   assets:
     - assets/qrcode_itsvantruongg.github.io.png
     - assets/logo.png
+    - assets/splash_logo_pre12.png
+    - assets/splash_logo_android12.png
 
-flutter_icons:
+flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/logo.png" # Đường dẫn tới bức ảnh bạn vừa bỏ vào
+  image_path: "assets/logo.png"
+
+flutter_native_splash:
+  color: "#FFFFFF"
+  image: assets/splash_logo_pre12.png
+  ios: true
+  android_12:
+    image: assets/splash_logo_android12.png
+    color: "#FFFFFF"
+    icon_background_color: "#FFFFFF"
+
+

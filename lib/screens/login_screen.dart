@@ -146,6 +146,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             width: 72,
                             height: 72,
                             decoration: BoxDecoration(
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
@@ -157,11 +158,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             child: ClipRRect(
                               borderRadius: BorderRadius.circular(20),
-                              child: Image.asset(
-                                'assets/logo.png',
-                                width: 72,
-                                height: 72,
-                                fit: BoxFit.cover,
+                              child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Image.asset(
+                                  'assets/logo.png',
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
                           ),

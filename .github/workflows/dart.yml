@@ -17,6 +17,9 @@ jobs:
           
       - run: flutter pub get
 
+      - name: Generate native splash
+        run: dart run flutter_native_splash:create
+
       # Bỏ hẳn step "Create Podfile if missing" cũ đi và thay bằng step này
       # Step này sẽ ghi đè file Podfile chuẩn (hỗ trợ đường dẫn động) vào thư mục ios/
       - name: Generate correct Podfile
