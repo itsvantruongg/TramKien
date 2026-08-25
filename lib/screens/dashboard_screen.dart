@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
@@ -57,15 +56,21 @@ class DashboardScreen extends StatelessWidget {
                                       .bodyMedium
                                       ?.copyWith(
                                           color: AppTheme.onSurfaceVariant)),
-                              Text(
-                                p.student?.hoTen ?? 'Sinh viên',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineMedium
-                                    ?.copyWith(
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: -0.5),
-                              ),
+                              if (!p.isCacheLoaded && p.student == null)
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 4),
+                                  child: SkeletonBox(width: 180, height: 28),
+                                )
+                              else
+                                Text(
+                                  p.student?.hoTen ?? 'Sinh viên',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .headlineMedium
+                                      ?.copyWith(
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.5),
+                                ),
                               const SizedBox(height: 4),
                               Text('HK${p.currentHocKy} · ${p.namHocLabel}',
                                   style: Theme.of(context)

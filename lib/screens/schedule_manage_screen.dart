@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../providers/schedule_provider.dart';
@@ -174,7 +173,8 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
         title: Text('Quản lý lịch học & thi',
-            style: GoogleFonts.manrope(
+            style: TextStyle(
+                fontFamily: 'Manrope',
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
                 color: AppTheme.primary)),
@@ -387,7 +387,8 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
                         children: [
                           Text(
                             item.title,
-                            style: GoogleFonts.manrope(
+                            style: TextStyle(
+                              fontFamily: 'Manrope',
                               fontWeight: FontWeight.w800,
                               fontSize: 15,
                               color: isCardDisabled
@@ -661,7 +662,8 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(item.title,
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.manrope(
+                    style: TextStyle(
+                        fontFamily: 'Manrope',
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                         color: AppTheme.primary)),
@@ -707,7 +709,8 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('THÊM HỌC PHẦN THỦ CÔNG',
-                  style: GoogleFonts.manrope(
+                  style: TextStyle(
+                      fontFamily: 'Manrope',
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
                       color: AppTheme.primary)),
@@ -772,7 +775,9 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text('Ghi chú môn học',
-            style: GoogleFonts.manrope(fontWeight: FontWeight.w800)),
+            style: TextStyle(
+                fontFamily: 'Manrope',
+                fontWeight: FontWeight.w800)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

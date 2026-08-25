@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../theme/app_theme.dart';
@@ -98,7 +97,8 @@ class FinanceScreen extends StatelessWidget {
                                       fontWeight: FontWeight.w700)),
                               const SizedBox(height: 8),
                               Text(_fmt(p.tongHocPhiAllDaDong, f),
-                                  style: GoogleFonts.manrope(
+                                  style: TextStyle(
+                                      fontFamily: 'Manrope',
                                       fontSize: 32,
                                       fontWeight: FontWeight.w800,
                                       color: Colors.white,

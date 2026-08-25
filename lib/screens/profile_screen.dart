@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
@@ -162,7 +161,7 @@ class ProfileScreen extends StatelessWidget {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
               title: Text('Đăng xuất?',
-                  style: GoogleFonts.manrope(fontWeight: FontWeight.w700)),
+                  style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700)),
               content: const Text('Dữ liệu đã tải về sẽ bị xóa.'),
               actions: [
                 TextButton(

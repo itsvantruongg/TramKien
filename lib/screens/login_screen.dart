@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
@@ -170,7 +169,8 @@ class _LoginScreenState extends State<LoginScreen> {
                           const SizedBox(height: 22),
 
                           Text('Đại học Kiến trúc Hà Nội',
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 fontSize: 24,
                                 fontWeight: FontWeight.w800,
                                 color: const Color(0xFF1E3B59),
@@ -178,7 +178,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               )),
                           const SizedBox(height: 4),
                           Text('Đăng nhập bằng tài khoản trường cấp',
-                              style: GoogleFonts.manrope(
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
                                 fontSize: 13,
                                 color: const Color(0xFF1E3B59).withOpacity(0.75),
                                 fontWeight: FontWeight.w600,
@@ -273,14 +274,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text('Ghi nhớ đăng nhập',
-                                                style: GoogleFonts.manrope(
+                                                style: TextStyle(
+                                                  fontFamily: 'Manrope',
                                                   fontSize: 13,
                                                   fontWeight: FontWeight.w600,
                                                   color: AppTheme.onSurface,
                                                 )),
                                             Text(
                                                 'Tự động đăng nhập lần sau, xem được khi không có mạng',
-                                                style: GoogleFonts.manrope(
+                                                style: TextStyle(
+                                                  fontFamily: 'Manrope',
                                                   fontSize: 10,
                                                   color: AppTheme.onSurfaceVariant,
                                                 )),
@@ -322,7 +325,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                                     MainAxisAlignment.center,
                                                 children: [
                                                     Text('Đăng nhập',
-                                                        style: GoogleFonts.manrope(
+                                                        style: TextStyle(
+                                                          fontFamily: 'Manrope',
                                                           fontSize: 16,
                                                           fontWeight: FontWeight.w700,
                                                           color: Colors.white,

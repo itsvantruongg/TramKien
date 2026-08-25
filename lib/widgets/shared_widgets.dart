@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
@@ -885,6 +884,40 @@ class TuitionWarningCard extends StatelessWidget {
                   height: 1.35,
                 ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Skeleton Loaders ──────────────────────────────────────────
+
+class DashboardCardSkeleton extends StatelessWidget {
+  const DashboardCardSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              SkeletonBox(width: 140, height: 16),
+              SkeletonBox(width: 60, height: 16),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const SkeletonBox(width: double.infinity, height: 48, radius: 12),
         ],
       ),
     );

@@ -4,7 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:google_fonts/google_fonts.dart';
+
 
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
@@ -137,7 +137,7 @@ class AppRouter extends StatefulWidget {
 }
 
 class _AppRouterState extends State<AppRouter> {
-  bool _authFinished = false;
+  bool _quickAuthDone = false;
 
   @override
   void initState() {
@@ -147,10 +147,13 @@ class _AppRouterState extends State<AppRouter> {
 
   Future<void> _initAuth() async {
     final p = context.read<AppProvider>();
-    await p.authReady;
+    await p.quickAuthReady;
     if (mounted) {
       setState(() {
-        _authFinished = true;
+        _quickAuthDone = true;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        FlutterNativeSplash.remove();
       });
     }
   }
@@ -160,8 +163,12 @@ class _AppRouterState extends State<AppRouter> {
     final p = context.watch<AppProvider>();
 
     final Widget child;
-    if (!_authFinished || p.authState == AuthState.unknown) {
-      child = const _SplashScreen(key: ValueKey('splash'));
+    if (!_quickAuthDone || p.authState == AuthState.unknown) {
+      child = const Scaffold(
+        key: ValueKey('splash_holder'),
+        backgroundColor: Colors.white,
+        body: SizedBox.expand(),
+      );
     } else if (p.authState == AuthState.loggedOut) {
       child = const LoginScreen(key: ValueKey('login'));
     } else {
@@ -169,7 +176,7 @@ class _AppRouterState extends State<AppRouter> {
     }
 
     return AnimatedSwitcher(
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 250),
       transitionBuilder: (child, animation) => FadeTransition(
         opacity: animation,
         child: child,
@@ -177,86 +184,4 @@ class _AppRouterState extends State<AppRouter> {
       child: child,
     );
   }
-}
-
-class _SplashScreen extends StatefulWidget {
-  const _SplashScreen({super.key});
-
-  @override
-  State<_SplashScreen> createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<_SplashScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      FlutterNativeSplash.remove();
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: Colors.white,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.12),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(24),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: Image.asset(
-                      'assets/logo.png',
-                      fit: BoxFit.contain,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Trạm Kiến',
-                style: GoogleFonts.manrope(
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF1E3B59),
-                  letterSpacing: -0.5,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Trợ Lý Học Tập HAU',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF1E3B59).withOpacity(0.7),
-                ),
-              ),
-              const SizedBox(height: 40),
-              const SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(
-                  strokeWidth: 3,
-                  color: Color(0xFF1E3B59),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
 }

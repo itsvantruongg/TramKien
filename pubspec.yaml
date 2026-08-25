@@ -11,7 +11,6 @@ dependencies:
     sdk: flutter
 
   # UI
-  google_fonts: ^6.1.0
   material_symbols_icons: ^4.2719.1
   flutter_math_fork: ^0.7.2
   scrollable_positioned_list: ^0.3.8
@@ -59,6 +58,26 @@ flutter:
     - assets/logo.png
     - assets/splash_logo_pre12.png
     - assets/splash_logo_android12.png
+
+  fonts:
+    - family: Manrope
+      fonts:
+        - asset: assets/fonts/Manrope-Regular.ttf
+        - asset: assets/fonts/Manrope-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Manrope-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/Manrope-ExtraBold.ttf
+          weight: 800
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
 
 flutter_launcher_icons:
   android: true

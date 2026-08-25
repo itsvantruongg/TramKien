@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // ── Color tokens từ DESIGN.md ──
@@ -44,55 +43,70 @@ class AppTheme {
   // ── Typography: 10 Bậc chuẩn (Manrope cho Headlines/Display, Inter cho Body/Label) ──
   static TextTheme _buildTextTheme(double scale) => TextTheme(
         // 48px: Hero number (GPA, số liệu chính)
-        displayMedium: GoogleFonts.manrope(
+        displayMedium: TextStyle(
+            fontFamily: 'Manrope',
             fontSize: 48 * scale, fontWeight: FontWeight.w800),
-        displayLarge: GoogleFonts.manrope(
+        displayLarge: TextStyle(
+            fontFamily: 'Manrope',
             fontSize: 48 * scale, fontWeight: FontWeight.w800),
-        displaySmall: GoogleFonts.manrope(
+        displaySmall: TextStyle(
+            fontFamily: 'Manrope',
             fontSize: 32 * scale, fontWeight: FontWeight.w700),
         // 32px: Số tiền / GPA card vừa
-        headlineLarge: GoogleFonts.manrope(
+        headlineLarge: TextStyle(
+            fontFamily: 'Manrope',
             fontSize: 32 * scale, fontWeight: FontWeight.w700),
         // 28px: Tiêu đề màn hình chính, thống kê tổng
-        headlineMedium: GoogleFonts.manrope(
+        headlineMedium: TextStyle(
+            fontFamily: 'Manrope',
             fontSize: 28 * scale, fontWeight: FontWeight.w700),
         // 24px: Tiêu đề section quan trọng
-        headlineSmall: GoogleFonts.manrope(
+        headlineSmall: TextStyle(
+            fontFamily: 'Manrope',
             fontSize: 24 * scale, fontWeight: FontWeight.w700),
         // 22px: AppBar title lớn, card title quan trọng
-        titleLarge: GoogleFonts.manrope(
+        titleLarge: TextStyle(
+            fontFamily: 'Manrope',
             fontSize: 22 * scale, fontWeight: FontWeight.w600),
         // 16px: Tên môn học, tiêu đề card vừa
-        titleMedium: GoogleFonts.inter(
+        titleMedium: TextStyle(
+            fontFamily: 'Inter',
             fontSize: 16 * scale,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.15),
         // 14px: Tên item, body text chính
-        titleSmall: GoogleFonts.inter(
+        titleSmall: TextStyle(
+            fontFamily: 'Inter',
             fontSize: 14 * scale,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.1),
         // 16px: Body text lớn
-        bodyLarge: GoogleFonts.inter(
+        bodyLarge: TextStyle(
+            fontFamily: 'Inter',
             fontSize: 16 * scale, fontWeight: FontWeight.w400),
         // 14px: Body text vừa
-        bodyMedium: GoogleFonts.inter(
+        bodyMedium: TextStyle(
+            fontFamily: 'Inter',
             fontSize: 14 * scale, fontWeight: FontWeight.w400),
         // 12px: Chú thích phụ, chip info, sub-score
-        bodySmall: GoogleFonts.inter(
+        bodySmall: TextStyle(
+            fontFamily: 'Inter',
             fontSize: 12 * scale, fontWeight: FontWeight.w400),
         // 14px: Button label
-        labelLarge: GoogleFonts.inter(
+        labelLarge: TextStyle(
+            fontFamily: 'Inter',
             fontSize: 14 * scale,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.1),
         // 12px: Label medium, tab bar
-        labelMedium: GoogleFonts.inter(
+        labelMedium: TextStyle(
+            fontFamily: 'Inter',
             fontSize: 12 * scale,
             fontWeight: FontWeight.w500,
             letterSpacing: 0.5),
         // 10px: Label in hoa, subtitle AppBar, badge nhỏ
-        labelSmall: GoogleFonts.inter(
+        labelSmall: TextStyle(
+            fontFamily: 'Inter',
             fontSize: 10 * scale,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.5),
@@ -151,7 +165,8 @@ class AppTheme {
         backgroundColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        titleTextStyle: GoogleFonts.manrope(
+        titleTextStyle: TextStyle(
+          fontFamily: 'Manrope',
           fontSize: 20 * s,
           fontWeight: FontWeight.w800,
           color: primary,
@@ -174,7 +189,8 @@ class AppTheme {
       // Chips
       chipTheme: ChipThemeData(
         backgroundColor: surfaceContainerLow,
-        labelStyle: GoogleFonts.inter(
+        labelStyle: TextStyle(
+            fontFamily: 'Inter',
             fontSize: 10 * s, fontWeight: FontWeight.w700, letterSpacing: 1.5),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
         padding: EdgeInsets.symmetric(horizontal: 12 * s, vertical: 4 * s),
@@ -186,7 +202,7 @@ class AppTheme {
         height: 72 * s,
         indicatorColor: primary.withOpacity(0.1),
         labelTextStyle: WidgetStateProperty.all(
-          GoogleFonts.inter(fontSize: 0),
+          const TextStyle(fontFamily: 'Inter', fontSize: 0),
         ),
       ),
     );
@@ -195,7 +211,8 @@ class AppTheme {
 
 extension AppTextThemeExtension on TextTheme {
   /// Token 18px Manrope w700 cho AppBar branding title, KPI số vừa
-  TextStyle get titleBrand => GoogleFonts.manrope(
+  TextStyle get titleBrand => const TextStyle(
+        fontFamily: 'Manrope',
         fontSize: 18,
         fontWeight: FontWeight.w700,
       );

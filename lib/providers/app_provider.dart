@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
@@ -42,9 +41,15 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   DateTime?
       _lastSyncTime; // Theo dõi lần sync cuối để tránh sync quá thường xuyên
 
-  // ── Completer theo dõi thời điểm auth check hoàn tất ────────────
+  // ── Completer theo dõi thời điểm auth check nhanh hoàn tất ────────
+  Completer<void> _quickAuthCompleter = Completer<void>();
+  Future<void> get quickAuthReady => _quickAuthCompleter.future;
+
+  // ── Completer theo dõi thời điểm toàn bộ init hoàn tất ─────────
   Completer<void> _authCompleter = Completer<void>();
   Future<void> get authReady => _authCompleter.future;
+
+  bool _isCacheLoaded = false;
 
   // ── Getters ─────────────────────────────
   AuthState get authState => _authState;
@@ -53,6 +58,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   Student? get student => _student;
   bool get isSyncing => _isSyncing;
   bool get notifEnabled => _notifEnabled;
+  bool get isCacheLoaded => _isCacheLoaded;
   int get curriculumTotalCredits => _curriculumMandatoryCredits;
   int get unreadNotifCount => _unreadNotifCount;
   List<AppNotif> get notifications => _notifications;
@@ -83,21 +89,13 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   // ── Methods ─────────────────────────────
 
-  Future<void> init() async {
-    if (_authCompleter.isCompleted) {
-      _authCompleter = Completer<void>();
+  /// Kiểm tra Auth nhanh chỉ từ SharedPreferences để quyết định Route tức thì
+  Future<void> quickAuthCheck() async {
+    if (_quickAuthCompleter.isCompleted) {
+      _quickAuthCompleter = Completer<void>();
     }
-    _authState = AuthState.unknown;
-    notifyListeners();
 
     try {
-      // Preload hai bộ font chính (Manrope & Inter) trong lúc Splash Screen đang hiển thị
-      await GoogleFonts.pendingFonts([
-        GoogleFonts.manrope(),
-        GoogleFonts.inter(),
-      ]);
-
-      // Thử auto-login bằng credentials đã lưu
       final prefs = await SharedPreferences.getInstance();
       final remember = prefs.getBool(_kRemember) ?? false;
       if (remember) {
@@ -105,22 +103,9 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         final pw = prefs.getString(_kPw) ?? '';
         if (mssv.isNotEmpty && pw.isNotEmpty) {
           _currentMssv = mssv;
-          await DatabaseService.setMssv(mssv);
-          NotificationService.setMssv(mssv);
-          await NotificationService.ensureNotifStartTime(mssv);
-          gradeProvider.setMssv(mssv);
-          scheduleProvider.setMssv(mssv);
-          // Load notification state
-          _notifEnabled =
-              await LocalNotificationService.isNotificationEnabled(mssv);
-          // Load cache trước khi login để show data ngay
-          await _loadFromCache();
           _authState = AuthState.loggedIn;
           notifyListeners();
-          if (!_authCompleter.isCompleted) _authCompleter.complete();
-
-          // Login nền và sync ngầm ở background, KHÔNG await làm đơ UI frame 1
-          unawaited(_asyncBackgroundLoginAndSync(mssv, pw, prefs));
+          if (!_quickAuthCompleter.isCompleted) _quickAuthCompleter.complete();
           return;
         }
       }
@@ -128,9 +113,6 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       final isLoggedIn = HauApiService.isLoggedIn;
       if (isLoggedIn) {
         _authState = AuthState.loggedIn;
-        // NOTE: we might not know MSSV if we didn't save it and just check isLoggedIn
-        await _loadFromCache();
-        await _syncStudent();
       } else {
         _authState = AuthState.loggedOut;
       }
@@ -138,6 +120,46 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       _authError = 'Lỗi khởi tạo: $e';
       _authState = AuthState.loggedOut;
     }
+
+    if (!_quickAuthCompleter.isCompleted) _quickAuthCompleter.complete();
+    notifyListeners();
+  }
+
+  /// Khởi tạo dữ liệu nặng (load DB cache, sync nền, font) SAU KHI đã route
+  Future<void> init() async {
+    if (_authCompleter.isCompleted) {
+      _authCompleter = Completer<void>();
+    }
+
+    // 1. Chạy auth check nhanh trước để route tức thì
+    await quickAuthCheck();
+
+    try {
+      // 2. Chạy các tác vụ nạp dữ liệu nặng nếu đã đăng nhập
+      if (_authState == AuthState.loggedIn && _currentMssv.isNotEmpty) {
+        await DatabaseService.setMssv(_currentMssv);
+        NotificationService.setMssv(_currentMssv);
+        await NotificationService.ensureNotifStartTime(_currentMssv);
+        gradeProvider.setMssv(_currentMssv);
+        scheduleProvider.setMssv(_currentMssv);
+
+        _notifEnabled =
+            await LocalNotificationService.isNotificationEnabled(_currentMssv);
+
+        // Load cache SQLite hiển thị lên UI (dùng skeleton loader nếu chưa xong)
+        await _loadFromCache();
+        _isCacheLoaded = true;
+        notifyListeners();
+
+        final prefs = await SharedPreferences.getInstance();
+        final pw = prefs.getString(_kPw) ?? '';
+        // Sync ngầm ở background không chặn UI
+        unawaited(_asyncBackgroundLoginAndSync(_currentMssv, pw, prefs));
+      }
+    } catch (e) {
+      debugPrint('⚠️ Lỗi init dữ liệu nặng: $e');
+    }
+
     if (!_authCompleter.isCompleted) _authCompleter.complete();
     notifyListeners();
   }
