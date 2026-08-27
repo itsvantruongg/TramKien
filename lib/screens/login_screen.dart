@@ -17,6 +17,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _obscure = true;
   bool _loading = false;
   bool _remember = false;
+  String? _mssvError;
+  String? _pwError;
 
 
   @override
@@ -49,6 +51,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _login() async {
     final mssv = _mssvCtrl.text.trim();
     final pw = _pwCtrl.text;
+
+    setState(() {
+      _mssvError = mssv.isEmpty ? 'Vui lòng nhập mã sinh viên' : null;
+      _pwError = pw.isEmpty ? 'Vui lòng nhập mật khẩu' : null;
+    });
+
     if (mssv.isEmpty || pw.isEmpty) return;
 
     setState(() => _loading = true);
@@ -205,9 +213,15 @@ class _LoginScreenState extends State<LoginScreen> {
                                     controller: _mssvCtrl,
                                     keyboardType: TextInputType.text,
                                     textInputAction: TextInputAction.next,
+                                    onChanged: (_) {
+                                      if (_mssvError != null) {
+                                        setState(() => _mssvError = null);
+                                      }
+                                    },
                                     decoration: _inputDeco(
                                       hint: 'Nhập mã sinh viên',
                                       icon: Icons.person_outline,
+                                      errorText: _mssvError,
                                     ),
                                   ),
                                   const SizedBox(height: 20),
@@ -225,10 +239,16 @@ class _LoginScreenState extends State<LoginScreen> {
                                     controller: _pwCtrl,
                                     obscureText: _obscure,
                                     textInputAction: TextInputAction.done,
+                                    onChanged: (_) {
+                                      if (_pwError != null) {
+                                        setState(() => _pwError = null);
+                                      }
+                                    },
                                     onSubmitted: (_) => _login(),
                                     decoration: _inputDeco(
                                       hint: 'Nhập mật khẩu',
                                       icon: Icons.lock_outline,
+                                      errorText: _pwError,
                                       suffix: IconButton(
                                         icon: Icon(
                                           _obscure
@@ -399,9 +419,11 @@ class _LoginScreenState extends State<LoginScreen> {
     required String hint,
     required IconData icon,
     Widget? suffix,
+    String? errorText,
   }) =>
       InputDecoration(
         hintText: hint,
+        errorText: errorText,
         prefixIcon: Icon(icon, color: AppTheme.outline),
         suffixIcon: suffix,
         filled: true,
@@ -414,6 +436,14 @@ class _LoginScreenState extends State<LoginScreen> {
           borderRadius: BorderRadius.circular(14),
           borderSide:
               BorderSide(color: AppTheme.primary.withOpacity(0.4), width: 2),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppTheme.error, width: 1.5),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: AppTheme.error, width: 2),
         ),
       );
 }
