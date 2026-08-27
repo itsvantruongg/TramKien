@@ -7,9 +7,7 @@ import 'package:crypto/crypto.dart';
 import '../models/models.dart';
 import 'database_service.dart';
 import 'mock_data.dart';
-import 'api/schedule_api.dart';
-import 'api/grade_api.dart';
-import 'api/finance_api.dart';
+import 'global_api_queue.dart';
 
 // Re-export API classes for easier access
 export 'api/schedule_api.dart';
@@ -223,12 +221,15 @@ class HauApiService {
     try {
       if (_currentMssv == 'admin') return true;
 
-      final r = await http
-          .get(
-            Uri.parse('$base/TrangChu/Home'),
-            headers: _authHeaders,
-          )
-          .timeout(const Duration(seconds: 15));
+      final r = await GlobalApiQueue.instance.enqueue(
+        () => http
+            .get(
+              Uri.parse('$base/TrangChu/Home'),
+              headers: _authHeaders,
+            )
+            .timeout(const Duration(seconds: 45)),
+        priority: RequestPriority.high,
+      );
       _saveCookies(r);
       return r.statusCode == 200 && !isLoginPage(r.body);
     } catch (_) {
@@ -408,12 +409,15 @@ class HauApiService {
         return MockData.student;
       }
 
-      final r = await http
-          .get(
-            Uri.parse('$base/SinhVien/ThongTinSinhVien'),
-            headers: _authHeaders,
-          )
-          .timeout(const Duration(seconds: 15));
+      final r = await GlobalApiQueue.instance.enqueue(
+        () => http
+            .get(
+              Uri.parse('$base/SinhVien/ThongTinSinhVien'),
+              headers: _authHeaders,
+            )
+            .timeout(const Duration(seconds: 45)),
+        priority: RequestPriority.critical,
+      );
 
       _saveCookies(r);
       if (r.statusCode != 200 || r.body.contains('name="Password"')) {
@@ -467,12 +471,15 @@ class HauApiService {
 
   static Future<List<Map<String, String>>> fetchMonCanVote() async {
     try {
-      final r = await http
-          .get(
-            Uri.parse('$base/KhaoSatDanhGia/KhaoSatChatLuongDay'),
-            headers: _authHeaders,
-          )
-          .timeout(const Duration(seconds: 15));
+      final r = await GlobalApiQueue.instance.enqueue(
+        () => http
+            .get(
+              Uri.parse('$base/KhaoSatDanhGia/KhaoSatChatLuongDay'),
+              headers: _authHeaders,
+            )
+            .timeout(const Duration(seconds: 45)),
+        priority: RequestPriority.normal,
+      );
       _saveCookies(r);
 
       final doc = html_parser.parse(r.body);
@@ -491,18 +498,21 @@ class HauApiService {
 
   static Future<String?> fetchIdLopTC(String idMonTC, {int cn = 0}) async {
     try {
-      final r = await http
-          .post(
-            Uri.parse('$base/KhaoSatDanhGia/LoadID_LopTC_By_IDMonTC'),
-            headers: {
-              ..._authHeaders,
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: jsonEncode(
-                {'IDMonTC': int.tryParse(idMonTC) ?? 0, 'ChuyenNganh': cn}),
-          )
-          .timeout(const Duration(seconds: 10));
+      final r = await GlobalApiQueue.instance.enqueue(
+        () => http
+            .post(
+              Uri.parse('$base/KhaoSatDanhGia/LoadID_LopTC_By_IDMonTC'),
+              headers: {
+                ..._authHeaders,
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+              body: jsonEncode(
+                  {'IDMonTC': int.tryParse(idMonTC) ?? 0, 'ChuyenNganh': cn}),
+            )
+            .timeout(const Duration(seconds: 45)),
+        priority: RequestPriority.normal,
+      );
       _saveCookies(r);
       return r.body.trim().replaceAll('"', '');
     } catch (_) {
@@ -513,13 +523,16 @@ class HauApiService {
   static Future<Map<String, int>?> fetchTieuChiInfo(
       String idMonTC, String idLopTC) async {
     try {
-      final r = await http
-          .get(
-            Uri.parse('$base/KhaoSatDanhGia/LoadTieuChiDanhDia'
-                '?IDMonTC=$idMonTC&IDLopTC=$idLopTC&ChuyenNganh=0'),
-            headers: _authHeaders,
-          )
-          .timeout(const Duration(seconds: 10));
+      final r = await GlobalApiQueue.instance.enqueue(
+        () => http
+            .get(
+              Uri.parse('$base/KhaoSatDanhGia/LoadTieuChiDanhDia'
+                  '?IDMonTC=$idMonTC&IDLopTC=$idLopTC&ChuyenNganh=0'),
+              headers: _authHeaders,
+            )
+            .timeout(const Duration(seconds: 45)),
+        priority: RequestPriority.normal,
+      );
       _saveCookies(r);
 
       final body = r.body;
@@ -552,22 +565,25 @@ class HauApiService {
           List.generate(countMax - parentCount, (i) => parentCount + 1 + i);
       final ketQua = '0,${ids.map((id) => 'YK_${mucDo}_$id').join(',')}';
 
-      final r = await http
-          .post(
-            Uri.parse('$base/KhaoSatDanhGia/LuuKetQuaDanhGiaMonHoc'),
-            headers: {
-              ..._authHeaders,
-              'Content-Type': 'application/json',
-              'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: jsonEncode({
-              'KetQua': ketQua,
-              'IDMon': idMonTC,
-              'IDLop': idLopTC,
-              'NhanXet': nhanXet,
-            }),
-          )
-          .timeout(const Duration(seconds: 10));
+      final r = await GlobalApiQueue.instance.enqueue(
+        () => http
+            .post(
+              Uri.parse('$base/KhaoSatDanhGia/LuuKetQuaDanhGiaMonHoc'),
+              headers: {
+                ..._authHeaders,
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+              },
+              body: jsonEncode({
+                'KetQua': ketQua,
+                'IDMon': idMonTC,
+                'IDLop': idLopTC,
+                'NhanXet': nhanXet,
+              }),
+            )
+            .timeout(const Duration(seconds: 45)),
+        priority: RequestPriority.normal,
+      );
       _saveCookies(r);
       return r.body.trim().replaceAll('"', '') == 'True';
     } catch (_) {
@@ -603,12 +619,15 @@ class HauApiService {
   /// khoi, ky, ma, ten, elearning (0/1), tu_chon (0/1), tin_chi, tong_tiet
   static Future<List<Map<String, String>>> fetchChuyenNganhChinh() async {
     try {
-      final r = await http
-          .get(
-            Uri.parse('$base/SinhVien/ChuyenNganhChinh'),
-            headers: authHeaders,
-          )
-          .timeout(const Duration(seconds: 20));
+      final r = await GlobalApiQueue.instance.enqueue(
+        () => http
+            .get(
+              Uri.parse('$base/SinhVien/ChuyenNganhChinh'),
+              headers: authHeaders,
+            )
+            .timeout(const Duration(seconds: 45)),
+        priority: RequestPriority.normal,
+      );
 
       saveCookies(r);
       if (r.statusCode != 200 || r.body.contains('name="Password"')) {

@@ -58,6 +58,7 @@ flutter:
     - assets/logo.png
     - assets/splash_logo_pre12.png
     - assets/splash_logo_android12.png
+    - assets/noti_trans.png
 
   fonts:
     - family: Manrope

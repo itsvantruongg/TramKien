@@ -25,7 +25,7 @@ class LocalNotificationService {
     } catch (_) {}
 
     const androidSettings =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@drawable/ic_notification');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -111,7 +111,7 @@ class LocalNotificationService {
             importance: Importance.max,
             priority: Priority.max,
             showWhen: true,
-            icon: '@mipmap/ic_launcher',
+            icon: '@drawable/ic_notification',
           ),
           iOS: DarwinNotificationDetails(
             presentAlert: true,
@@ -138,7 +138,7 @@ class LocalNotificationService {
             channelDescription: 'Kênh để kiểm tra thông báo',
             importance: Importance.max,
             priority: Priority.max,
-            icon: '@mipmap/ic_launcher',
+            icon: '@drawable/ic_notification',
           ),
           iOS: DarwinNotificationDetails(),
         ),
@@ -420,9 +420,11 @@ class LocalNotificationService {
     if (startDay.isBefore(maxStart)) startDay = maxStart;
 
     // Quét từ startDay đến 14 ngày trong tương lai (đồng bộ với scheduleClasses)
-    final endDay = DateTime(now.year, now.month, now.day).add(const Duration(days: 14));
+    final endDay =
+        DateTime(now.year, now.month, now.day).add(const Duration(days: 14));
 
-    print('[Schedule Cards] Quét và sinh thẻ từ $startDay → $endDay (now=$now)');
+    print(
+        '[Schedule Cards] Quét và sinh thẻ từ $startDay → $endDay (now=$now)');
 
     final dismissed = await NotificationService.getDismissedIds();
     final allNotifs = await NotificationService.getAllRaw();
@@ -430,7 +432,8 @@ class LocalNotificationService {
     final dismissedSet = dismissed.toSet();
 
     final startTimeStr = prefs.getString('notif_start_time_$mssv');
-    final startTime = startTimeStr != null ? DateTime.tryParse(startTimeStr) : null;
+    final startTime =
+        startTimeStr != null ? DateTime.tryParse(startTimeStr) : null;
 
     // Hàm lấy danh sách lớp học/thi theo ngày
     List<LichHoc> getLichHocForDate(DateTime date) {
@@ -462,11 +465,13 @@ class LocalNotificationService {
       // ── 1. THÔNG BÁO TỔNG HỢP (cho ngày mai / ngày học) ──
       // Lên lịch vào lúc 20:00 ngày hôm trước của dateOnly
       final yesterday = dateOnly.subtract(const Duration(days: 1));
-      final notifyAt = DateTime(yesterday.year, yesterday.month, yesterday.day, 20, 0);
-      final summaryId = 'schedule_reminder_${mssv}_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}'; // FIX #6: thêm mssv scope
+      final notifyAt =
+          DateTime(yesterday.year, yesterday.month, yesterday.day, 20, 0);
+      final summaryId =
+          'schedule_reminder_${mssv}_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}'; // FIX #6: thêm mssv scope
 
-
-      if (!dismissedSet.contains(summaryId) && !existingIds.contains(summaryId)) {
+      if (!dismissedSet.contains(summaryId) &&
+          !existingIds.contains(summaryId)) {
         if (startTime == null || !notifyAt.isBefore(startTime)) {
           String body = '';
           if (classes.isNotEmpty) body += '📚 ${classes.length} ca học';
@@ -477,7 +482,8 @@ class LocalNotificationService {
           body += ' vào ngày mai. ';
           final details = <String>[];
           for (var c in classes) details.add('${c.tenHocPhan} (${c.gioHoc})');
-          for (var e in exams) details.add('${e.tenMonHoc} (Thi - ${e.gioBatDau})');
+          for (var e in exams)
+            details.add('${e.tenMonHoc} (Thi - ${e.gioBatDau})');
           body += details.take(3).join(', ');
           if (details.length > 3) {
             body += ' và ${details.length - 3} sự kiện khác...';
@@ -498,7 +504,8 @@ class LocalNotificationService {
 
       // ── 2. NHẮC TRƯỚC 1 TIẾNG TỪNG CA HỌC ──
       for (final c in classes) {
-        final notifId = 'class_reminder_${mssv}_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}_${c.tenHocPhan}';
+        final notifId =
+            'class_reminder_${mssv}_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}_${c.tenHocPhan}';
 
         if (dismissedSet.contains(notifId)) continue;
         if (existingIds.contains(notifId)) continue;
@@ -507,14 +514,16 @@ class LocalNotificationService {
         if (timeParts.length != 2) continue;
         final h = int.tryParse(timeParts[0]) ?? 0;
         final m = int.tryParse(timeParts[1]) ?? 0;
-        final classTime = DateTime(dateOnly.year, dateOnly.month, dateOnly.day, h, m);
+        final classTime =
+            DateTime(dateOnly.year, dateOnly.month, dateOnly.day, h, m);
         final reminderTime = classTime.subtract(const Duration(hours: 1));
 
         if (startTime == null || !reminderTime.isBefore(startTime)) {
           final notif = AppNotif(
             id: notifId,
             title: 'Sắp tới giờ học!',
-            body: 'Môn ${c.tenHocPhan} sẽ bắt đầu lúc ${c.gioHoc} tại phòng ${c.phong}.',
+            body:
+                'Môn ${c.tenHocPhan} sẽ bắt đầu lúc ${c.gioHoc} tại phòng ${c.phong}.',
             targetTab: 1,
             ts: reminderTime,
           );
@@ -524,12 +533,14 @@ class LocalNotificationService {
 
           // Đổ chuông native nếu sự kiện "upcoming" ngay lúc này (đáp ứng tính năng catch-up tức thời khi mở app)
           final isPast = now.isAfter(classTime);
-          final isUpcoming = !isPast && now.isAfter(reminderTime) && now.isBefore(classTime);
+          final isUpcoming =
+              !isPast && now.isAfter(reminderTime) && now.isBefore(classTime);
           if (isUpcoming) {
             await LocalNotificationService.showImmediate(
               id: notifId.hashCode & 0x7FFFFFFF,
               title: 'Sắp tới giờ học!',
-              body: 'Môn ${c.tenHocPhan} sẽ bắt đầu lúc ${c.gioHoc} tại phòng ${c.phong}.',
+              body:
+                  'Môn ${c.tenHocPhan} sẽ bắt đầu lúc ${c.gioHoc} tại phòng ${c.phong}.',
             );
           }
         }
@@ -537,7 +548,8 @@ class LocalNotificationService {
 
       // ── 3. NHẮC TRƯỚC 1 TIẾNG TỪNG CA THI ──
       for (final e in exams) {
-        final notifId = 'exam_reminder_${mssv}_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}_${e.tenMonHoc}';
+        final notifId =
+            'exam_reminder_${mssv}_${dateOnly.year}_${dateOnly.month}_${dateOnly.day}_${e.tenMonHoc}';
 
         if (dismissedSet.contains(notifId)) continue;
         if (existingIds.contains(notifId)) continue;
@@ -546,14 +558,16 @@ class LocalNotificationService {
         if (timeParts.length != 2) continue;
         final h = int.tryParse(timeParts[0]) ?? 0;
         final m = int.tryParse(timeParts[1]) ?? 0;
-        final examTime = DateTime(dateOnly.year, dateOnly.month, dateOnly.day, h, m);
+        final examTime =
+            DateTime(dateOnly.year, dateOnly.month, dateOnly.day, h, m);
         final reminderTime = examTime.subtract(const Duration(hours: 1));
 
         if (startTime == null || !reminderTime.isBefore(startTime)) {
           final notif = AppNotif(
             id: notifId,
             title: 'Sắp tới giờ thi!',
-            body: 'Môn ${e.tenMonHoc} sẽ thi lúc ${e.gioBatDau} tại phòng ${e.phong}.',
+            body:
+                'Môn ${e.tenMonHoc} sẽ thi lúc ${e.gioBatDau} tại phòng ${e.phong}.',
             targetTab: 1,
             ts: reminderTime,
           );
@@ -562,12 +576,14 @@ class LocalNotificationService {
           existingIds.add(notifId);
 
           final isPast = now.isAfter(examTime);
-          final isUpcoming = !isPast && now.isAfter(reminderTime) && now.isBefore(examTime);
+          final isUpcoming =
+              !isPast && now.isAfter(reminderTime) && now.isBefore(examTime);
           if (isUpcoming) {
             await LocalNotificationService.showImmediate(
               id: notifId.hashCode & 0x7FFFFFFF,
               title: 'Sắp tới giờ thi!',
-              body: 'Môn ${e.tenMonHoc} sẽ thi lúc ${e.gioBatDau} tại phòng ${e.phong}.',
+              body:
+                  'Môn ${e.tenMonHoc} sẽ thi lúc ${e.gioBatDau} tại phòng ${e.phong}.',
             );
           }
         }

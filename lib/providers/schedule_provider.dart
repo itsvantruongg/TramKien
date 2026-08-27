@@ -185,9 +185,6 @@ class ScheduleProvider extends ChangeNotifier {
         kyList.add((ky: 2, nam: nam));
       }
 
-      print('🗓️ [LichThi] mssv=$_mssv startYear=$startYear '
-          '→ ${kyList.length} kỳ cần fetch (không skip)');
-
       bool allCached = !forceRefresh;
       if (allCached) {
         for (final k in kyList) {

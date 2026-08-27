@@ -1,48 +1,17 @@
 import 'dart:async';
-import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/models.dart';
 import '../hau_api_service.dart';
-import '../database_service.dart';
 import '../mock_data.dart';
+import '../global_api_queue.dart';
 
 typedef LichHocFetchResult = ({List<LichHoc> items, bool success});
 typedef LichHocScanResult = ({List<LichHoc> items, bool complete});
 typedef LichThiFetchResult = ({List<LichThi> items, bool success});
 typedef LichThiScanResult = ({List<LichThi> items, bool complete});
 
-/// Helper class for limiting concurrent network requests (e.g. max 3 requests at once)
-class ConcurrencyPool {
-  final int maxConcurrent;
-  int _activeCount = 0;
-  final _queue = <Completer<void>>[];
-
-  ConcurrencyPool(this.maxConcurrent);
-
-  Future<T> run<T>(Future<T> Function() task) async {
-    if (_activeCount >= maxConcurrent) {
-      final completer = Completer<void>();
-      _queue.add(completer);
-      await completer.future;
-    }
-    _activeCount++;
-    try {
-      return await task();
-    } finally {
-      _activeCount--;
-      if (_queue.isNotEmpty) {
-        final next = _queue.removeAt(0);
-        next.complete();
-      }
-    }
-  }
-}
-
 class ScheduleApi {
-  // Global concurrency throttle for schedule endpoints (Size 3)
-  static final ConcurrencyPool _pool = ConcurrencyPool(3);
-
   // ── LỊCH HỌC — single fetch ────────────────────────────
 
   static Future<LichHocFetchResult> fetchLichHocWithStatus({
@@ -50,6 +19,7 @@ class ScheduleApi {
     required int namHoc,
     int chuyenNganh = 0,
     int dotHoc = 1,
+    RequestPriority priority = RequestPriority.low,
   }) async {
     try {
       final url =
@@ -63,9 +33,12 @@ class ScheduleApi {
         },
       );
 
-      var r = await http
-          .get(url, headers: HauApiService.authHeaders)
-          .timeout(const Duration(seconds: 25));
+      var r = await GlobalApiQueue.instance.enqueue(
+        () => http
+            .get(url, headers: HauApiService.authHeaders)
+            .timeout(const Duration(seconds: 45)),
+        priority: priority,
+      );
       HauApiService.saveCookies(r);
 
       // Check session expiration / login HTML
@@ -75,9 +48,12 @@ class ScheduleApi {
         if (HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
           final reauthed = await HauApiService.reauthenticateIfNeeded();
           if (reauthed) {
-            r = await http
-                .get(url, headers: HauApiService.authHeaders)
-                .timeout(const Duration(seconds: 25));
+            r = await GlobalApiQueue.instance.enqueue(
+              () => http
+                  .get(url, headers: HauApiService.authHeaders)
+                  .timeout(const Duration(seconds: 45)),
+              priority: priority,
+            );
             HauApiService.saveCookies(r);
           }
         }
@@ -160,6 +136,7 @@ class ScheduleApi {
     required int hocKy,
     required int namHoc,
     String? mssv,
+    RequestPriority priority = RequestPriority.low,
   }) async {
     if (HauApiService.currentMssv == 'admin' && MockData.isEnabled) {
       final prefs = await SharedPreferences.getInstance();
@@ -167,21 +144,22 @@ class ScheduleApi {
       return (items: useSetB ? MockData.getLichHocSetB() : MockData.getLichHoc(), complete: true);
     }
 
-    // 8 đợt × 2 ngành = 16 request chạy qua ConcurrencyPool(3)
+    // 8 đợt × 2 ngành = 16 request chạy qua GlobalApiQueue
     final futures = <Future<LichHocFetchResult>>[];
     for (int dot = 1; dot <= 8; dot++) {
       for (int cn = 0; cn <= 1; cn++) {
-        futures.add(_pool.run(() => _fetchLichHocWithRetry(
+        futures.add(_fetchLichHocWithRetry(
           hocKy: hocKy,
           namHoc: namHoc,
           chuyenNganh: cn,
           dotHoc: dot,
-        )));
+          priority: priority,
+        ));
       }
     }
 
     print('📚 [LichHoc] Bắt đầu fetch: HK$hocKy ${namHoc}-${namHoc + 1} '
-        '(16 requests via ConcurrencyPool poolSize=3)');
+        '(16 requests via GlobalApiQueue priority=$priority)');
 
     final results = await Future.wait(futures);
 
@@ -236,24 +214,15 @@ class ScheduleApi {
     required int namHoc,
     required int chuyenNganh,
     required int dotHoc,
-    int maxAttempts = 3,
+    RequestPriority priority = RequestPriority.low,
   }) async {
-    LichHocFetchResult last = (items: <LichHoc>[], success: false);
-    final random = math.Random();
-    for (int attempt = 0; attempt < maxAttempts; attempt++) {
-      last = await fetchLichHocWithStatus(
-        hocKy: hocKy,
-        namHoc: namHoc,
-        chuyenNganh: chuyenNganh,
-        dotHoc: dotHoc,
-      );
-      if (last.success) return last;
-      if (attempt < maxAttempts - 1) {
-        final delayMs = (400 * (1 << attempt)) + random.nextInt(250);
-        await Future.delayed(Duration(milliseconds: delayMs));
-      }
-    }
-    return last;
+    return fetchLichHocWithStatus(
+      hocKy: hocKy,
+      namHoc: namHoc,
+      chuyenNganh: chuyenNganh,
+      dotHoc: dotHoc,
+      priority: priority,
+    );
   }
 
   static Future<LichHocScanResult> fetchLichHocFromStartWithStatus({
@@ -269,6 +238,7 @@ class ScheduleApi {
         mssv != null ? HauApiService.getNamBatDauFromMssv(mssv) : 2018;
     final now = DateTime.now();
     final currentNamHoc = now.month >= 8 ? now.year : now.year - 1;
+    final currentHocKy = now.month >= 8 ? 1 : 2;
 
     final kyList = <({int ky, int nam})>[];
     for (int nam = startYear; nam <= currentNamHoc; nam++) {
@@ -284,37 +254,37 @@ class ScheduleApi {
     final globalSeen = <String>{};
     bool complete = true;
 
-    const batchSize = 2;
-    for (int start = 0; start < kyList.length; start += batchSize) {
-      final end = (start + batchSize < kyList.length)
-          ? start + batchSize
-          : kyList.length;
-      final batch = kyList.sublist(start, end);
-      final results = await Future.wait(batch.map((k) =>
-          _fetchLichHocSemesterWithRetry(
-              hocKy: k.ky, namHoc: k.nam, mssv: mssv)));
+    final results = await Future.wait(kyList.map((k) {
+      final isCurrent = (k.ky == currentHocKy && k.nam == currentNamHoc);
+      final priority = isCurrent ? RequestPriority.critical : RequestPriority.low;
+      return _fetchLichHocSemesterWithRetry(
+        hocKy: k.ky,
+        namHoc: k.nam,
+        mssv: mssv,
+        priority: priority,
+      );
+    }));
 
-      for (int i = 0; i < batch.length; i++) {
-        final k = batch[i];
-        final result = results[i];
-        final kyLabel = 'HK${k.ky} ${k.nam}-${k.nam + 1}';
+    for (int i = 0; i < kyList.length; i++) {
+      final k = kyList[i];
+      final result = results[i];
+      final kyLabel = 'HK${k.ky} ${k.nam}-${k.nam + 1}';
 
-        if (!result.complete) {
-          complete = false;
-          print('   🔴 $kyLabel: lỗi sau retry');
-        } else if (result.items.isEmpty) {
-          print('   ⚪ $kyLabel: rỗng (chưa có lịch)');
-        } else {
-          final monNames =
-              result.items.map((l) => l.tenHocPhan).toSet().join(', ');
-          print('   🟢 $kyLabel: ${result.items.length} bản ghi → $monNames');
-        }
+      if (!result.complete) {
+        complete = false;
+        print('   🔴 $kyLabel: lỗi sau retry');
+      } else if (result.items.isEmpty) {
+        print('   ⚪ $kyLabel: rỗng (chưa có lịch)');
+      } else {
+        final monNames =
+            result.items.map((l) => l.tenHocPhan).toSet().join(', ');
+        print('   🟢 $kyLabel: ${result.items.length} bản ghi → $monNames');
+      }
 
-        for (final l in result.items) {
-          final key =
-              '${l.tenHocPhan}_${l.namHoc}_${l.hocKy}_${l.thoiGian}_${l.thu}_${l.tiet}_${l.dotHoc}_${l.chuyenNganh}';
-          if (globalSeen.add(key)) allResults.add(l);
-        }
+      for (final l in result.items) {
+        final key =
+            '${l.tenHocPhan}_${l.namHoc}_${l.hocKy}_${l.thoiGian}_${l.thu}_${l.tiet}_${l.dotHoc}_${l.chuyenNganh}';
+        if (globalSeen.add(key)) allResults.add(l);
       }
     }
 
@@ -331,23 +301,14 @@ class ScheduleApi {
     required int hocKy,
     required int namHoc,
     String? mssv,
-    int maxAttempts = 2,
+    RequestPriority priority = RequestPriority.low,
   }) async {
-    LichHocScanResult last = (items: <LichHoc>[], complete: false);
-    final random = math.Random();
-    for (int attempt = 0; attempt < maxAttempts; attempt++) {
-      last = await fetchLichHocAllDotsWithStatus(
-        hocKy: hocKy,
-        namHoc: namHoc,
-        mssv: mssv,
-      );
-      if (last.complete) return last;
-      if (attempt < maxAttempts - 1) {
-        final delayMs = (400 * (1 << attempt)) + random.nextInt(250);
-        await Future.delayed(Duration(milliseconds: delayMs));
-      }
-    }
-    return last;
+    return fetchLichHocAllDotsWithStatus(
+      hocKy: hocKy,
+      namHoc: namHoc,
+      mssv: mssv,
+      priority: priority,
+    );
   }
 
   /// Fetch lịch học cho năm 2025-2026, cả 2 học kỳ, song song
@@ -372,6 +333,7 @@ class ScheduleApi {
   static Future<LichThiFetchResult> fetchLichThiWithStatus({
     required int hocKy,
     required int namHoc,
+    RequestPriority priority = RequestPriority.low,
   }) async {
     if (HauApiService.currentMssv == 'admin' && MockData.isEnabled) {
       if (hocKy == 2 && namHoc == 2024) {
@@ -387,9 +349,12 @@ class ScheduleApi {
         queryParameters: {'HocKy': '$hocKy', 'NamHoc': '$namHoc'},
       );
 
-      var r = await http
-          .get(url, headers: HauApiService.authHeaders)
-          .timeout(const Duration(seconds: 25));
+      var r = await GlobalApiQueue.instance.enqueue(
+        () => http
+            .get(url, headers: HauApiService.authHeaders)
+            .timeout(const Duration(seconds: 45)),
+        priority: priority,
+      );
       HauApiService.saveCookies(r);
 
       if (r.statusCode != 200 ||
@@ -398,21 +363,27 @@ class ScheduleApi {
         if (HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
           final reauthed = await HauApiService.reauthenticateIfNeeded();
           if (reauthed) {
-            r = await http
-                .get(url, headers: HauApiService.authHeaders)
-                .timeout(const Duration(seconds: 25));
+            r = await GlobalApiQueue.instance.enqueue(
+              () => http
+                  .get(url, headers: HauApiService.authHeaders)
+                  .timeout(const Duration(seconds: 45)),
+              priority: priority,
+            );
             HauApiService.saveCookies(r);
           }
         }
         if (r.statusCode != 200 ||
             r.body.length < 200 ||
             HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
-          r = await http
-              .get(
-                Uri.parse('${HauApiService.base}/TraCuuLichThi/Index'),
-                headers: HauApiService.authHeaders,
-              )
-              .timeout(const Duration(seconds: 25));
+          r = await GlobalApiQueue.instance.enqueue(
+            () => http
+                .get(
+                  Uri.parse('${HauApiService.base}/TraCuuLichThi/Index'),
+                  headers: HauApiService.authHeaders,
+                )
+                .timeout(const Duration(seconds: 45)),
+            priority: priority,
+          );
           HauApiService.saveCookies(r);
         }
       }
@@ -504,6 +475,7 @@ class ScheduleApi {
         mssv != null ? HauApiService.getNamBatDauFromMssv(mssv) : 2020;
     final now = DateTime.now();
     final currentNamHoc = now.month >= 8 ? now.year : now.year - 1;
+    final currentHocKy = now.month >= 8 ? 1 : 2;
 
     final kyList = <({int ky, int nam})>[];
     for (int nam = startYear; nam <= currentNamHoc; nam++) {
@@ -517,30 +489,30 @@ class ScheduleApi {
     final allLichThi = <LichThi>[];
     bool complete = true;
 
-    const batchSize = 4;
-    for (int start = 0; start < kyList.length; start += batchSize) {
-      final end = (start + batchSize < kyList.length)
-          ? start + batchSize
-          : kyList.length;
-      final batch = kyList.sublist(start, end);
-      final results = await Future.wait(batch.map(
-          (k) => _pool.run(() => _fetchLichThiSemesterWithRetry(hocKy: k.ky, namHoc: k.nam))));
+    final results = await Future.wait(kyList.map((k) {
+      final isCurrent = (k.ky == currentHocKy && k.nam == currentNamHoc);
+      final priority = isCurrent ? RequestPriority.high : RequestPriority.low;
+      return _fetchLichThiSemesterWithRetry(
+        hocKy: k.ky,
+        namHoc: k.nam,
+        priority: priority,
+      );
+    }));
 
-      for (int i = 0; i < batch.length; i++) {
-        final k = batch[i];
-        final result = results[i];
-        final kyLabel = 'HK${k.ky} ${k.nam}-${k.nam + 1}';
+    for (int i = 0; i < kyList.length; i++) {
+      final k = kyList[i];
+      final result = results[i];
+      final kyLabel = 'HK${k.ky} ${k.nam}-${k.nam + 1}';
 
-        if (!result.success) {
-          complete = false;
-          print('   🔴 $kyLabel: lỗi sau retry');
-        } else if (result.items.isEmpty) {
-          print('   ⚪ $kyLabel: rỗng');
-        } else {
-          print('   🟢 $kyLabel: ${result.items.length} lịch thi → '
-              '${result.items.map((t) => t.tenMonHoc).join(', ')}');
-          allLichThi.addAll(result.items);
-        }
+      if (!result.success) {
+        complete = false;
+        print('   🔴 $kyLabel: lỗi sau retry');
+      } else if (result.items.isEmpty) {
+        print('   ⚪ $kyLabel: rỗng');
+      } else {
+        print('   🟢 $kyLabel: ${result.items.length} lịch thi → '
+            '${result.items.map((t) => t.tenMonHoc).join(', ')}');
+        allLichThi.addAll(result.items);
       }
     }
 
@@ -556,18 +528,12 @@ class ScheduleApi {
   static Future<LichThiFetchResult> _fetchLichThiSemesterWithRetry({
     required int hocKy,
     required int namHoc,
-    int maxAttempts = 2,
+    RequestPriority priority = RequestPriority.low,
   }) async {
-    LichThiFetchResult last = (items: <LichThi>[], success: false);
-    final random = math.Random();
-    for (int attempt = 0; attempt < maxAttempts; attempt++) {
-      last = await fetchLichThiWithStatus(hocKy: hocKy, namHoc: namHoc);
-      if (last.success) return last;
-      if (attempt < maxAttempts - 1) {
-        final delayMs = (400 * (1 << attempt)) + random.nextInt(250);
-        await Future.delayed(Duration(milliseconds: delayMs));
-      }
-    }
-    return last;
+    return fetchLichThiWithStatus(
+      hocKy: hocKy,
+      namHoc: namHoc,
+      priority: priority,
+    );
   }
 }

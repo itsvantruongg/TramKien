@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../hau_api_service.dart';
 import '../database_service.dart';
 import '../mock_data.dart';
+import '../global_api_queue.dart';
 
 class FinanceApi {
   // ── PARSE HELPER ──────────────────────────────────────────
@@ -73,12 +74,15 @@ class FinanceApi {
         return;
       }
 
-      var r = await http
-          .get(
-            Uri.parse('${HauApiService.base}/TraCuuHocPhi/Index'),
-            headers: HauApiService.authHeaders,
-          )
-          .timeout(const Duration(seconds: 30));
+      var r = await GlobalApiQueue.instance.enqueue(
+        () => http
+            .get(
+              Uri.parse('${HauApiService.base}/TraCuuHocPhi/Index'),
+              headers: HauApiService.authHeaders,
+            )
+            .timeout(const Duration(seconds: 45)),
+        priority: RequestPriority.normal,
+      );
 
       HauApiService.saveCookies(r);
       if (r.statusCode != 200 ||
@@ -86,12 +90,15 @@ class FinanceApi {
         if (HauApiService.isLoginPage(r.body, statusCode: r.statusCode)) {
           final reauthed = await HauApiService.reauthenticateIfNeeded();
           if (reauthed) {
-            r = await http
-                .get(
-                  Uri.parse('${HauApiService.base}/TraCuuHocPhi/Index'),
-                  headers: HauApiService.authHeaders,
-                )
-                .timeout(const Duration(seconds: 30));
+            r = await GlobalApiQueue.instance.enqueue(
+              () => http
+                  .get(
+                    Uri.parse('${HauApiService.base}/TraCuuHocPhi/Index'),
+                    headers: HauApiService.authHeaders,
+                  )
+                  .timeout(const Duration(seconds: 45)),
+              priority: RequestPriority.normal,
+            );
             HauApiService.saveCookies(r);
           }
         }
