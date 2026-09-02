@@ -144,56 +144,87 @@ class ScheduleApi {
       return (items: useSetB ? MockData.getLichHocSetB() : MockData.getLichHoc(), complete: true);
     }
 
-    // 8 đợt × 2 ngành = 16 request chạy qua GlobalApiQueue
-    final futures = <Future<LichHocFetchResult>>[];
+    print('📚 [LichHoc] Bắt đầu fetch thông minh (Early-Stop): HK$hocKy $namHoc-${namHoc + 1}');
+
+    final allResults = <LichHoc>[];
+    bool complete = true;
+
+    // Batch by Dot: Quét song song cả 2 chuyên ngành (chính & bằng kép) ở từng đợt
     for (int dot = 1; dot <= 8; dot++) {
-      for (int cn = 0; cn <= 1; cn++) {
-        futures.add(_fetchLichHocWithRetry(
+      final dotFutures = [
+        _fetchLichHocWithRetry(
           hocKy: hocKy,
           namHoc: namHoc,
-          chuyenNganh: cn,
+          chuyenNganh: 0,
           dotHoc: dot,
           priority: priority,
-        ));
-      }
-    }
+        ),
+        _fetchLichHocWithRetry(
+          hocKy: hocKy,
+          namHoc: namHoc,
+          chuyenNganh: 1,
+          dotHoc: dot,
+          priority: priority,
+        ),
+      ];
 
-    print('📚 [LichHoc] Bắt đầu fetch: HK$hocKy ${namHoc}-${namHoc + 1} '
-        '(16 requests via GlobalApiQueue priority=$priority)');
+      final dotResults = await Future.wait(dotFutures);
+      bool dotHasItems = false;
 
-    final results = await Future.wait(futures);
-
-    // Log chi tiết từng đợt
-    int reqIdx = 0;
-    bool complete = true;
-    for (int dot = 1; dot <= 8; dot++) {
       for (int cn = 0; cn <= 1; cn++) {
-        final result = results[reqIdx++];
-        if (!result.success) complete = false;
-
-        final list = result.items;
-        if (list.isNotEmpty) {
-          final monNames = list.map((l) => l.tenHocPhan).toSet().join(', ');
+        final r = dotResults[cn];
+        if (!r.success) complete = false;
+        if (r.items.isNotEmpty) {
+          dotHasItems = true;
+          allResults.addAll(r.items);
+          final monNames = r.items.map((l) => l.tenHocPhan).toSet().join(', ');
           print('   ✅ Đợt $dot | CN${cn == 0 ? "Chính" : "Thứ2"}: '
-              '${list.length} bản ghi → $monNames');
+              '${r.items.length} bản ghi → $monNames');
         } else {
           print('   ⚪ Đợt $dot | CN${cn == 0 ? "Chính" : "Thứ2"}: rỗng');
         }
       }
+
+      // Early-Stop Heuristic:
+      // Ở HAU, học kỳ thường chỉ có Đợt 1 và 2. Sau khi đã quét đủ Đợt 1 & 2,
+      // nếu Đợt 3 hoàn toàn không có môn ở cả 2 chuyên ngành -> dừng ngay lập tức, bỏ qua Đợt 4..8.
+      if (dot >= 3 && !dotHasItems) {
+        print('   🛑 [Early-Stop] Đợt $dot rỗng ở cả 2 ngành → kết thúc quét kỳ này.');
+        break;
+      }
     }
 
-    final all = results.expand((r) => r.items).toList();
     final seen = <String>{};
-    final unique = all.where((l) {
+    final unique = allResults.where((l) {
       final key = '${l.tenHocPhan}_${l.thoiGian}_${l.thu}_${l.tiet}';
       return seen.add(key);
     }).toList();
 
-    print('📚 [LichHoc] HK$hocKy ${namHoc}-${namHoc + 1}: '
-        '${all.length} bản ghi thô → ${unique.length} unique '
+    print('📚 [LichHoc] HK$hocKy $namHoc-${namHoc + 1}: '
+        '${allResults.length} bản ghi thô → ${unique.length} unique '
         'complete=$complete');
 
     return (items: unique, complete: complete);
+  }
+
+  /// Thăm dò nhẹ xem học kỳ mới đã có môn học xuất hiện chưa (chỉ tốn đúng 1 request Đợt 1 CN0).
+  /// Trả về true nếu có ít nhất 1 môn học (> 0 rows), false nếu rỗng hoặc lỗi mạng.
+  static Future<bool> probeSemesterHasSchedule({
+    required int hocKy,
+    required int namHoc,
+  }) async {
+    try {
+      final res = await fetchLichHocWithStatus(
+        hocKy: hocKy,
+        namHoc: namHoc,
+        chuyenNganh: 0,
+        dotHoc: 1,
+        priority: RequestPriority.low,
+      );
+      return res.success && res.items.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
   }
 
   static Future<List<LichHoc>> fetchLichHocAllDots({

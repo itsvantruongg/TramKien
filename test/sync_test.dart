@@ -40,7 +40,8 @@ void main() {
               note TEXT DEFAULT '',
               is_manual INTEGER DEFAULT 0,
               fetched_app_version TEXT,
-              synced_at INTEGER
+              synced_at INTEGER,
+              last_seen_at INTEGER
             );
           ''');
 
@@ -65,7 +66,8 @@ void main() {
               note TEXT DEFAULT '',
               is_manual INTEGER DEFAULT 0,
               fetched_app_version TEXT,
-              synced_at INTEGER
+              synced_at INTEGER,
+              last_seen_at INTEGER
             );
           ''');
         },
@@ -128,7 +130,7 @@ void main() {
       );
 
       // CALL PRODUCTION METHOD DIRECTLY with injected db
-      await ScheduleDb.saveLichHoc(newItems, db: db);
+      await ScheduleDb.saveLichHoc(newItems, db: db, softDeleteAfter: true);
 
       // Verify Scope A API records replaced (4 old deleted -> 3 new inserted)
       final scopeAApi =
@@ -309,7 +311,7 @@ void main() {
       );
 
       // CALL PRODUCTION METHOD DIRECTLY with injected db
-      await ScheduleDb.saveLichThi(newItems, db: db);
+      await ScheduleDb.saveLichThi(newItems, db: db, softDeleteAfter: true);
 
       // Verify Scope A: 4 old API deleted, 3 new inserted, 1 manual preserved
       final scopeAApi =

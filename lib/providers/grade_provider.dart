@@ -68,6 +68,10 @@ class GradeProvider extends ChangeNotifier {
   // ── Methods ─────────────────────────────
 
   Future<void> syncDiem({bool forceRefresh = false}) async {
+    if (_diemState) {
+      debugPrint('⚙️ [GradeProvider] Điểm đang đồng bộ, bỏ qua gọi trùng.');
+      return;
+    }
     _diemState = true;
     notifyListeners();
     try {

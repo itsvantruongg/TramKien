@@ -34,14 +34,34 @@ class FinanceScreen extends StatelessWidget {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: AppTheme.primary))
                     : const Icon(Icons.sync_outlined, color: AppTheme.primary),
-                onPressed: () => p.syncFinance(forceRefresh: true),
+                onPressed: () async {
+                  await p.syncFinance(forceRefresh: true);
+                  if (p.lastSyncSkipped && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Đang đồng bộ, vui lòng đợi...'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
                 tooltip: 'Đồng bộ học phí',
               ),
             ],
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => p.syncFinance(),
+              onRefresh: () async {
+                await p.syncFinance();
+                if (p.lastSyncSkipped && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Đang đồng bộ, vui lòng đợi...'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
               child: CustomScrollView(
                 slivers: [
                   // Hero card

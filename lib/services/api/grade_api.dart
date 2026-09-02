@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../models/models.dart';
 import '../hau_api_service.dart';
@@ -393,6 +394,63 @@ class GradeApi {
       }
     }
     return last;
+  }
+
+  /// Bug 5 Fix: Fetch điểm chỉ 2 kỳ gần nhất (HK hiện tại + kỳ liền trước).
+  /// Thay thế fetchDiem() trong background sync để không quét toàn bộ lịch sử.
+  /// Tổng request: 2 lần fetchDiemWithSummary (không có Index/Overview).
+  /// Ghi DB ngay sau mỗi kỳ — mất mạng giữa chừng vẫn lưu được kỳ đã xong.
+  static Future<void> fetchDiemRecentSemester({String? mssv}) async {
+    if (HauApiService.currentMssv == 'admin' && MockData.isEnabled) {
+      // Admin mode: không cần fetch — điểm đã được seed khi login
+      debugPrint('📊 [GradeApi] Admin mode — bỏ qua fetchDiemRecentSemester');
+      return;
+    }
+
+    final now = DateTime.now();
+    // Kỳ hiện tại: tháng >= 8 → HK1; tháng <= 7 → HK2
+    final currentNamHoc = now.month >= 8 ? now.year : now.year - 1;
+    final currentHocKy = now.month >= 8 ? 1 : 2;
+
+    // Kỳ liền trước: HK1 → kỳ trước là HK2 năm học trước; HK2 → kỳ trước là HK1 cùng năm
+    final prevHocKy = currentHocKy == 1 ? 2 : 1;
+    final prevNamHoc = currentHocKy == 1 ? currentNamHoc - 1 : currentNamHoc;
+
+    final kyList = [
+      (ky: currentHocKy, nam: currentNamHoc),
+      (ky: prevHocKy, nam: prevNamHoc),
+    ];
+
+    debugPrint('📊 [GradeApi] fetchDiemRecentSemester: '
+        'HK$currentHocKy $currentNamHoc-${currentNamHoc + 1} + '
+        'HK$prevHocKy $prevNamHoc-${prevNamHoc + 1}');
+
+    for (final k in kyList) {
+      try {
+        final result = await _fetchDiemSemesterWithRetry(
+          hocKy: k.ky,
+          namHoc: k.nam,
+          maxAttempts: 2,
+        );
+        if (result.success && result.diem.isNotEmpty) {
+          // Ghi DB ngay — không đợi kỳ tiếp theo
+          final resolvedMssv = mssv ?? HauApiService.currentMssv;
+          await GradeDb.saveDiem(
+            result.diem.map((d) => d.toMap()).toList(),
+            mssv: (resolvedMssv != null && resolvedMssv.isNotEmpty)
+                ? resolvedMssv
+                : null,
+          );
+          debugPrint('📊 [GradeApi] Đã ghi HK${k.ky} ${k.nam}: '
+              '${result.diem.length} môn');
+        } else {
+          debugPrint('⚠️ [GradeApi] HK${k.ky} ${k.nam}: '
+              'fetch thất bại hoặc rỗng → giữ DB cũ');
+        }
+      } catch (e) {
+        debugPrint('⚠️ [GradeApi] HK${k.ky} ${k.nam} error: $e → giữ DB cũ');
+      }
+    }
   }
 
   /// Fetch TẤT CẢ điểm không giới hạn năm (dùng cho admin/debug)

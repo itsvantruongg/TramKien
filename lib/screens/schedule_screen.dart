@@ -61,7 +61,17 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: AppTheme.primary))
                   : const Icon(Icons.sync_outlined, color: AppTheme.primary),
-              onPressed: () => p.syncSchedule(forceRefresh: true),
+              onPressed: () async {
+                await p.syncSchedule(forceRefresh: true);
+                if (p.lastSyncSkipped && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Đang đồng bộ, vui lòng đợi...'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
               tooltip: 'Đồng bộ lịch',
             ),
           ],
@@ -1080,7 +1090,17 @@ class _WeekViewState extends State<_WeekView> {
       // Schedule list for selected day
       Expanded(
           child: RefreshIndicator(
-        onRefresh: () => p.syncSchedule(),
+        onRefresh: () async {
+          await p.syncSchedule();
+          if (p.lastSyncSkipped && context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Đang đồng bộ, vui lòng đợi...'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          }
+        },
         child: _DayList(
           selectedDay: _selectedDay,
           weekMonday: _currentMonday,

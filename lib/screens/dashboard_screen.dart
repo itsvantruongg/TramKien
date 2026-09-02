@@ -30,13 +30,33 @@ class DashboardScreen extends StatelessWidget {
                         height: 20,
                         child: CircularProgressIndicator(strokeWidth: 2))
                     : const Icon(Icons.sync_outlined, color: AppTheme.primary),
-                onPressed: () => p.syncAll(forceRefresh: true),
+                onPressed: () async {
+                  await p.syncAll(forceRefresh: true);
+                  if (p.lastSyncSkipped && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Đang đồng bộ, vui lòng đợi...'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
               ),
             ],
           ),
           Expanded(
             child: RefreshIndicator(
-              onRefresh: () => p.syncAll(forceRefresh: true),
+              onRefresh: () async {
+                await p.syncAll(forceRefresh: true);
+                if (p.lastSyncSkipped && context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Đang đồng bộ, vui lòng đợi...'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
               child: CustomScrollView(slivers: [
                 SliverPadding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),

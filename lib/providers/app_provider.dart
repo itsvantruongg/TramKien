@@ -40,6 +40,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   List<AppNotif> _notifications = []; // Reactive notification list
   DateTime?
       _lastSyncTime; // Theo dõi lần sync cuối để tránh sync quá thường xuyên
+  // Bug 1: Cờ báo hiệu cho UI rằng lần gọi syncAll() này bị skip (đang sync)
+  bool _lastSyncSkipped = false;
 
   // ── Completer theo dõi thời điểm auth check nhanh hoàn tất ────────
   Completer<void> _quickAuthCompleter = Completer<void>();
@@ -62,6 +64,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   int get curriculumTotalCredits => _curriculumMandatoryCredits;
   int get unreadNotifCount => _unreadNotifCount;
   List<AppNotif> get notifications => _notifications;
+  // Bug 1: UI dùng getter này sau khi syncAll() return để hiển thị SnackBar đúng
+  bool get lastSyncSkipped => _lastSyncSkipped;
 
   // ── Constructor ─────────────────────────
   AppProvider() {
@@ -212,10 +216,17 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         await prefs.setBool(_kRemember, remember);
         if (remember) {
           await prefs.setString(_kMssv, mssv);
-          await prefs.setString(_kPw, password);
+          await prefs.setString(_kPw, password); // Autofill UI only
         } else {
           await prefs.remove(_kMssv);
           await prefs.remove(_kPw);
+        }
+
+        // Bug 4: Lưu BG credentials riêng vào Secure Storage nếu user bật toggle
+        // login() hiện chưa có param bgSync — lưu cùng khi remember=true tạm thời
+        // TODO: thêm param bgSync khi login_screen được cập nhật
+        if (remember && mssv != 'admin') {
+          await BgCredentials.save(mssv, password);
         }
 
         // Vào app NGAY, sync chạy nền
@@ -239,7 +250,22 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         }
 
         // Sync nền — không await
-        syncAll().then((_) => notifyListeners());
+        // Bug 3: Kiểm tra lần đầu đăng nhập để chạy full history sync
+        final syncPrefs = await SharedPreferences.getInstance();
+        final fullSyncKey = 'has_done_initial_full_sync_$mssv';
+        final hasFullSync = syncPrefs.getBool(fullSyncKey) ?? false;
+
+        if (!hasFullSync && mssv != 'admin') {
+          // Lần đầu: chạy Full History trong cùng 1 chu trình syncAll() duy nhất (không chạy trùng lịch học)
+          debugPrint('📚 [Bug3] Lần đầu đăng nhập — kích hoạt full history sync');
+          syncAll(isInitialFullSync: true).then((_) {
+            syncPrefs.setBool(fullSyncKey, true);
+            debugPrint('📚 [Bug3] Full history sync hoàn tất, đánh dấu done');
+            notifyListeners();
+          });
+        } else {
+          syncAll().then((_) => notifyListeners());
+        }
         // Đăng ký background sync định kỳ
         BackgroundSyncService.schedulePeriodicSync();
         return true;
@@ -276,6 +302,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       await LocalNotificationService.setNotificationEnabled(
           mssvToDelete, false);
       await BackgroundSyncService.cancelAll();
+      // Bug 4: Luôn xóa BG credentials khi đăng xuất
+      await BgCredentials.clear();
 
       // Xóa data thông báo
       await NotificationService.clearAll();
@@ -303,13 +331,19 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  Future<void> syncAll({bool forceRefresh = false}) async {
+  Future<void> syncAll({bool forceRefresh = false, bool isInitialFullSync = false}) async {
     final acquired = await SyncMutex.acquireLock(_currentMssv);
     if (_isSyncing || BackgroundSyncService.isSyncing || !acquired) {
       debugPrint(
           '⚙️ [AppProvider] Sync bị hoãn do sync/BG sync đang chạy (Mutex active)');
+      // Bug 1: set flag để UI biết lần gọi này bị skip (không phải đang sync)
+      _lastSyncSkipped = true;
+      // Release lock nếu vừa acquire được (trường hợp _isSyncing/isSyncing == true)
+      if (acquired) await SyncMutex.releaseLock(_currentMssv);
+      notifyListeners();
       return;
     }
+    _lastSyncSkipped = false; // Reset: lần này sync thật sự chạy
     _isSyncing = true;
 
     try {
@@ -334,7 +368,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         financeProvider.syncHocPhi(forceRefresh: forceRefresh),
       ]);
 
-      // Lên lịch thông báo sau khi sync xong
+      // Lên lịch thông báo sau khi sync xong HK hiện tại
       await LocalNotificationService.scheduleClasses(
           _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi);
 
@@ -349,6 +383,19 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       // Sinh thẻ thông báo lịch học/thi (cho cả quá khứ/catch-up và tương lai)
       await LocalNotificationService.generateScheduleCards(
           _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi);
+
+      // 2. CHẠY CUỐI CÙNG TIẾN TRÌNH: Quét lịch cũ của các năm trước (nếu là lần đầu đăng nhập)
+      final syncPrefs = await SharedPreferences.getInstance();
+      final historyKey = 'has_done_history_schedule_$_currentMssv';
+      final hasDoneHistory = syncPrefs.getBool(historyKey) ?? false;
+
+      if ((isInitialFullSync || !hasDoneHistory) && _currentMssv != 'admin') {
+        debugPrint('📚 [ScheduleHistory] Bắt đầu fetch lịch cũ các năm trước ở cuối tiến trình...');
+        await scheduleProvider.syncLichHocFullHistory();
+        await scheduleProvider.syncLichThiFullHistory();
+        await syncPrefs.setBool(historyKey, true);
+        debugPrint('📚 [ScheduleHistory] Hoàn tất fetch lịch cũ các năm trước.');
+      }
     } catch (e) {
       debugPrint('⚠️ syncAll error: $e');
     } finally {
@@ -622,68 +669,102 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Chỉ đồng bộ điểm (dùng cho RefreshIndicator trang Điểm)
   Future<void> syncGrades({bool forceRefresh = true}) async {
-    // Snapshot trước sync để detect thay đổi điểm
-    final prevDiemCount = gradeProvider.diem.length;
-
-    await gradeProvider.syncDiem(forceRefresh: forceRefresh);
-
-    // Phát hiện và thông báo nếu có điểm mới
-    await _detectAndNotify(
-      prevDiemCount: prevDiemCount,
-      prevLichHocCount: scheduleProvider.lichHoc.length, // không thay đổi
-      prevLichThiCount: scheduleProvider.lichThi.length, // không thay đổi
-      prevDaDong: financeProvider.tongHocPhiDaDong, // không thay đổi
-    );
-    await refreshUnreadCount();
-    notifyListeners();
+    final acquired = await SyncMutex.acquireLock(_currentMssv);
+    if (_isSyncing || BackgroundSyncService.isSyncing || !acquired) {
+      debugPrint('⚙️ [AppProvider] syncGrades bị hoãn do sync khác đang chạy.');
+      _lastSyncSkipped = true;
+      if (acquired) await SyncMutex.releaseLock(_currentMssv);
+      notifyListeners();
+      return;
+    }
+    _lastSyncSkipped = false;
+    _isSyncing = true;
+    try {
+      final prevDiemCount = gradeProvider.diem.length;
+      await gradeProvider.syncDiem(forceRefresh: forceRefresh);
+      await _detectAndNotify(
+        prevDiemCount: prevDiemCount,
+        prevLichHocCount: scheduleProvider.lichHoc.length,
+        prevLichThiCount: scheduleProvider.lichThi.length,
+        prevDaDong: financeProvider.tongHocPhiDaDong,
+      );
+      await refreshUnreadCount();
+      notifyListeners();
+    } finally {
+      _isSyncing = false;
+      await SyncMutex.releaseLock(_currentMssv);
+    }
   }
 
   /// Chỉ đồng bộ lịch học + lịch thi (dùng cho RefreshIndicator trang Lịch)
   Future<void> syncSchedule({bool forceRefresh = true}) async {
-    // Snapshot trước sync để detect thay đổi
-    final prevLichHocCount = scheduleProvider.lichHoc.length;
-    final prevLichThiCount = scheduleProvider.lichThi.length;
-
-    await Future.wait([
-      scheduleProvider.syncLichHoc(forceRefresh: forceRefresh),
-      scheduleProvider.syncLichThi(forceRefresh: forceRefresh),
-    ]);
-
-    // Lên lịch push notification (local alarm)
-    if (_notifEnabled) {
-      await LocalNotificationService.scheduleClasses(
-          _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi);
-    } else {
-      await LocalNotificationService.cancelAll();
+    final acquired = await SyncMutex.acquireLock(_currentMssv);
+    if (_isSyncing || BackgroundSyncService.isSyncing || !acquired) {
+      debugPrint('⚙️ [AppProvider] syncSchedule bị hoãn do sync khác đang chạy.');
+      _lastSyncSkipped = true;
+      if (acquired) await SyncMutex.releaseLock(_currentMssv);
+      notifyListeners();
+      return;
     }
+    _lastSyncSkipped = false;
+    _isSyncing = true;
+    try {
+      final prevLichHocCount = scheduleProvider.lichHoc.length;
+      final prevLichThiCount = scheduleProvider.lichThi.length;
 
-    // Phát hiện và thông báo in-app nếu có lịch mới
-    await _detectAndNotify(
-      prevDiemCount: gradeProvider.diem.length, // không thay đổi
-      prevLichHocCount: prevLichHocCount,
-      prevLichThiCount: prevLichThiCount,
-      prevDaDong: financeProvider.tongHocPhiDaDong, // không thay đổi
-    );
-    await refreshUnreadCount();
-    notifyListeners();
+      await Future.wait([
+        scheduleProvider.syncLichHoc(forceRefresh: forceRefresh),
+        scheduleProvider.syncLichThi(forceRefresh: forceRefresh),
+      ]);
+
+      if (_notifEnabled) {
+        await LocalNotificationService.scheduleClasses(
+            _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi);
+      } else {
+        await LocalNotificationService.cancelAll();
+      }
+
+      await _detectAndNotify(
+        prevDiemCount: gradeProvider.diem.length,
+        prevLichHocCount: prevLichHocCount,
+        prevLichThiCount: prevLichThiCount,
+        prevDaDong: financeProvider.tongHocPhiDaDong,
+      );
+      await refreshUnreadCount();
+      notifyListeners();
+    } finally {
+      _isSyncing = false;
+      await SyncMutex.releaseLock(_currentMssv);
+    }
   }
 
   /// Chỉ đồng bộ học phí (dùng cho RefreshIndicator trang Tài chính)
   Future<void> syncFinance({bool forceRefresh = true}) async {
-    // Snapshot trước sync để detect thay đổi
-    final prevDaDong = financeProvider.tongHocPhiDaDong;
-
-    await financeProvider.syncHocPhi(forceRefresh: forceRefresh);
-
-    // Phát hiện và thông báo in-app nếu có cập nhật học phí
-    await _detectAndNotify(
-      prevDiemCount: gradeProvider.diem.length, // không thay đổi
-      prevLichHocCount: scheduleProvider.lichHoc.length, // không thay đổi
-      prevLichThiCount: scheduleProvider.lichThi.length, // không thay đổi
-      prevDaDong: prevDaDong,
-    );
-    await refreshUnreadCount();
-    notifyListeners();
+    final acquired = await SyncMutex.acquireLock(_currentMssv);
+    if (_isSyncing || BackgroundSyncService.isSyncing || !acquired) {
+      debugPrint('⚙️ [AppProvider] syncFinance bị hoãn do sync khác đang chạy.');
+      _lastSyncSkipped = true;
+      if (acquired) await SyncMutex.releaseLock(_currentMssv);
+      notifyListeners();
+      return;
+    }
+    _lastSyncSkipped = false;
+    _isSyncing = true;
+    try {
+      final prevDaDong = financeProvider.tongHocPhiDaDong;
+      await financeProvider.syncHocPhi(forceRefresh: forceRefresh);
+      await _detectAndNotify(
+        prevDiemCount: gradeProvider.diem.length,
+        prevLichHocCount: scheduleProvider.lichHoc.length,
+        prevLichThiCount: scheduleProvider.lichThi.length,
+        prevDaDong: prevDaDong,
+      );
+      await refreshUnreadCount();
+      notifyListeners();
+    } finally {
+      _isSyncing = false;
+      await SyncMutex.releaseLock(_currentMssv);
+    }
   }
 
   Future<void> changeHocKy(int hocKy) => scheduleProvider.changeHocKy(hocKy);

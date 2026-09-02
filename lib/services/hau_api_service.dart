@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' as html_parser;
 import 'package:crypto/crypto.dart';
@@ -702,5 +704,45 @@ class HauApiService {
       print('fetchChuyenNganhChinh error: $e');
       return [];
     }
+  }
+}
+
+/// Bug 4 Fix: Credentials riêng cho Background Sync.
+/// Hoàn toàn tách biệt với SharedPreferences (chỉ dùng cho autofill UI).
+/// BG service CHỈ đọc từ đây — không fallback về SharedPreferences.
+class BgCredentials {
+  static const _storage = FlutterSecureStorage(
+    // Android: EncryptedSharedPreferences; iOS: Keychain
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+  static const _keyMssv = 'bg_sync_mssv';
+  static const _keyPw = 'bg_sync_pw';
+
+  /// Lưu credentials cho background sync (chỉ gọi khi user bật toggle "Đồng bộ nền").
+  static Future<void> save(String mssv, String pw) async {
+    await _storage.write(key: _keyMssv, value: mssv);
+    await _storage.write(key: _keyPw, value: pw);
+    debugPrint('🔐 [BgCredentials] Credentials đã lưu vào Secure Storage cho $mssv');
+  }
+
+  /// Đọc credentials. Trả về null nếu không có hoặc rỗng.
+  /// Caller PHẢI dừng ngay nếu nhận null — KHÔNG fallback về SharedPreferences.
+  static Future<({String mssv, String pw})?> load() async {
+    try {
+      final mssv = await _storage.read(key: _keyMssv);
+      final pw = await _storage.read(key: _keyPw);
+      if (mssv == null || mssv.isEmpty || pw == null || pw.isEmpty) return null;
+      return (mssv: mssv, pw: pw);
+    } catch (e) {
+      debugPrint('⚠️ [BgCredentials] Lỗi đọc Secure Storage: $e');
+      return null;
+    }
+  }
+
+  /// Xóa credentials — gọi khi đăng xuất hoặc user tắt "Đồng bộ nền".
+  static Future<void> clear() async {
+    await _storage.delete(key: _keyMssv);
+    await _storage.delete(key: _keyPw);
+    debugPrint('🔐 [BgCredentials] Credentials đã xóa khỏi Secure Storage');
   }
 }

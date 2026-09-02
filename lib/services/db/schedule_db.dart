@@ -34,59 +34,79 @@ class ScheduleDb {
 
   // ── LỊCH HỌC ─────────────────────────────
 
+  /// Upsert lịch học (Bug 6 fix): không xóa trắng scope trước khi insert.
+  /// Dùng ConflictAlgorithm.replace + UNIQUE INDEX để update đúng record.
+  /// Khi [softDeleteAfter] == true (chỉ khi fetch [complete] == true),
+  /// xóa các record không còn xuất hiện trong lần fetch này (stale records).
   static Future<void> saveLichHoc(
     List<LichHoc> list, {
-    int? hocKy,
-    String? namHoc,
-    List<({int hocKy, String namHoc, int dotHoc})>? scopesToClear,
-    bool clearScope = true,
-    Database? db,
+    bool softDeleteAfter = false,
+    DatabaseExecutor? db,
   }) async {
-    final d = db ?? await DatabaseService.db;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     const appVersion = DatabaseService.currentAppVersion;
 
-    await d.transaction((txn) async {
-      if (clearScope) {
-        final scopes = <({int hocKy, String namHoc, int dotHoc})>{};
-        if (scopesToClear != null) {
-          scopes.addAll(scopesToClear);
-        }
-        for (final item in list) {
-          scopes.add(
-              (hocKy: item.hocKy, namHoc: item.namHoc, dotHoc: item.dotHoc));
-        }
-        if (hocKy != null && namHoc != null && scopes.isEmpty) {
-          for (int dot = 1; dot <= 8; dot++) {
-            scopes.add((hocKy: hocKy, namHoc: namHoc, dotHoc: dot));
-          }
-        }
+    // Cần Database instance để gọi .transaction()
+    final dbInstance = (db is Database) ? db : await DatabaseService.db;
 
-        int deletedCount = 0;
-        for (final s in scopes) {
-          final count = await txn.delete(
-            'lich_hoc',
-            where:
-                'hoc_ky = ? AND nam_hoc = ? AND dot_hoc = ? AND is_manual = 0',
-            whereArgs: [s.hocKy, s.namHoc, s.dotHoc],
-          );
-          deletedCount += count;
-        }
-        print(
-            '🗑️ [DB] diff-delete lich_hoc: $deletedCount records cũ (is_manual=0) đã bị xóa ở ${scopes.length} scopes');
-      }
-
-      int inserted = 0;
+    await dbInstance.transaction((txn) async {
+      int upserted = 0;
       for (final item in list) {
         final map = item.toMap();
         map['fetched_app_version'] = appVersion;
         map['synced_at'] = nowMs;
+        map['last_seen_at'] = nowMs; // ← dùng để detect stale records
+        // INSERT OR REPLACE hoạt động đúng nhờ UNIQUE INDEX (Migration v17)
         await txn.insert('lich_hoc', map,
             conflictAlgorithm: ConflictAlgorithm.replace);
-        inserted++;
+        upserted++;
       }
-      print('💾 [DB] saveLichHoc: inserted=$inserted records mới');
+      print('💾 [DB] saveLichHoc upsert: $upserted records');
+
+      if (softDeleteAfter && list.isNotEmpty) {
+        // Nhóm theo scope để soft-delete per (hocKy, namHoc, dotHoc)
+        final scopes = <({int hocKy, String namHoc, int dotHoc})>{};
+        for (final item in list) {
+          scopes
+              .add((hocKy: item.hocKy, namHoc: item.namHoc, dotHoc: item.dotHoc));
+        }
+        int deleted = 0;
+        for (final s in scopes) {
+          // ✅ Truyền txn (DatabaseExecutor) — KHÔNG truyền dbInstance
+          // Truyền dbInstance sẽ deadlock vì dbInstance đang locked bởi transaction này
+          deleted += await softDeleteStaleLichHoc(
+            hocKy: s.hocKy,
+            namHoc: s.namHoc,
+            dotHoc: s.dotHoc,
+            syncedAt: nowMs,
+            db: txn,
+          );
+        }
+        if (deleted > 0) {
+          print('🗑️ [DB] soft-delete lich_hoc: $deleted stale records (is_manual=0)');
+        }
+      }
     });
+  }
+
+  /// Xóa các record lịch học không còn được API trả về (last_seen_at < syncedAt).
+  /// Nhận [DatabaseExecutor?] để dùng được cả trong lẫn ngoài transaction.
+  /// [!IMPORTANT] Luôn loại trừ is_manual = 1 (môn user tự nhập).
+  static Future<int> softDeleteStaleLichHoc({
+    required int hocKy,
+    required String namHoc,
+    required int dotHoc,
+    required int syncedAt,
+    DatabaseExecutor? db,
+  }) async {
+    final d = db ?? await DatabaseService.db;
+    return d.delete(
+      'lich_hoc',
+      where: 'hoc_ky = ? AND nam_hoc = ? AND dot_hoc = ? '
+          'AND is_manual = 0 '
+          'AND (last_seen_at IS NULL OR last_seen_at < ?)',
+      whereArgs: [hocKy, namHoc, dotHoc, syncedAt],
+    );
   }
 
   static Future<List<LichHoc>> getLichHoc(
@@ -148,55 +168,69 @@ class ScheduleDb {
 
   // ── LỊCH THI ─────────────────────────────
 
+  /// Upsert lịch thi (Bug 6 fix): không xóa trắng scope trước khi insert.
+  /// Khi [softDeleteAfter] == true (fetch [complete] == true), xóa stale records.
   static Future<void> saveLichThi(
     List<LichThi> list, {
-    int? hocKy,
-    String? namHoc,
-    List<({int hocKy, String namHoc})>? scopesToClear,
-    bool clearScope = true,
-    Database? db,
+    bool softDeleteAfter = false,
+    DatabaseExecutor? db,
   }) async {
-    final d = db ?? await DatabaseService.db;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     const appVersion = DatabaseService.currentAppVersion;
 
-    await d.transaction((txn) async {
-      if (clearScope) {
-        final scopes = <({int hocKy, String namHoc})>{};
-        if (scopesToClear != null) {
-          scopes.addAll(scopesToClear);
-        }
-        for (final item in list) {
-          scopes.add((hocKy: item.hocKy, namHoc: item.namHoc));
-        }
-        if (hocKy != null && namHoc != null && scopes.isEmpty) {
-          scopes.add((hocKy: hocKy, namHoc: namHoc));
-        }
+    final dbInstance = (db is Database) ? db : await DatabaseService.db;
 
-        int deletedCount = 0;
-        for (final s in scopes) {
-          final count = await txn.delete(
-            'lich_thi',
-            where: 'hoc_ky = ? AND nam_hoc = ? AND is_manual = 0',
-            whereArgs: [s.hocKy, s.namHoc],
-          );
-          deletedCount += count;
-        }
-        print(
-            '🗑️ [DB] diff-delete lich_thi: $deletedCount records cũ (is_manual=0) đã bị xóa ở ${scopes.length} scopes');
-      }
-
-      int inserted = 0;
+    await dbInstance.transaction((txn) async {
+      int upserted = 0;
       for (final item in list) {
         final map = item.toMap();
         map['fetched_app_version'] = appVersion;
         map['synced_at'] = nowMs;
+        map['last_seen_at'] = nowMs;
         await txn.insert('lich_thi', map,
             conflictAlgorithm: ConflictAlgorithm.replace);
-        inserted++;
+        upserted++;
       }
-      print('💾 [DB] saveLichThi: inserted=$inserted records mới');
+      print('💾 [DB] saveLichThi upsert: $upserted records');
+
+      if (softDeleteAfter && list.isNotEmpty) {
+        final scopes = <({int hocKy, String namHoc})>{};
+        for (final item in list) {
+          scopes.add((hocKy: item.hocKy, namHoc: item.namHoc));
+        }
+        int deleted = 0;
+        for (final s in scopes) {
+          // ✅ Truyền txn (DatabaseExecutor), không phải dbInstance
+          deleted += await softDeleteStaleLichThi(
+            hocKy: s.hocKy,
+            namHoc: s.namHoc,
+            syncedAt: nowMs,
+            db: txn,
+          );
+        }
+        if (deleted > 0) {
+          print('🗑️ [DB] soft-delete lich_thi: $deleted stale records (is_manual=0)');
+        }
+      }
     });
+  }
+
+  /// Xóa các record lịch thi không còn được API trả về.
+  /// [!IMPORTANT] Luôn loại trừ is_manual = 1.
+  static Future<int> softDeleteStaleLichThi({
+    required int hocKy,
+    required String namHoc,
+    required int syncedAt,
+    DatabaseExecutor? db,
+  }) async {
+    final d = db ?? await DatabaseService.db;
+    return d.delete(
+      'lich_thi',
+      where: 'hoc_ky = ? AND nam_hoc = ? '
+          'AND is_manual = 0 '
+          'AND (last_seen_at IS NULL OR last_seen_at < ?)',
+      whereArgs: [hocKy, namHoc, syncedAt],
+    );
   }
 
   static Future<List<LichThi>> getLichThi({int? hocKy, String? namHoc}) async {

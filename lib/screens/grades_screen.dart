@@ -68,7 +68,17 @@ class _GradesScreenState extends State<GradesScreen> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: AppTheme.primary))
                     : const Icon(Icons.sync_outlined, color: AppTheme.primary),
-                onPressed: () => p.syncGrades(forceRefresh: true),
+                onPressed: () async {
+                  await p.syncGrades(forceRefresh: true);
+                  if (p.lastSyncSkipped && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Đang đồng bộ, vui lòng đợi...'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
                 tooltip: 'Đồng bộ điểm',
               ),
             ],
@@ -99,7 +109,17 @@ class _GradesScreenState extends State<GradesScreen> {
                 setState(() => _swipeOffset = 0.0);
               },
               child: RefreshIndicator(
-                onRefresh: () => p.syncGrades(),
+                onRefresh: () async {
+                  await p.syncGrades();
+                  if (p.lastSyncSkipped && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Đang đồng bộ, vui lòng đợi...'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                },
                 child: CustomScrollView(
                   slivers: [
                     // Toggle Hệ 10 / Hệ 4

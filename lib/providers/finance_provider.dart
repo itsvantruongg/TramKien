@@ -54,6 +54,10 @@ class FinanceProvider extends ChangeNotifier {
   // ── Methods ─────────────────────────────
 
   Future<void> syncHocPhi({bool forceRefresh = false}) async {
+    if (_hocPhiState) {
+      debugPrint('⚙️ [FinanceProvider] Học phí đang đồng bộ, bỏ qua gọi trùng.');
+      return;
+    }
     _hocPhiState = true;
     notifyListeners();
     try {

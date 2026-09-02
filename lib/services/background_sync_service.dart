@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart' as wm;
 import 'package:background_fetch/background_fetch.dart' as bf;
 import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'hau_api_service.dart';
@@ -67,15 +68,19 @@ Future<void> _runSyncLogic() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   await prefs.reload();
-  final mssv = prefs.getString('saved_mssv') ?? '';
 
   if (BackgroundSyncService.isSyncing) {
     debugPrint(
-        '⚙️ [BG] Task đã đang chạy ở isolate hiện tại, bỏ qua (Mutex active).');
+        '⚙️ [BG] Task đã đang chạy ở isolate hiện tại, bỏ qua (isSyncing flag).');
     return;
   }
 
-  final acquired = await SyncMutex.acquireLock(mssv);
+  // ── Đọc MSSV sơ bộ từ SharedPreferences chỉ để check Admin & lấy lock ban đầu
+  // LƯU Ý: Biến này CHỈ dùng trước Step 1. Sau Step 1 BẮT BUỘC dùng bgMssv.
+  final _preCheckMssv = prefs.getString('saved_mssv') ?? '';
+  String activeSyncMssv = _preCheckMssv;
+
+  final acquired = await SyncMutex.acquireLock(_preCheckMssv);
   if (!acquired) {
     debugPrint(
         '⚙️ [BG] Persistent lock đang active ở isolate/process khác, bỏ qua lần gọi này.');
@@ -86,25 +91,40 @@ Future<void> _runSyncLogic() async {
   debugPrint('⚙️ [BG] Task bắt đầu chạy...');
 
   try {
-    // Ghi lại thời gian nỗ lực thực thi (B8 - theo dõi deferment)
+    // Ghi timestamp nỗ lực thực thi (B8 - theo dõi deferment)
     await prefs.setString(
         'bg_last_attempted_at', DateTime.now().toIso8601String());
 
-    // 1. Đọc thông tin đăng nhập đã lưu
-    final mssv = prefs.getString('saved_mssv') ?? '';
-    final pw = prefs.getString('saved_pw') ?? '';
+    // 1. Đọc credentials từ Secure Storage (Bug 4 Fix)
+    // KHÔNG fallback về SharedPreferences — hai kho lưu trữ hoàn toàn tách biệt
+    // SharedPreferences: autofill UI (remember login checkbox)
+    // FlutterSecureStorage: consent đồng bộ nền (bg sync toggle)
+    String bgMssv;
+    String pw;
 
-    if (mssv.isEmpty || (mssv != 'admin' && pw.isEmpty)) {
-      debugPrint(
-          '⚙️ [BG][Step1-Credentials] Bỏ qua: thiếu thông tin đăng nhập (MSSV/PW)');
-      return;
+    if (_preCheckMssv == 'admin') {
+      // Admin mode: không cần Secure Storage
+      bgMssv = 'admin';
+      pw = 'admin@123';
+    } else {
+      final creds = await BgCredentials.load();
+      if (creds == null) {
+        debugPrint(
+            '⚙️ [BG][Step1-Credentials] Secure Storage rỗng → dừng sync '
+            '(consent "Đồng bộ nền" chưa được cấp hoặc đã xóa)');
+        return; // KHÔNG đọc SharedPreferences
+      }
+      bgMssv = creds.mssv;
+      pw = creds.pw;
     }
+    // Cập nhật activeSyncMssv sang danh tính thực tế từ Secure Storage
+    activeSyncMssv = bgMssv;
 
-    // 2. Khởi tạo service
+    // 2. Khởi tạo service (dùng bgMssv chuẩn xác, không dùng SharedPreferences)
     try {
       await LocalNotificationService.init();
-      NotificationService.setMssv(mssv);
-      await DatabaseService.setMssv(mssv);
+      NotificationService.setMssv(bgMssv);
+      await DatabaseService.setMssv(bgMssv);
     } catch (e) {
       debugPrint(
           '⚠️ [BG][Step2-Init] Lỗi khởi tạo DB & Notification Services: $e');
@@ -122,19 +142,124 @@ Future<void> _runSyncLogic() async {
       return;
     }
 
-    // 4. Login lấy session mới
+    // 4. Login lấy session mới (Bug 8: phân loại dựa trên HTTP 302 message từ API)
+    const _kFailCountKey = 'bg_login_fail_count';
+    const _kMaxFails = 3;
+
+    // Lỗi mạng hoặc exception nội bộ client
+    bool isNetworkOrTimeout(String err) {
+      return err == 'Không có kết nối mạng' || err.startsWith('Lỗi: ');
+    }
+
     try {
-      final loginError = await HauApiService.login(mssv, pw);
-      if (loginError != null) {
-        debugPrint('⚙️ [BG][Step4-Login] Login thất bại: $loginError');
+      final loginError = await HauApiService.login(bgMssv, pw);
+      if (loginError == null) {
+        // Thành công → reset bộ đếm fail
+        await prefs.remove(_kFailCountKey);
+      } else {
+        final isNetErr = isNetworkOrTimeout(loginError);
+        // Nếu không phải lỗi mạng/timeout thì chắc chắn là lỗi xác thực trả về từ HTTP 302 (?message=...)
+        final isAuthErr = !isNetErr;
+
+        final failCount = (prefs.getInt(_kFailCountKey) ?? 0) + 1;
+        await prefs.setInt(_kFailCountKey, failCount);
+        debugPrint(
+            '⚠️ [BG][Step4-Login] Fail #$failCount: "$loginError" isAuth=$isAuthErr');
+
+        if (isAuthErr || failCount >= _kMaxFails) {
+          await BackgroundSyncService.cancelAll();
+          await BgCredentials.clear(); // Xóa credentials không còn hợp lệ
+          await LocalNotificationService.showImmediate(
+            id: 9998,
+            title: 'Đồng bộ nền đã dừng',
+            body: isAuthErr
+                ? '$loginError. Mở app để đăng nhập lại.'
+                : 'Không thể kết nối sau $failCount lần thử. Mở app để kiểm tra.',
+          );
+          await prefs.remove(_kFailCountKey);
+        }
         return;
       }
     } catch (e) {
-      debugPrint('⚠️ [BG][Step4-Login] Ngoại lệ khi đăng nhập: $e');
+      // Exception Dart (SocketException, TimeoutException) — tăng đếm nhưng không hủy ngay
+      final failCount = (prefs.getInt(_kFailCountKey) ?? 0) + 1;
+      await prefs.setInt(_kFailCountKey, failCount);
+      debugPrint('⚠️ [BG][Step4-Login] Exception #$failCount: $e');
+
+      // Bug 8: catch block CŨNG kiểm tra ngưỡng — lưới an toàn dự phòng
+      if (failCount >= _kMaxFails) {
+        await BackgroundSyncService.cancelAll();
+        await LocalNotificationService.showImmediate(
+          id: 9998,
+          title: 'Đồng bộ nền đã dừng',
+          body: 'Không thể kết nối sau $failCount lần thử. Mở app để kiểm tra.',
+        );
+        await prefs.remove(_kFailCountKey);
+      }
       return;
     }
 
-    // 5. Snapshot TRƯỚC sync
+    // 5. Xác định học kỳ hoạt động & Máy trạng thái nhận diện kỳ mới (State Machine)
+    final now = DateTime.now();
+    int currentNamHoc = prefs.getInt('active_nam_hoc') ?? (now.month >= 8 ? now.year : now.year - 1);
+    int currentHocKy = prefs.getInt('active_hoc_ky') ?? (now.month >= 8 ? 1 : 2);
+    bool isNewSemesterDetected = false;
+
+    // Single Forward Pointer: Xác định kỳ mục tiêu theo ranh giới năm học
+    // 01/07 - 30/11 -> Tìm HK1 năm học mới
+    // 01/12 - 30/06 -> Tìm HK2
+    final int targetHocKy;
+    final int targetNamHoc;
+    if (now.month >= 7 && now.month < 12) {
+      targetHocKy = 1;
+      targetNamHoc = now.year;
+    } else {
+      targetHocKy = 2;
+      targetNamHoc = now.month == 12 ? now.year : now.year - 1;
+    }
+
+    final isSeekingNextSemester = (targetNamHoc > currentNamHoc) ||
+        (targetNamHoc == currentNamHoc && targetHocKy > currentHocKy);
+
+    if (isSeekingNextSemester) {
+      final todayStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final lastProbe = prefs.getString('last_semester_probe_date');
+      // Thăm dò 1 lần/ngày vào ca chạy ban ngày
+      if (lastProbe != todayStr) {
+        await prefs.setString('last_semester_probe_date', todayStr);
+        debugPrint('🔍 [BG][SemesterRollover] Đang thăm dò kỳ mới: HK$targetHocKy $targetNamHoc-${targetNamHoc + 1}...');
+        final hasClasses = await ScheduleApi.probeSemesterHasSchedule(
+          hocKy: targetHocKy,
+          namHoc: targetNamHoc,
+        );
+        if (hasClasses) {
+          debugPrint('🎉 [BG][SemesterRollover] Phát hiện lịch học kỳ mới: HK$targetHocKy $targetNamHoc-${targetNamHoc + 1}!');
+          currentHocKy = targetHocKy;
+          currentNamHoc = targetNamHoc;
+          await prefs.setInt('active_hoc_ky', currentHocKy);
+          await prefs.setInt('active_nam_hoc', currentNamHoc);
+          isNewSemesterDetected = true;
+
+          try {
+            await LocalNotificationService.showImmediate(
+              id: 999901,
+              title: 'Thời khóa biểu học kỳ mới',
+              body: 'Đã có lịch học HK$currentHocKy năm học $currentNamHoc-${currentNamHoc + 1} trên hệ thống tín chỉ!',
+            );
+          } catch (_) {}
+        } else {
+          debugPrint('⚪ [BG][SemesterRollover] HK$targetHocKy $targetNamHoc chưa có lịch mới, tiếp tục giữ kỳ hiện tại.');
+        }
+      }
+    }
+
+    final currentNamHocStr = '$currentNamHoc-${currentNamHoc + 1}';
+
+    // Bug 5 Fix: Tính thêm kỳ liền trước để snapshot đồng bộ với fetchDiemRecentSemester
+    final prevHocKy = currentHocKy == 1 ? 2 : 1;
+    final prevNamHoc = currentHocKy == 1 ? currentNamHoc - 1 : currentNamHoc;
+    final prevNamHocStr = '$prevNamHoc-${prevNamHoc + 1}';
+
     List<DiemMonHoc> prevDiem = [];
     List<LichHoc> prevLichHoc = [];
     List<LichThi> prevLichThi = [];
@@ -142,9 +267,16 @@ Future<void> _runSyncLogic() async {
     double prevDaDong = 0.0;
 
     try {
-      prevDiem = await GradeDb.getDiem();
-      prevLichHoc = await ScheduleDb.getLichHoc();
-      prevLichThi = await ScheduleDb.getLichThi();
+      // Bug 5 Fix: snapshot điểm của CẢ 2 KỲ (kỳ hiện tại + kỳ liền trước)
+      final prevDiemCur = await GradeDb.getDiem(
+          hocKy: currentHocKy, namHoc: currentNamHocStr, isOverview: false);
+      final prevDiemOld = await GradeDb.getDiem(
+          hocKy: prevHocKy, namHoc: prevNamHocStr, isOverview: false);
+      prevDiem = [...prevDiemCur, ...prevDiemOld];
+      prevLichHoc = await ScheduleDb.getLichHoc(
+          hocKy: currentHocKy, namHoc: currentNamHocStr);
+      prevLichThi = await ScheduleDb.getLichThi(
+          hocKy: currentHocKy, namHoc: currentNamHocStr);
       prevFeeSummary = await FinanceDb.getAllFeeSummary();
       prevDaDong = prevFeeSummary.fold(
           0.0, (s, f) => s + ((f['da_nop'] as num?) ?? 0).toDouble());
@@ -152,98 +284,115 @@ Future<void> _runSyncLogic() async {
       debugPrint('⚠️ [BG][Step5-PrevSnapshot] Lỗi lấy snapshot dữ liệu cũ: $e');
     }
 
-    // 6. Sync dữ liệu — fetch & save
-    List<DiemMonHoc> fetchedDiem = [];
-    LichHocScanResult fetchedLichHocResult =
-        (items: <LichHoc>[], complete: false);
-    LichThiScanResult fetchedLichThiResult =
-        (items: <LichThi>[], complete: false);
+    // 6. Sync dữ liệu — Bug 2 & Bug 3: Checkpoint tuần tự theo thứ tự ưu tiên tuyệt đối
+    // Thứ tự: Lịch thi (1) -> Điểm số (2) -> Lịch học (3 - TTL 7 ngày) -> Học phí (4 - TTL 7 ngày)
+    const kBgTotalBudgetMs = 22000; // 22s — đủ dưới ngưỡng OS kill
+    final budgetStart = DateTime.now().millisecondsSinceEpoch;
 
-    try {
-      // Việc 1: Log TRƯỚC khi gọi Future.wait — để canh thời điểm tắt mạng
-      final fetchStart = DateTime.now();
-      debugPrint(
-          '🌐 [BG][Step6] Bắt đầu gọi 4 API song song lúc ${fetchStart.toIso8601String()}...');
+    bool budgetOk() =>
+        DateTime.now().millisecondsSinceEpoch - budgetStart < kBgTotalBudgetMs;
 
-      final results = await Future.wait<dynamic>([
-        GradeApi.fetchDiem(),
-        ScheduleApi.fetchLichHocFromStartWithStatus(mssv: mssv),
-        ScheduleApi.fetchLichThiFromStartWithStatus(mssv: mssv),
-        FinanceApi.fetchAndSaveHocPhi(),
-      ]).timeout(const Duration(seconds: 25));
-
-      final fetchMs = DateTime.now().difference(fetchStart).inMilliseconds;
-      debugPrint('🌐 [BG][Step6] Future.wait hoàn tất sau ${fetchMs}ms');
-
-      fetchedDiem = List<DiemMonHoc>.from(results[0] as List);
-      fetchedLichHocResult = results[1] as LichHocScanResult;
-      fetchedLichThiResult = results[2] as LichThiScanResult;
-
-      // Log rõ kết quả fetch để không bao giờ bị "im lặng bỏ qua"
-      debugPrint('📊 [BG][Step6-Grade] fetchDiem() → ${fetchedDiem.length} môn'
-          '${fetchedDiem.isEmpty ? " ⚠️ (rỗng — admin mock chỉ trả data qua fetchDiemAllKyWithSummary, không qua fetchDiem)" : ""}');
-      debugPrint(
-          '📚 [BG][Step6-LichHoc] ${fetchedLichHocResult.items.length} môn'
-          ' complete=${fetchedLichHocResult.complete}');
-      debugPrint(
-          '📚 [BG][Step6-LichThi] ${fetchedLichThiResult.items.length} lịch thi'
-          ' complete=${fetchedLichThiResult.complete}');
-    } catch (e) {
-      // Việc 1: Log SAU khi Future.wait throw
-      debugPrint('🌐 [BG][Step6] Future.wait lỗi/timeout: $e');
-      debugPrint(
-          '⚠️ [BG][Step6-FetchAndSave] Sync network/timeout error: $e → data cũ trong DB được GIỮ NGUYÊN (chưa diff-delete)');
-    }
-
-    // Ghi dữ liệu Điểm vào DB
-    if (fetchedDiem.isNotEmpty) {
+    // Checkpoint 1: Lịch thi HK hiện tại (Ưu tiên 1 - Chạy mọi chu kỳ 6h)
+    if (budgetOk()) {
       try {
-        await GradeDb.saveDiem(
-          fetchedDiem.map((d) => d.toMap()).toList(),
-          mssv: mssv,
-        );
         debugPrint(
-            '💾 [BG][Step6-SaveDiem] Đã ghi ${fetchedDiem.length} môn vào DB');
+            '🌐 [BG][CP1-Thi] Fetch lịch thi HK$currentHocKy $currentNamHocStr...');
+        final r = await ScheduleApi.fetchLichThiWithStatus(
+          hocKy: currentHocKy,
+          namHoc: currentNamHoc,
+        ).timeout(const Duration(seconds: 4));
+        debugPrint(
+            '📝 [BG][CP1-Thi] ${r.items.length} lịch thi, success=${r.success}');
+        await ScheduleDb.saveLichThi(r.items, softDeleteAfter: r.success);
       } catch (e) {
-        debugPrint('⚠️ [BG][Step6-SaveDiem] Lỗi ghi điểm: $e');
+        debugPrint('⚠️ [BG][CP1-Thi] Lỗi/timeout lịch thi: $e → giữ DB cũ');
       }
     } else {
-      debugPrint('⚠️ [BG][Step6-SaveDiem] fetchedDiem rỗng → bỏ qua ghi DB.'
-          ' NOTE: admin mock data điểm KHÔNG được sync qua GradeApi.fetchDiem().'
-          ' Đây là hành vi chủ đích của demo mode (dữ liệu điểm admin chỉ được seed 1 lần vào DB).');
+      debugPrint('⚠️ [BG][CP1-Thi] Budget hết — bỏ qua lịch thi');
     }
 
-    // Ghi Lịch học vào DB nếu complete == true (B1+B7 diff-delete logic)
-    if (fetchedLichHocResult.complete &&
-        fetchedLichHocResult.items.isNotEmpty) {
+    // Checkpoint 2: Điểm 2 kỳ gần nhất (Ưu tiên 2 - Chạy mọi chu kỳ 6h)
+    if (budgetOk()) {
       try {
-        await ScheduleDb.saveLichHoc(fetchedLichHocResult.items);
+        debugPrint('🌐 [BG][CP2-Diem] Fetch điểm 2 kỳ gần nhất...');
+        await GradeApi.fetchDiemRecentSemester(mssv: bgMssv)
+            .timeout(const Duration(seconds: 6));
+        debugPrint('📊 [BG][CP2-Diem] Fetch điểm hoàn tất');
       } catch (e) {
-        debugPrint('⚠️ [BG][Step6-SaveLichHoc] Lỗi ghi lịch học: $e');
+        debugPrint('⚠️ [BG][CP2-Diem] Lỗi/timeout điểm: $e → giữ DB cũ');
       }
-    } else if (!fetchedLichHocResult.complete) {
-      debugPrint(
-          '⚠️ [BG][Step6-SaveLichHoc] LichHoc fetch không hoàn tất (complete=false) → giữ nguyên data cũ');
+    } else {
+      debugPrint('⚠️ [BG][CP2-Diem] Budget hết — bỏ qua điểm');
     }
 
-    // Ghi Lịch thi vào DB nếu complete == true
-    if (fetchedLichThiResult.complete &&
-        fetchedLichThiResult.items.isNotEmpty) {
-      try {
-        await ScheduleDb.saveLichThi(fetchedLichThiResult.items);
-      } catch (e) {
-        debugPrint('⚠️ [BG][Step6-SaveLichThi] Lỗi ghi lịch thi: $e');
+    // Checkpoint 3: Lịch học HK hiện tại (Ưu tiên 3 - Early-Stop & TTL 7 ngày)
+    if (budgetOk()) {
+      final isLichHocStale = await DatabaseService.isStale(
+        'lich_hoc_hk${currentHocKy}_$currentNamHoc',
+        const Duration(days: 7),
+      );
+      if (!isNewSemesterDetected && !isLichHocStale) {
+        debugPrint(
+            '📚 [BG][CP3-LichHoc] Lịch học còn hạn trong 7 ngày → bỏ qua fetch mạng (0s, 0 req)');
+      } else {
+        try {
+          debugPrint(
+              '🌐 [BG][CP3-LichHoc] Fetch lịch học HK$currentHocKy $currentNamHocStr (Early-Stop)...');
+          final r = await ScheduleApi.fetchLichHocAllDotsWithStatus(
+            hocKy: currentHocKy,
+            namHoc: currentNamHoc,
+            mssv: bgMssv,
+          ).timeout(const Duration(seconds: 10));
+          debugPrint(
+              '📚 [BG][CP3-LichHoc] ${r.items.length} môn, complete=${r.complete}');
+          await ScheduleDb.saveLichHoc(r.items, softDeleteAfter: r.complete);
+          if (r.complete) {
+            await DatabaseService.updateCacheMeta(
+              'lich_hoc_hk${currentHocKy}_$currentNamHoc',
+              'synced',
+            );
+          }
+        } catch (e) {
+          debugPrint('⚠️ [BG][CP3-LichHoc] Lỗi/timeout lịch học: $e → giữ DB cũ');
+        }
       }
-    } else if (!fetchedLichThiResult.complete) {
-      debugPrint(
-          '⚠️ [BG][Step6-SaveLichThi] LichThi fetch không hoàn tất (complete=false) → giữ nguyên data cũ');
+    } else {
+      debugPrint('⚠️ [BG][CP3-LichHoc] Budget hết — bỏ qua lịch học');
+    }
+
+    // Checkpoint 4: Học phí (Ưu tiên 4 - Cuối hàng chờ - TTL 7 ngày)
+    if (budgetOk()) {
+      final isFeeStale = await DatabaseService.isStale(
+        'hoc_phi_all',
+        const Duration(days: 7),
+      );
+      if (!isNewSemesterDetected && !isFeeStale) {
+        debugPrint(
+            '💰 [BG][CP4-HocPhi] Học phí còn hạn trong 7 ngày → bỏ qua fetch mạng (0s, 0 req)');
+      } else {
+        final elapsed =
+            DateTime.now().millisecondsSinceEpoch - budgetStart;
+        final remaining = (kBgTotalBudgetMs - elapsed).clamp(3000, 8000);
+        try {
+          debugPrint(
+              '🌐 [BG][CP4-HocPhi] Fetch học phí (budget còn ${remaining}ms)...');
+          await FinanceApi.fetchAndSaveHocPhi()
+              .timeout(Duration(milliseconds: remaining));
+          debugPrint('💰 [BG][CP4-HocPhi] Fetch học phí hoàn tất');
+          await DatabaseService.updateCacheMeta('hoc_phi_all', 'synced');
+        } catch (e) {
+          debugPrint('⚠️ [BG][CP4-HocPhi] Lỗi/timeout học phí: $e → giữ DB cũ');
+        }
+      }
+    } else {
+      debugPrint('⚠️ [BG][CP4-HocPhi] Budget hết — bỏ qua học phí');
     }
 
     // Đánh dấu thời gian sync thành công
     await prefs.setString(
         'bg_last_synced_at', DateTime.now().toIso8601String());
 
-    // 7. Snapshot SAU sync
+    // 7. Snapshot SAU sync (cùng scope HK hiện tại)
     List<DiemMonHoc> newDiem = [];
     List<LichHoc> newLichHoc = [];
     List<LichThi> newLichThi = [];
@@ -251,9 +400,16 @@ Future<void> _runSyncLogic() async {
     double newDaDong = 0.0;
 
     try {
-      newDiem = await GradeDb.getDiem();
-      newLichHoc = await ScheduleDb.getLichHoc();
-      newLichThi = await ScheduleDb.getLichThi();
+      // Bug 5 Fix: snapshot điểm sau sync của CẢ 2 KỲ
+      final newDiemCur = await GradeDb.getDiem(
+          hocKy: currentHocKy, namHoc: currentNamHocStr, isOverview: false);
+      final newDiemOld = await GradeDb.getDiem(
+          hocKy: prevHocKy, namHoc: prevNamHocStr, isOverview: false);
+      newDiem = [...newDiemCur, ...newDiemOld];
+      newLichHoc = await ScheduleDb.getLichHoc(
+          hocKy: currentHocKy, namHoc: currentNamHocStr);
+      newLichThi = await ScheduleDb.getLichThi(
+          hocKy: currentHocKy, namHoc: currentNamHocStr);
       newFeeSummary = await FinanceDb.getAllFeeSummary();
       newDaDong = newFeeSummary.fold(
           0.0, (s, f) => s + ((f['da_nop'] as num?) ?? 0).toDouble());
@@ -265,86 +421,108 @@ Future<void> _runSyncLogic() async {
     try {
       final dismissed = await NotificationService.getDismissedIds();
       final allNotifs = await NotificationService.getAll();
-      final now = DateTime.now();
+      final nowTs = DateTime.now();
 
       Future<void> pushIfNew(String notifId, String title, String body, int tab,
           int localId) async {
         if (!dismissed.contains(notifId) &&
             !allNotifs.any((n) => n.id == notifId)) {
           await NotificationService.add(AppNotif(
-              id: notifId, title: title, body: body, targetTab: tab, ts: now));
+              id: notifId,
+              title: title,
+              body: body,
+              targetTab: tab,
+              ts: nowTs));
           await LocalNotificationService.showImmediate(
               id: localId, title: title, body: body);
           debugPrint('⚙️ [BG][Notif] Pushed: $title');
         }
       }
 
-      // ── Diff Điểm
-      final prevDiemKeys = prevDiem
-          .map((d) =>
-              '${d.maMonHoc.isNotEmpty ? d.maMonHoc : d.tenMonHoc}_${d.namHoc}_${d.hocKy}')
-          .toSet();
-      final newDiemKeys = newDiem
-          .map((d) =>
-              '${d.maMonHoc.isNotEmpty ? d.maMonHoc : d.tenMonHoc}_${d.namHoc}_${d.hocKy}')
-          .toSet();
-      final addedDiem = newDiemKeys.difference(prevDiemKeys);
+      // ── Diff Điểm (Bug 5 Fix: Phương án b — đưa hash giá trị điểm vào key)
+      String gradeFingerprint(DiemMonHoc d) {
+        final courseKey = d.maMonHoc.isNotEmpty ? d.maMonHoc : d.tenMonHoc;
+        return '$courseKey|${d.namHoc}|${d.hocKy}|${d.rawAvgGrade ?? ''}|${d.rawDiemSo ?? ''}|${d.rawExamScore ?? ''}|${d.rawComponentScore ?? ''}|${d.rawXepLoai ?? ''}|${d.canVote}';
+      }
 
-      if (prevDiem.isNotEmpty && addedDiem.isNotEmpty) {
+      bool hasAnyGrade(DiemMonHoc d) {
+        return (d.rawDiemSo != null && d.rawDiemSo!.isNotEmpty) ||
+            (d.rawAvgGrade != null && d.rawAvgGrade!.isNotEmpty) ||
+            (d.rawExamScore != null && d.rawExamScore!.isNotEmpty) ||
+            (d.rawComponentScore != null && d.rawComponentScore!.isNotEmpty) ||
+            (d.diemTongKet != null) ||
+            (d.avgGrade != null);
+      }
+
+      final prevMap = {
+        for (final d in prevDiem)
+          '${d.maMonHoc.isNotEmpty ? d.maMonHoc : d.tenMonHoc}_${d.namHoc}_${d.hocKy}':
+              gradeFingerprint(d)
+      };
+
+      final updatedOrNewGradeCourses = <DiemMonHoc>[];
+      for (final d in newDiem) {
+        if (!hasAnyGrade(d)) continue; // Môn chưa có điểm không tính là điểm mới
+        final courseKey =
+            '${d.maMonHoc.isNotEmpty ? d.maMonHoc : d.tenMonHoc}_${d.namHoc}_${d.hocKy}';
+        final prevFp = prevMap[courseKey];
+        final newFp = gradeFingerprint(d);
+
+        if (prevFp == null || prevFp != newFp) {
+          // Môn mới có điểm, hoặc điểm được giảng viên nhập/sửa cập nhật
+          updatedOrNewGradeCourses.add(d);
+        }
+      }
+
+      if (prevDiem.isNotEmpty && updatedOrNewGradeCourses.isNotEmpty) {
         await pushIfNew(
-          'notif_${mssv}_grade_${now.millisecondsSinceEpoch}',
+          'notif_${bgMssv}_grade_${nowTs.millisecondsSinceEpoch}',
           'Có điểm mới 📊',
-          'Vừa có ${addedDiem.length} môn học có điểm mới trên hệ thống.',
+          'Vừa có ${updatedOrNewGradeCourses.length} môn học có điểm mới hoặc được cập nhật trên hệ thống.',
           2,
           2001,
         );
       }
 
-      // ── Diff Lịch học (B10: 2 chiều)
+      // ── Diff Lịch học (2 chiều)
       final diffLichHoc =
           ScheduleDiffCalculator.computeLichHocDiff(prevLichHoc, newLichHoc);
-      final addedLichHoc = diffLichHoc.added;
-      final removedLichHoc = diffLichHoc.removed;
-
-      if (prevLichHoc.isNotEmpty && addedLichHoc.isNotEmpty) {
+      if (prevLichHoc.isNotEmpty && diffLichHoc.added.isNotEmpty) {
         await pushIfNew(
-          'notif_${mssv}_lich_add_${now.millisecondsSinceEpoch}',
+          'notif_${bgMssv}_lich_add_${nowTs.millisecondsSinceEpoch}',
           'Lịch học được cập nhật 📅',
-          'Vừa có ${addedLichHoc.length} buổi học mới được thêm vào lịch.',
+          'Vừa có ${diffLichHoc.added.length} buổi học mới được thêm vào lịch.',
           1,
           2002,
         );
       }
-      if (prevLichHoc.isNotEmpty && removedLichHoc.isNotEmpty) {
+      if (prevLichHoc.isNotEmpty && diffLichHoc.removed.isNotEmpty) {
         await pushIfNew(
-          'notif_${mssv}_lich_rem_${now.millisecondsSinceEpoch}',
+          'notif_${bgMssv}_lich_rem_${nowTs.millisecondsSinceEpoch}',
           'Lịch học được cập nhật 📅',
-          'Có ${removedLichHoc.length} buổi học đã được điều chỉnh hoặc hủy.',
+          'Có ${diffLichHoc.removed.length} buổi học đã được điều chỉnh hoặc hủy.',
           1,
           2005,
         );
       }
 
-      // ── Diff Lịch thi (B10: 2 chiều)
+      // ── Diff Lịch thi (2 chiều)
       final diffLichThi =
           ScheduleDiffCalculator.computeLichThiDiff(prevLichThi, newLichThi);
-      final addedLichThi = diffLichThi.added;
-      final removedLichThi = diffLichThi.removed;
-
-      if (prevLichThi.isNotEmpty && addedLichThi.isNotEmpty) {
+      if (prevLichThi.isNotEmpty && diffLichThi.added.isNotEmpty) {
         await pushIfNew(
-          'notif_${mssv}_thi_add_${now.millisecondsSinceEpoch}',
+          'notif_${bgMssv}_thi_add_${nowTs.millisecondsSinceEpoch}',
           'Có lịch thi mới 📝',
-          'Vừa có ${addedLichThi.length} lịch thi mới được cập nhật.',
+          'Vừa có ${diffLichThi.added.length} lịch thi mới được cập nhật.',
           1,
           2003,
         );
       }
-      if (prevLichThi.isNotEmpty && removedLichThi.isNotEmpty) {
+      if (prevLichThi.isNotEmpty && diffLichThi.removed.isNotEmpty) {
         await pushIfNew(
-          'notif_${mssv}_thi_rem_${now.millisecondsSinceEpoch}',
+          'notif_${bgMssv}_thi_rem_${nowTs.millisecondsSinceEpoch}',
           'Lịch thi thay đổi 📝',
-          'Có ${removedLichThi.length} lịch thi đã được điều chỉnh hoặc hủy.',
+          'Có ${diffLichThi.removed.length} lịch thi đã được điều chỉnh hoặc hủy.',
           1,
           2006,
         );
@@ -353,7 +531,7 @@ Future<void> _runSyncLogic() async {
       // ── Diff Học phí
       if (prevDaDong > 0 && newDaDong > prevDaDong) {
         await pushIfNew(
-          'notif_${mssv}_finance_${newDaDong.toInt()}',
+          'notif_${bgMssv}_finance_${newDaDong.toInt()}',
           'Thanh toán được ghi nhận 💰',
           'Học phí đã được cập nhật trên hệ thống.',
           3,
@@ -364,18 +542,14 @@ Future<void> _runSyncLogic() async {
       debugPrint('⚠️ [BG][Step8-NotifDiff] Lỗi khi tạo thông báo: $e');
     }
 
-    // 10. Lên lịch thông báo định kỳ (Bọc try-catch riêng để lỗi không làm sập BG task)
+    // 10. Lên lịch thông báo định kỳ (dùng bgMssv chuẩn xác)
     try {
       final isEnabled =
-          await LocalNotificationService.isNotificationEnabled(mssv);
+          await LocalNotificationService.isNotificationEnabled(bgMssv);
       if (isEnabled) {
-        debugPrint(
-            '⚙️ [BG][Step10-NotifSchedule] Đang lên lịch thông báo nhắc nhở...');
         await LocalNotificationService.scheduleClasses(
-            mssv, newLichHoc, newLichThi);
+            bgMssv, newLichHoc, newLichThi);
       } else {
-        debugPrint(
-            '⚙️ [BG][Step10-NotifSchedule] Thông báo đang tắt, hủy các lịch cũ');
         await LocalNotificationService.cancelAll();
       }
     } catch (e) {
@@ -388,9 +562,7 @@ Future<void> _runSyncLogic() async {
     debugPrint('❌ [BG] Lỗi không mong muốn trong task: $e');
   } finally {
     BackgroundSyncService._setSyncing(false);
-    final prefs = await SharedPreferences.getInstance();
-    final mssv = prefs.getString('saved_mssv') ?? '';
-    await SyncMutex.releaseLock(mssv);
+    await SyncMutex.releaseLock(activeSyncMssv);
   }
 }
 
@@ -513,7 +685,7 @@ class SyncMutex {
   static String? _activeOwnerToken;
 
   static Future<bool> acquireLock(String mssv,
-      {Duration timeout = const Duration(seconds: 45)}) async {
+      {Duration timeout = const Duration(seconds: 60)}) async {
     final token =
         '${Isolate.current.hashCode}_${DateTime.now().microsecondsSinceEpoch}';
     final lockUntil = DateTime.now().add(timeout).millisecondsSinceEpoch;

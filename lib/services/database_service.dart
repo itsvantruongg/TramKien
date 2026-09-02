@@ -11,7 +11,7 @@ export 'db/finance_db.dart';
 
 class DatabaseService {
   static Database? _db;
-  static const _version = 16;
+  static const _version = 17;
   static const String currentAppVersion = '1.0.6+4';
   static String _currentMssv = '';
   static String get currentMssv => _currentMssv;
@@ -180,6 +180,70 @@ class DatabaseService {
           print(
               '📌 [Migration v16] Đã thêm cột fetched_app_version & synced_at vào lich_hoc & lich_thi');
         }
+        if (oldV < 17) {
+          // Bug 6 Fix: Upsert pattern — thêm last_seen_at + UNIQUE INDEX
+          // Guard bằng PRAGMA table_info để tránh lỗi "duplicate column" khi debug reinstall
+          final lichHocInfo =
+              await db.rawQuery('PRAGMA table_info(lich_hoc)');
+          final lichHocCols =
+              lichHocInfo.map((r) => r['name'] as String).toSet();
+          if (!lichHocCols.contains('last_seen_at')) {
+            await db.execute(
+                'ALTER TABLE lich_hoc ADD COLUMN last_seen_at INTEGER');
+          }
+
+          final lichThiInfo =
+              await db.rawQuery('PRAGMA table_info(lich_thi)');
+          final lichThiCols =
+              lichThiInfo.map((r) => r['name'] as String).toSet();
+          if (!lichThiCols.contains('last_seen_at')) {
+            await db.execute(
+                'ALTER TABLE lich_thi ADD COLUMN last_seen_at INTEGER');
+          }
+
+          // Dedup data cũ trước khi tạo UNIQUE INDEX để tránh SQLITE_CONSTRAINT
+          // Giữ bản ghi có id lớn nhất (mới nhất) cho mỗi composite key
+          await db.execute('''
+            DELETE FROM lich_hoc WHERE id NOT IN (
+              SELECT MAX(id) FROM lich_hoc
+              WHERE is_manual = 0
+              GROUP BY ten_hoc_phan, thoi_gian, thu, tiet, dot_hoc, nam_hoc, hoc_ky
+            ) AND is_manual = 0
+          ''');
+
+          // Dedup lich_thi: dùng COALESCE(NULLIF(ma_hoc_phan,''), ten_hoc_phan)
+          // vì ma_hoc_phan có thể là '' khi API không trả mã môn
+          await db.execute('''
+            DELETE FROM lich_thi WHERE id NOT IN (
+              SELECT MAX(id) FROM lich_thi
+              WHERE is_manual = 0
+              GROUP BY
+                COALESCE(NULLIF(ma_hoc_phan, ''), ten_hoc_phan),
+                ngay_thi, ca_thi, hoc_ky, nam_hoc
+            ) AND is_manual = 0
+          ''');
+
+          // Tạo UNIQUE INDEX — bắt buộc để ConflictAlgorithm.replace hoạt động đúng
+          // Partial index WHERE is_manual = 0: chỉ áp dụng cho record từ API
+          await db.execute('''
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_lich_hoc_upsert
+            ON lich_hoc(ten_hoc_phan, thoi_gian, thu, tiet, dot_hoc, nam_hoc, hoc_ky)
+            WHERE is_manual = 0
+          ''');
+
+          // lich_thi: COALESCE trong expression index để handle mã môn rỗng
+          await db.execute('''
+            CREATE UNIQUE INDEX IF NOT EXISTS idx_lich_thi_upsert
+            ON lich_thi(
+              COALESCE(NULLIF(ma_hoc_phan, ''), ten_hoc_phan),
+              ngay_thi, ca_thi, hoc_ky, nam_hoc
+            )
+            WHERE is_manual = 0
+          ''');
+
+          print(
+              '📌 [Migration v17] Thêm last_seen_at + UNIQUE index cho upsert (Bug 6 fix)');
+        }
       },
     );
   }
@@ -206,8 +270,14 @@ class DatabaseService {
         hoc_ky INTEGER, nam_hoc TEXT, dot_hoc INTEGER,
         chuyen_nganh TEXT, last_updated TEXT,
         note TEXT DEFAULT "", is_manual INTEGER DEFAULT 0,
-        fetched_app_version TEXT, synced_at INTEGER
+        fetched_app_version TEXT, synced_at INTEGER,
+        last_seen_at INTEGER
       )
+    ''');
+    await db.execute('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_lich_hoc_upsert
+      ON lich_hoc(ten_hoc_phan, thoi_gian, thu, tiet, dot_hoc, nam_hoc, hoc_ky)
+      WHERE is_manual = 0
     ''');
 
     // 3. Bảng Lịch thi
@@ -220,9 +290,18 @@ class DatabaseService {
       so_bao_danh TEXT, phong_thi TEXT, hinh_thuc TEXT, hoan_thi TEXT,
       hoc_ky INTEGER, nam_hoc TEXT, last_updated TEXT,
       note TEXT DEFAULT "", is_manual INTEGER DEFAULT 0,
-      fetched_app_version TEXT, synced_at INTEGER
+      fetched_app_version TEXT, synced_at INTEGER,
+      last_seen_at INTEGER
     )
   ''');
+    await db.execute('''
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_lich_thi_upsert
+      ON lich_thi(
+        COALESCE(NULLIF(ma_hoc_phan, ''), ten_hoc_phan),
+        ngay_thi, ca_thi, hoc_ky, nam_hoc
+      )
+      WHERE is_manual = 0
+    ''');
 
     await db.execute('''
     CREATE TABLE semester_summaries (

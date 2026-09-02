@@ -45,9 +45,14 @@ class GlobalApiQueue {
   /// Số lượng request đang thực thi
   int get activeCount => _activeCount;
 
-  /// Tính timeout động: base 15s + 8s mỗi vị trí chờ/active
-  Duration dynamicTimeout(int queuePositionAtStart) =>
-      Duration(seconds: 15 + queuePositionAtStart * 8);
+  /// Tính timeout động: base 15s + 3s × số task đang chờ, clamp [15s, 45s]
+  /// Bug 7 Fix: positionAtStart = _queue.length (lấy TRƯỚC removeAt) — bao gồm cả task hiện tại
+  /// Hệ số 3ms/task: 10 task trong queue → timeout 15 + 10×3 = 45s (trùng trần clamp).
+  /// .clamp bắt buộc: chần trần 45s tránh timeout tăng vô hạn khi queue dài.
+  Duration dynamicTimeout(int queueLengthBeforeRemove) => Duration(
+        milliseconds:
+            (15000 + queueLengthBeforeRemove * 3000).clamp(15000, 45000),
+      );
 
   /// Thêm 1 request vào hàng đợi và trả về kết quả Future
   Future<T> enqueue<T>(
@@ -89,10 +94,12 @@ class GlobalApiQueue {
   /// Kích hoạt các task tiếp theo nếu còn slot trống (< 2)
   void _drain() {
     while (_activeCount < _maxConcurrent && _queue.isNotEmpty) {
-      final positionAtStart = _activeCount;
+      // Bug 7 Fix: Lấy _queue.length TRƯỚC removeAt(0) — đây là số task đang chờ kể cả task này.
+      // Trần 45s được đảm bảo bởi clamp bên trong dynamicTimeout().
+      final queueLengthNow = _queue.length;
       final next = _queue.removeAt(0);
       _activeCount++;
-      _runTask(next, positionAtStart);
+      _runTask(next, queueLengthNow);
     }
   }
 

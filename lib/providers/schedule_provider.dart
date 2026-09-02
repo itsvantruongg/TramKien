@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
 import '../services/hau_api_service.dart';
 import '../services/database_service.dart';
@@ -18,6 +19,8 @@ class ScheduleProvider extends ChangeNotifier {
   List<LichThi> _lichThi = [];
   bool _lichHocState = false;
   bool _lichThiState = false;
+  bool _isSyncingLichHocFull = false;
+  bool _isSyncingLichThiFull = false;
   String? _mssv; // ← thêm để tính startYear
 
   late int _currentHocKy;
@@ -117,46 +120,47 @@ class ScheduleProvider extends ChangeNotifier {
   }
 
   /// Sync lịch học TẤT CẢ kỳ từ năm bắt đầu → hiện tại
+  // Bug 3 Fix: syncLichHoc mặc định chỉ fetch HK hiện tại (~16 requests)
   Future<void> syncLichHoc({bool forceRefresh = false}) async {
+    if (_lichHocState || _isSyncingLichHocFull) {
+      debugPrint('⚙️ [ScheduleProvider] Lịch học đang đồng bộ, bỏ qua gọi trùng.');
+      return;
+    }
     _lichHocState = true;
     notifyListeners();
     try {
-      // Xác định HK hiện tại
       final now = DateTime.now();
-      final currentNamHoc = now.month >= 8 ? now.year : now.year - 1;
-      final currentHocKy = now.month >= 8 ? 1 : 2;
-      final currentKey = 'lich_hoc_hk${currentHocKy}_${currentNamHoc}';
+      final prefs = await SharedPreferences.getInstance();
+      final currentNamHoc = prefs.getInt('active_nam_hoc') ?? (now.month >= 8 ? now.year : now.year - 1);
+      final currentHocKy = prefs.getInt('active_hoc_ky') ?? (now.month >= 8 ? 1 : 2);
+      final currentKey = 'lich_hoc_hk${currentHocKy}_$currentNamHoc';
 
-      // Các HK cũ → dùng cache dài hạn (7 ngày)
-      final oldCacheKey = 'lich_hoc_old_${_mssv ?? "anon"}';
-      final oldIsCached = !forceRefresh &&
-          !(await DatabaseService.isStale(
-              oldCacheKey, const Duration(days: 7)));
-
-      // HK hiện tại → cache ngắn hơn (2 tiếng) để bắt kịp cập nhật mới
       final currentIsCached = !forceRefresh &&
           !(await DatabaseService.isStale(
               currentKey, const Duration(hours: 2)));
 
-      if (oldIsCached && currentIsCached) {
+      if (currentIsCached) {
         await refreshFromCache();
-        print('📚 [LichHoc] Dùng cache, skip fetch API');
+        print('📚 [LichHoc] Dùng cache HK hiện tại, skip fetch API');
         return;
       }
 
-      final result =
-          await ScheduleApi.fetchLichHocFromStartWithStatus(mssv: _mssv);
+      // Bug 3: Chỉ fetch HK hiện tại — không quét toàn lịch sử
+      final result = await ScheduleApi.fetchLichHocAllDotsWithStatus(
+        hocKy: currentHocKy,
+        namHoc: currentNamHoc,
+        mssv: _mssv,
+      );
 
       if (result.items.isNotEmpty) {
-        await ScheduleDb.saveLichHoc(result.items);
-        print('📚 [LichHoc] Đã lưu ${result.items.length} bản ghi vào DB');
+        // Bug 6: softDeleteAfter khi fetch complete
+        await ScheduleDb.saveLichHoc(result.items,
+            softDeleteAfter: result.complete);
+        print('📚 [LichHoc] Đã upsert ${result.items.length} bản ghi HK hiện tại');
       }
 
       if (result.complete) {
-        await DatabaseService.updateCacheMeta(oldCacheKey, 'synced');
         await DatabaseService.updateCacheMeta(currentKey, 'synced');
-      } else {
-        print('⚠️ [LichHoc] Sync chưa đầy đủ, chưa đánh dấu cache synced');
       }
 
       await refreshFromCache();
@@ -168,65 +172,129 @@ class ScheduleProvider extends ChangeNotifier {
     }
   }
 
-  /// Sync lịch thi TẤT CẢ kỳ từ năm bắt đầu → hiện tại
+  /// Full history scan — chỉ chạy 1 lần khi mới cài app (has_done_initial_full_sync)
+  Future<void> syncLichHocFullHistory() async {
+    if (_isSyncingLichHocFull) {
+      debugPrint('⚙️ [ScheduleProvider] Full history lịch học đang chạy, bỏ qua gọi trùng.');
+      return;
+    }
+    _isSyncingLichHocFull = true;
+    _lichHocState = true;
+    notifyListeners();
+    try {
+      print('📚 [LichHoc] Full history sync bắt đầu...');
+      final result =
+          await ScheduleApi.fetchLichHocFromStartWithStatus(mssv: _mssv);
+
+      if (result.items.isNotEmpty) {
+        await ScheduleDb.saveLichHoc(result.items,
+            softDeleteAfter: result.complete);
+        print(
+            '📚 [LichHoc] Full sync: upsert ${result.items.length} bản ghi complete=${result.complete}');
+      }
+
+      if (result.complete) {
+        final now = DateTime.now();
+        final prefs = await SharedPreferences.getInstance();
+        final currentNamHoc = prefs.getInt('active_nam_hoc') ?? (now.month >= 8 ? now.year : now.year - 1);
+        final currentHocKy = prefs.getInt('active_hoc_ky') ?? (now.month >= 8 ? 1 : 2);
+        await DatabaseService.updateCacheMeta(
+            'lich_hoc_hk${currentHocKy}_$currentNamHoc', 'synced');
+      }
+
+      await refreshFromCache();
+    } catch (e) {
+      print('❌ [LichHoc] syncLichHocFullHistory lỗi: $e');
+    } finally {
+      _isSyncingLichHocFull = false;
+      _lichHocState = false;
+      notifyListeners();
+    }
+  }
+
+  // Bug 3 Fix: syncLichThi mặc định chỉ fetch HK hiện tại
   Future<void> syncLichThi({bool forceRefresh = false}) async {
+    if (_lichThiState || _isSyncingLichThiFull) {
+      debugPrint('⚙️ [ScheduleProvider] Lịch thi đang đồng bộ, bỏ qua gọi trùng.');
+      return;
+    }
     _lichThiState = true;
     notifyListeners();
     try {
       final now = DateTime.now();
-      final startYear =
-          _mssv != null ? HauApiService.getNamBatDauFromMssv(_mssv!) : 2020;
       final currentNamHoc = now.month >= 8 ? now.year : now.year - 1;
+      final currentHocKy = now.month >= 8 ? 1 : 2;
+      final cacheKey = 'lich_thi_${currentHocKy}_$currentNamHoc';
 
-      // Fetch TẤT CẢ kỳ, không skip
-      final kyList = <({int ky, int nam})>[];
-      for (int nam = startYear; nam <= currentNamHoc; nam++) {
-        kyList.add((ky: 1, nam: nam));
-        kyList.add((ky: 2, nam: nam));
-      }
+      final isCached = !forceRefresh &&
+          !(await DatabaseService.isStale(cacheKey, _ttlLichThi));
 
-      bool allCached = !forceRefresh;
-      if (allCached) {
-        for (final k in kyList) {
-          final cacheKey = 'lich_thi_${k.ky}_${k.nam}';
-          final isCached =
-              !(await DatabaseService.isStale(cacheKey, _ttlLichThi));
-          if (!isCached) {
-            allCached = false;
-            break;
-          }
-        }
-      }
-
-      if (allCached) {
+      if (isCached) {
         await refreshFromCache();
-        print('🗓️ [LichThi] Dùng cache, skip fetch API');
+        print('🗓️ [LichThi] Dùng cache HK hiện tại, skip fetch API');
         return;
       }
 
-      final result =
-          await ScheduleApi.fetchLichThiFromStartWithStatus(mssv: _mssv);
+      // Bug 3: Chỉ fetch HK hiện tại
+      final result = await ScheduleApi.fetchLichThiWithStatus(
+        hocKy: currentHocKy,
+        namHoc: currentNamHoc,
+      );
 
       if (result.items.isNotEmpty) {
-        await ScheduleDb.saveLichThi(result.items);
+        await ScheduleDb.saveLichThi(result.items, softDeleteAfter: result.success);
       }
 
-      if (result.complete) {
-        for (final k in kyList) {
-          final cacheKey = 'lich_thi_${k.ky}_${k.nam}';
-          await DatabaseService.updateCacheMeta(cacheKey, 'synced');
-        }
-      } else {
-        print('⚠️ [LichThi] Sync chưa đầy đủ, chưa đánh dấu cache synced');
+      if (result.success) {
+        await DatabaseService.updateCacheMeta(cacheKey, 'synced');
       }
 
-      print('🏁 [LichThi] Tổng: ${result.items.length} lịch thi '
-          'complete=${result.complete}');
+      print('🏁 [LichThi] HK hiện tại: ${result.items.length} lịch thi '
+          'success=${result.success}');
       _lichThi = await ScheduleDb.getLichThi();
       notifyListeners();
     } catch (e) {
       print('❌ [LichThi] syncLichThi lỗi: $e');
     } finally {
+      _lichThiState = false;
+      notifyListeners();
+    }
+  }
+
+  /// Full history scan lịch thi — chạy cùng syncLichHocFullHistory lần đầu
+  Future<void> syncLichThiFullHistory() async {
+    if (_isSyncingLichThiFull) {
+      debugPrint('⚙️ [ScheduleProvider] Full history lịch thi đang chạy, bỏ qua gọi trùng.');
+      return;
+    }
+    _isSyncingLichThiFull = true;
+    _lichThiState = true;
+    notifyListeners();
+    try {
+      print('🗓️ [LichThi] Full history sync bắt đầu...');
+      final result =
+          await ScheduleApi.fetchLichThiFromStartWithStatus(mssv: _mssv);
+
+      if (result.items.isNotEmpty) {
+        await ScheduleDb.saveLichThi(result.items, softDeleteAfter: result.complete);
+      }
+
+      if (result.complete) {
+        final now = DateTime.now();
+        final currentNamHoc = now.month >= 8 ? now.year : now.year - 1;
+        final currentHocKy = now.month >= 8 ? 1 : 2;
+        await DatabaseService.updateCacheMeta(
+            'lich_thi_${currentHocKy}_$currentNamHoc', 'synced');
+      }
+
+      print('🏁 [LichThi] Full sync: ${result.items.length} lịch thi '
+          'complete=${result.complete}');
+      _lichThi = await ScheduleDb.getLichThi();
+      notifyListeners();
+    } catch (e) {
+      print('❌ [LichThi] syncLichThiFullHistory lỗi: $e');
+    } finally {
+      _isSyncingLichThiFull = false;
       _lichThiState = false;
       notifyListeners();
     }
