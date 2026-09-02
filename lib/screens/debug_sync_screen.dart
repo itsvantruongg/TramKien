@@ -43,7 +43,8 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
   void initState() {
     super.initState();
     SharedPreferences.getInstance().then((p) {
-      if (mounted) setState(() => _useDemoSetB = p.getBool('debug_demo_set_b') ?? false);
+      if (mounted)
+        setState(() => _useDemoSetB = p.getBool('debug_demo_set_b') ?? false);
     });
   }
 
@@ -103,7 +104,8 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
 
     try {
       _emit('');
-      _emit('▶ Step 1/5: Triggering real sync via AppProvider.syncAll(forceRefresh: true)...');
+      _emit(
+          '▶ Step 1/5: Triggering real sync via AppProvider.syncAll(forceRefresh: true)...');
       final provider = context.read<AppProvider>();
       await provider.syncAll(forceRefresh: true);
       _emit('✅ syncAll() completed.');
@@ -184,7 +186,8 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
   }
 
   Future<void> _triggerBgTask() async {
-    _emit('▶ Registering One-off Background Task (BackgroundSyncService.runOnce())...');
+    _emit(
+        '▶ Registering One-off Background Task (BackgroundSyncService.runOnce())...');
     try {
       await BackgroundSyncService.runOnce();
       _emit('✅ One-off task registered successfully!');
@@ -199,8 +202,10 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
   Future<void> _triggerFaultInject() async {
     assert(kDebugMode, '_triggerFaultInject only available in debug mode');
     _emit('');
-    _emit('⚡ [FAULT-INJECT] Bắt đầu sync + inject SocketException sau 300ms...');
-    _emit('   (Mục tiêu: xác nhận data cũ trong DB được giữ nguyên khi mạng mất giữa chừng)');
+    _emit(
+        '⚡ [FAULT-INJECT] Bắt đầu sync + inject SocketException sau 300ms...');
+    _emit(
+        '   (Mục tiêu: xác nhận data cũ trong DB được giữ nguyên khi mạng mất giữa chừng)');
     try {
       await BackgroundSyncService.runOnceFaultInject(delayMs: 300);
       _emit('✅ [FAULT-INJECT] Session hoàn tất. Xem log ở trên.');
@@ -217,7 +222,8 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
     _emit('   (Mục tiêu: 1 lần chạy, 1 lần bị mutex chặn → thấy log "bỏ qua")');
     try {
       await BackgroundSyncService.runOnceConcurrent();
-      _emit('✅ [MUTEX-TEST] Kết thúc. Xem log ở trên để xác nhận mutex hoạt động.');
+      _emit(
+          '✅ [MUTEX-TEST] Kết thúc. Xem log ở trên để xác nhận mutex hoạt động.');
     } catch (e) {
       _emit('❌ [MUTEX-TEST] Lỗi: $e');
     }
@@ -230,7 +236,8 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
     final next = !_useDemoSetB;
     await prefs.setBool('debug_demo_set_b', next);
     setState(() => _useDemoSetB = next);
-    final setLabel = next ? 'SET B (3 môn cũ + Hệ điều hành)' : 'SET A (baseline 4 môn)';
+    final setLabel =
+        next ? 'SET B (3 môn cũ + Hệ điều hành)' : 'SET A (baseline 4 môn)';
     _emit('🔄 Đã đổi sang $setLabel');
     _emit('▶ Đang trigger sync với bộ data mới...');
     await _triggerBgTask();
@@ -241,7 +248,7 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
     assert(kDebugMode, '_simulateOldVersion only available in debug mode');
     try {
       final d = await DatabaseService.db;
-      final oldVersion = '0.0.1';
+      const oldVersion = '0.0.1';
       final updated = await d.rawUpdate(
         "UPDATE lich_hoc SET fetched_app_version = ? WHERE is_manual = 0",
         [oldVersion],
@@ -255,8 +262,10 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
       _emit('   lich_thi: $updatedThi records');
       _emit('');
       _emit('⚠️  BẮT BUỘC: Kill app hoàn toàn (không chỉ hot reload),');
-      _emit('   rồi mở lại để trigger B2 reconcile trong app_provider.dart init().');
-      _emit('   Reconcile KHÔNG chạy trong background sync — chỉ chạy khi app khởi động.');
+      _emit(
+          '   rồi mở lại để trigger B2 reconcile trong app_provider.dart init().');
+      _emit(
+          '   Reconcile KHÔNG chạy trong background sync — chỉ chạy khi app khởi động.');
     } catch (e) {
       _emit('❌ Lỗi khi giả lập version cũ: $e');
     }
@@ -377,7 +386,8 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
     ''');
 
     if (multiDayQuery.isEmpty) {
-      _emit('│  No multi-day courses (having distinct `thu` > 1) in current DB.');
+      _emit(
+          '│  No multi-day courses (having distinct `thu` > 1) in current DB.');
     } else {
       for (final multi in multiDayQuery) {
         final hp = multi['ten_hoc_phan'];
@@ -396,7 +406,8 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
 
         _emit('│    [PARSER SESSIONS]:');
         for (final item in pMatches) {
-          _emit('│      - thu: "${item.thu}", tiet: "${item.tiet}", room: "${item.phong}", teacher: "${item.giaoVien}", dot_hoc: ${item.dotHoc}, chuyen_nganh: "${item.chuyenNganh}"');
+          _emit(
+              '│      - thu: "${item.thu}", tiet: "${item.tiet}", room: "${item.phong}", teacher: "${item.giaoVien}", dot_hoc: ${item.dotHoc}, chuyen_nganh: "${item.chuyenNganh}"');
         }
 
         // Fetch corresponding DB records
@@ -408,7 +419,8 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
 
         _emit('│    [DATABASE SESSIONS]:');
         for (final row in dMatches) {
-          _emit('│      - id: ${row['id']}, thu: "${row['thu']}", tiet: "${row['tiet']}", room: "${row['phong']}", teacher: "${row['giao_vien']}", dot_hoc: ${row['dot_hoc']}, chuyen_nganh: "${row['chuyen_nganh']}"');
+          _emit(
+              '│      - id: ${row['id']}, thu: "${row['thu']}", tiet: "${row['tiet']}", room: "${row['phong']}", teacher: "${row['giao_vien']}", dot_hoc: ${row['dot_hoc']}, chuyen_nganh: "${row['chuyen_nganh']}"');
         }
         _emit('│  ────────────────────────────────────────────────');
       }
@@ -525,7 +537,8 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
           if (_exportPath != null)
             const Padding(
               padding: EdgeInsets.only(right: 12),
-              child: Icon(Icons.check_circle, color: Colors.greenAccent, size: 20),
+              child:
+                  Icon(Icons.check_circle, color: Colors.greenAccent, size: 20),
             ),
         ],
       ),
@@ -544,25 +557,35 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1F6FEB),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.sync, size: 14),
-                        label: const Text('Sync #1 + SQL', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                        label: const Text('Sync #1 + SQL',
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.w600)),
                       ),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: (_running || _exportPath == null) ? null : _runSync02,
+                        onPressed: (_running || _exportPath == null)
+                            ? null
+                            : _runSync02,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF238636),
                           foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 10, horizontal: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                         icon: const Icon(Icons.compare_arrows, size: 14),
-                        label: const Text('Sync #2 (Inc)', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                        label: const Text('Sync #2 (Inc)',
+                            style: TextStyle(
+                                fontSize: 11, fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ],
@@ -576,10 +599,14 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
                       backgroundColor: Colors.deepOrangeAccent,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
                     ),
                     icon: const Icon(Icons.bolt, size: 16),
-                    label: const Text('⚡ Trigger BG Task (BackgroundSyncService.runOnce)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                    label: const Text(
+                        '⚡ Trigger BG Task (BackgroundSyncService.runOnce)',
+                        style: TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w700)),
                   ),
                 ),
                 // ─── DEBUG ONLY: chỉ xuất hiện trong kDebugMode ─────────────
@@ -595,14 +622,18 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
                             : const Color(0xFF2D6A4F),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 9),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
-                      icon: Icon(_useDemoSetB ? Icons.swap_horiz : Icons.compare, size: 15),
+                      icon: Icon(
+                          _useDemoSetB ? Icons.swap_horiz : Icons.compare,
+                          size: 15),
                       label: Text(
                         _useDemoSetB
                             ? '🟣 Đang dùng SET B — Bấm về SET A (baseline)'
                             : '🟢 Đang dùng SET A — Bấm sang SET B (test B10)',
-                        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ),
                   ),
@@ -615,12 +646,14 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
                         backgroundColor: const Color(0xFF7B2D00),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 9),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.history, size: 15),
                       label: const Text(
                         '🕰 Giả lập version cũ (test B2 reconcile)',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ),
                   ),
@@ -633,12 +666,14 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
                         backgroundColor: const Color(0xFF5C2D91),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 9),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.flash_off, size: 15),
                       label: const Text(
                         '🔌 Mô phỏng mất mạng giữa sync (Fault Inject)',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ),
                   ),
@@ -651,12 +686,14 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
                         backgroundColor: const Color(0xFF004D40),
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 9),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8)),
                       ),
                       icon: const Icon(Icons.layers, size: 15),
                       label: const Text(
                         '🔐 Test B4 Mutex — 2 sync đồng thời',
-                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                        style: TextStyle(
+                            fontSize: 11, fontWeight: FontWeight.w700),
                       ),
                     ),
                   ),
@@ -671,7 +708,8 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Row(
                 children: [
-                  const Icon(Icons.save_alt, color: Colors.greenAccent, size: 16),
+                  const Icon(Icons.save_alt,
+                      color: Colors.greenAccent, size: 16),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
@@ -710,9 +748,12 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
                       if (line.startsWith('✅')) color = Colors.greenAccent;
                       if (line.startsWith('❌')) color = Colors.redAccent;
                       if (line.startsWith('⚠️')) color = Colors.orangeAccent;
-                      if (line.startsWith('===')) color = const Color(0xFF58A6FF);
+                      if (line.startsWith('==='))
+                        color = const Color(0xFF58A6FF);
                       if (line.startsWith('▶')) color = const Color(0xFFD2A8FF);
-                      if (line.startsWith('│') || line.startsWith('┌') || line.startsWith('└')) color = const Color(0xFF8B949E);
+                      if (line.startsWith('│') ||
+                          line.startsWith('┌') ||
+                          line.startsWith('└')) color = const Color(0xFF8B949E);
 
                       return Padding(
                         padding: const EdgeInsets.symmetric(vertical: 1),

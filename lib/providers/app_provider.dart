@@ -170,7 +170,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       final error = await HauApiService.login(mssv, pw);
       if (error == null) {
         // [B2 Reconcile] Kiểm tra trực tiếp fetched_app_version trong các bản ghi SQLite
-        final currentVer = DatabaseService.currentAppVersion;
+        const currentVer = DatabaseService.currentAppVersion;
         final bool needsDbReconcile =
             await ScheduleDb.needsReconcile(currentVer);
         final lastReconciledVer =
@@ -306,7 +306,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   Future<void> syncAll({bool forceRefresh = false}) async {
     final acquired = await SyncMutex.acquireLock(_currentMssv);
     if (_isSyncing || BackgroundSyncService.isSyncing || !acquired) {
-      debugPrint('⚙️ [AppProvider] Sync bị hoãn do sync/BG sync đang chạy (Mutex active)');
+      debugPrint(
+          '⚙️ [AppProvider] Sync bị hoãn do sync/BG sync đang chạy (Mutex active)');
       return;
     }
     _isSyncing = true;
@@ -425,7 +426,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       final notifId = 'grade_to_$newDiemCount'; // ID ổn định dựa trên số lượng
       if (!dismissed.contains(notifId) &&
           !allNotifs.any((n) => n.id == notifId)) {
-        final title = 'Có điểm mới';
+        const title = 'Có điểm mới';
         final body = 'Vừa có $diff môn học có điểm mới trên hệ thống tín chỉ.';
         await NotificationService.add(AppNotif(
           id: notifId,
@@ -444,7 +445,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       final notifId = 'lich_to_$newLichHocCount';
       if (!dismissed.contains(notifId) &&
           !allNotifs.any((n) => n.id == notifId)) {
-        final title = 'Lịch học được cập nhật';
+        const title = 'Lịch học được cập nhật';
         final body =
             'Có ${newLichHocCount - prevLichHocCount} buổi học mới trong lịch';
         await NotificationService.add(AppNotif(
@@ -464,7 +465,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       final notifId = 'thi_to_$newLichThiCount';
       if (!dismissed.contains(notifId) &&
           !allNotifs.any((n) => n.id == notifId)) {
-        final title = 'Có lịch thi mới';
+        const title = 'Có lịch thi mới';
         final body =
             '${newLichThiCount - prevLichThiCount} lịch thi vừa được thêm vào';
         await NotificationService.add(AppNotif(
@@ -484,8 +485,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       final notifId = 'finance_to_${newDaDong.toInt()}';
       if (!dismissed.contains(notifId) &&
           !allNotifs.any((n) => n.id == notifId)) {
-        final title = 'Thanh toán được ghi nhận';
-        final body = 'Học phí đã được cập nhật';
+        const title = 'Thanh toán được ghi nhận';
+        const body = 'Học phí đã được cập nhật';
         await NotificationService.add(AppNotif(
           id: notifId,
           title: title,

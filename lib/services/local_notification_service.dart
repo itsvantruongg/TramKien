@@ -25,7 +25,7 @@ class LocalNotificationService {
     } catch (_) {}
 
     const androidSettings =
-        AndroidInitializationSettings('@drawable/ic_notification');
+        AndroidInitializationSettings('ic_notification');
     const iosSettings = DarwinInitializationSettings(
       requestAlertPermission: false,
       requestBadgePermission: false,
@@ -111,7 +111,7 @@ class LocalNotificationService {
             importance: Importance.max,
             priority: Priority.max,
             showWhen: true,
-            icon: '@drawable/ic_notification',
+            icon: 'ic_notification',
           ),
           iOS: DarwinNotificationDetails(
             presentAlert: true,
@@ -138,7 +138,7 @@ class LocalNotificationService {
             channelDescription: 'Kênh để kiểm tra thông báo',
             importance: Importance.max,
             priority: Priority.max,
-            icon: '@drawable/ic_notification',
+            icon: 'ic_notification',
           ),
           iOS: DarwinNotificationDetails(),
         ),

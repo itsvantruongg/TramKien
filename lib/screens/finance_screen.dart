@@ -62,7 +62,8 @@ class FinanceScreen extends StatelessWidget {
                                       style: Theme.of(context)
                                           .textTheme
                                           .headlineSmall
-                                          ?.copyWith(fontWeight: FontWeight.w800)),
+                                          ?.copyWith(
+                                              fontWeight: FontWeight.w800)),
                                   const SizedBox(height: 4),
                                   Text('HK${p.currentHocKy} · ${p.namHocLabel}',
                                       style: Theme.of(context)
@@ -97,7 +98,7 @@ class FinanceScreen extends StatelessWidget {
                                       fontWeight: FontWeight.w700)),
                               const SizedBox(height: 8),
                               Text(_fmt(p.tongHocPhiAllDaDong, f),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontFamily: 'Manrope',
                                       fontSize: 32,
                                       fontWeight: FontWeight.w800,
@@ -198,7 +199,7 @@ class FinanceScreen extends StatelessWidget {
                     sliver: SliverList(
                       delegate: SliverChildListDelegate([
                         // ── BẢNG 1: Học phí theo kỳ ──
-                        SectionHeader(title: 'Lịch sử giao dịch'),
+                        const SectionHeader(title: 'Lịch sử giao dịch'),
                         const SizedBox(height: 12),
 
                         if (p.paymentReceipts.isEmpty &&
@@ -209,13 +210,13 @@ class FinanceScreen extends StatelessWidget {
                                   child: Padding(
                             padding: const EdgeInsets.all(24),
                             child: Column(children: [
-                              Text('Chưa có dữ liệu học phí',
+                              const Text('Chưa có dữ liệu học phí',
                                   style: TextStyle(
                                       color: AppTheme.onSurfaceVariant)),
                               const SizedBox(height: 8),
                               Text(
                                   'Receipts: ${p.paymentReceipts.length}, Details: ${p.feeDetails.length}, Summaries: ${p.feeSummaries.length}',
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                       fontSize: 10,
                                       color: AppTheme.onSurfaceVariant),
                                   textAlign: TextAlign.center),
@@ -232,7 +233,7 @@ class FinanceScreen extends StatelessWidget {
                           final soPhieu = r['so_phieu']?.toString() ?? '';
                           final lanThu = r['lan_thu'] ?? 1;
                           final dotThu = r['dot_thu'] ?? 1;
-                          final daDong = true; // receipt = đã nộp
+                          const daDong = true; // receipt = đã nộp
 
                           return Padding(
                             padding: const EdgeInsets.only(bottom: 10),
@@ -274,8 +275,8 @@ class FinanceScreen extends StatelessWidget {
                                               .textTheme
                                               .bodySmall
                                               ?.copyWith(
-                                                  color:
-                                                      AppTheme.onSurfaceVariant)),
+                                                  color: AppTheme
+                                                      .onSurfaceVariant)),
                                     ])),
                                 Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -292,14 +293,14 @@ class FinanceScreen extends StatelessWidget {
                                           textAlign: TextAlign.right,
                                           maxLines: 2),
                                       const SizedBox(height: 4),
-                                      Row(
+                                      const Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            const Icon(Icons.check_circle,
+                                            Icon(Icons.check_circle,
                                                 size: 13,
                                                 color: Color(0xFF2E7D32)),
-                                            const SizedBox(width: 4),
-                                            const Text('Đã nộp',
+                                            SizedBox(width: 4),
+                                            Text('Đã nộp',
                                                 style: TextStyle(
                                                     fontSize: 10,
                                                     fontWeight: FontWeight.w700,
@@ -314,7 +315,7 @@ class FinanceScreen extends StatelessWidget {
                         // ── BẢNG 3: Chi tiết các khoản ──
                         if (p.feeDetails.isNotEmpty) ...[
                           const SizedBox(height: 20),
-                          SectionHeader(title: 'Chi tiết các khoản nộp'),
+                          const SectionHeader(title: 'Chi tiết các khoản nộp'),
                           const SizedBox(height: 12),
 
                           // Group by so_phieu
@@ -451,7 +452,7 @@ class FinanceScreen extends StatelessWidget {
                                                               children: [
                                                             Text(
                                                                 'Phải nộp: ${f.format(phaiNop)} VNĐ',
-                                                                style: TextStyle(
+                                                                style: const TextStyle(
                                                                     fontSize:
                                                                         11,
                                                                     color: AppTheme
@@ -463,10 +464,10 @@ class FinanceScreen extends StatelessWidget {
                                                                 height: 2),
                                                             Text(
                                                                 'Đã nộp: ${f.format(daNop)} VNĐ',
-                                                                style: TextStyle(
+                                                                style: const TextStyle(
                                                                     fontSize:
                                                                         11,
-                                                                    color: const Color(
+                                                                    color: Color(
                                                                         0xFF2E7D32),
                                                                     fontWeight:
                                                                         FontWeight
@@ -526,7 +527,7 @@ class FinanceScreen extends StatelessWidget {
                                                   ]),
                                             ),
                                           );
-                                        }).toList(),
+                                        }),
                                         const SizedBox(height: 12),
                                       ],
                                     ))

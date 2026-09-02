@@ -103,28 +103,60 @@ class MockData {
     return [
       LichHoc(
         tenHocPhan: 'Lập trình Flutter',
-        soTinChi: 3, tenLopTinChi: 'FLUTTER_K21', thoiGian: thoiGianStr,
-        thu: 'Thứ 2', tiet: '1-3', phong: 'I.801', giaoVien: 'Lê Văn A',
-        hocKy: 2, namHoc: '2024-2025', dotHoc: 1, chuyenNganh: 'CNTT',
+        soTinChi: 3,
+        tenLopTinChi: 'FLUTTER_K21',
+        thoiGian: thoiGianStr,
+        thu: 'Thứ 2',
+        tiet: '1-3',
+        phong: 'I.801',
+        giaoVien: 'Lê Văn A',
+        hocKy: 2,
+        namHoc: '2024-2025',
+        dotHoc: 1,
+        chuyenNganh: 'CNTT',
       ),
       LichHoc(
         tenHocPhan: 'Kiến trúc máy tính',
-        soTinChi: 3, tenLopTinChi: 'KTMT_K21', thoiGian: thoiGianStr,
-        thu: 'Thứ 4', tiet: '4-6', phong: 'H.605', giaoVien: 'Trần Thị B',
-        hocKy: 2, namHoc: '2024-2025', dotHoc: 1, chuyenNganh: 'CNTT',
+        soTinChi: 3,
+        tenLopTinChi: 'KTMT_K21',
+        thoiGian: thoiGianStr,
+        thu: 'Thứ 4',
+        tiet: '4-6',
+        phong: 'H.605',
+        giaoVien: 'Trần Thị B',
+        hocKy: 2,
+        namHoc: '2024-2025',
+        dotHoc: 1,
+        chuyenNganh: 'CNTT',
       ),
       LichHoc(
         tenHocPhan: 'Trí tuệ nhân tạo',
-        soTinChi: 3, tenLopTinChi: 'AI_K21', thoiGian: thoiGianStr,
-        thu: 'Thứ 6', tiet: '7-9', phong: 'M.907', giaoVien: 'Nguyễn Văn C',
-        hocKy: 2, namHoc: '2024-2025', dotHoc: 1, chuyenNganh: 'CNTT',
+        soTinChi: 3,
+        tenLopTinChi: 'AI_K21',
+        thoiGian: thoiGianStr,
+        thu: 'Thứ 6',
+        tiet: '7-9',
+        phong: 'M.907',
+        giaoVien: 'Nguyễn Văn C',
+        hocKy: 2,
+        namHoc: '2024-2025',
+        dotHoc: 1,
+        chuyenNganh: 'CNTT',
       ),
       // ↓ Môn MỚI thêm vào (thay thế "Tiếng Anh P3" từ set A)
       LichHoc(
         tenHocPhan: 'Hệ điều hành',
-        soTinChi: 3, tenLopTinChi: 'OS_K21', thoiGian: thoiGianStr,
-        thu: 'Thứ 3', tiet: '1-3', phong: 'G.301', giaoVien: 'Hoàng Văn E',
-        hocKy: 2, namHoc: '2024-2025', dotHoc: 1, chuyenNganh: 'CNTT',
+        soTinChi: 3,
+        tenLopTinChi: 'OS_K21',
+        thoiGian: thoiGianStr,
+        thu: 'Thứ 3',
+        tiet: '1-3',
+        phong: 'G.301',
+        giaoVien: 'Hoàng Văn E',
+        hocKy: 2,
+        namHoc: '2024-2025',
+        dotHoc: 1,
+        chuyenNganh: 'CNTT',
       ),
     ];
   }
@@ -135,31 +167,49 @@ class MockData {
         '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
     return [
       LichThi(
-        tenMonHoc: 'Lập trình Flutter', soTinChi: 3,
+        tenMonHoc: 'Lập trình Flutter',
+        soTinChi: 3,
         ngayThi: formatDate(now.add(const Duration(days: 1))),
-        caThi: 'Sáng', gioBatDau: '07:30', gioKetThuc: '09:30',
-        sooBaoDanh: '105', phong: 'I.801', hinhThucThi: 'Thực hành',
-        hocKy: 2, namHoc: '2024-2025',
+        caThi: 'Sáng',
+        gioBatDau: '07:30',
+        gioKetThuc: '09:30',
+        sooBaoDanh: '105',
+        phong: 'I.801',
+        hinhThucThi: 'Thực hành',
+        hocKy: 2,
+        namHoc: '2024-2025',
       ),
       LichThi(
-        tenMonHoc: 'Kiến trúc máy tính', soTinChi: 3,
+        tenMonHoc: 'Kiến trúc máy tính',
+        soTinChi: 3,
         ngayThi: formatDate(now.add(const Duration(days: 7))),
-        caThi: 'Chiều', gioBatDau: '13:00', gioKetThuc: '15:00',
-        sooBaoDanh: '082', phong: 'H.605', hinhThucThi: 'Thi viết',
-        hocKy: 2, namHoc: '2024-2025',
+        caThi: 'Chiều',
+        gioBatDau: '13:00',
+        gioKetThuc: '15:00',
+        sooBaoDanh: '082',
+        phong: 'H.605',
+        hinhThucThi: 'Thi viết',
+        hocKy: 2,
+        namHoc: '2024-2025',
       ),
       // ↓ Môn thi MỚI (Hệ điều hành thay Trí tuệ nhân tạo)
       LichThi(
-        tenMonHoc: 'Hệ điều hành', soTinChi: 3,
+        tenMonHoc: 'Hệ điều hành',
+        soTinChi: 3,
         ngayThi: formatDate(now.add(const Duration(days: 14))),
-        caThi: 'Sáng', gioBatDau: '09:00', gioKetThuc: '11:00',
-        sooBaoDanh: '077', phong: 'G.301', hinhThucThi: 'Thi viết',
-        hocKy: 2, namHoc: '2024-2025',
+        caThi: 'Sáng',
+        gioBatDau: '09:00',
+        gioKetThuc: '11:00',
+        sooBaoDanh: '077',
+        phong: 'G.301',
+        hinhThucThi: 'Thi viết',
+        hocKy: 2,
+        namHoc: '2024-2025',
       ),
     ];
   }
 
-  static DiemSummary getDiemSummary() => DiemSummary(
+  static DiemSummary getDiemSummary() => const DiemSummary(
         tbcTichLuyHe4: 3.2,
         tbcTichLuyHe10: 8.1,
         tbcHocTapHe4: 3.2,
@@ -227,7 +277,7 @@ class MockData {
   static List<DiemMonHoc> getDiem() {
     return [
       // ===== HK1 2025-2026 (dữ liệu thực của bạn) =====
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'CT4102',
           tenMonHoc: 'Pháp luật đại cương',
           soTinChi: 2,
@@ -239,7 +289,7 @@ class MockData {
           xepLoai: 'B',
           hocKy: 1,
           namHoc: '2025-2026'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH4304',
           tenMonHoc: 'Kỹ thuật lập trình',
           soTinChi: 3,
@@ -251,7 +301,7 @@ class MockData {
           xepLoai: 'B',
           hocKy: 1,
           namHoc: '2025-2026'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'CT4002',
           tenMonHoc: 'Lịch sử Đảng CSVN',
           soTinChi: 2,
@@ -263,7 +313,7 @@ class MockData {
           xepLoai: 'B',
           hocKy: 1,
           namHoc: '2025-2026'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH4306',
           tenMonHoc: 'Công nghệ phần mềm',
           soTinChi: 3,
@@ -275,7 +325,7 @@ class MockData {
           xepLoai: 'C',
           hocKy: 1,
           namHoc: '2025-2026'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH4320',
           tenMonHoc: 'Trí tuệ nhân tạo',
           soTinChi: 3,
@@ -287,7 +337,7 @@ class MockData {
           xepLoai: 'C',
           hocKy: 1,
           namHoc: '2025-2026'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH5206',
           tenMonHoc: 'Mạng máy tính',
           soTinChi: 3,
@@ -299,7 +349,7 @@ class MockData {
           xepLoai: 'C',
           hocKy: 1,
           namHoc: '2025-2026'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH5209',
           tenMonHoc: 'Xử lý ảnh',
           soTinChi: 3,
@@ -311,7 +361,7 @@ class MockData {
           xepLoai: 'B',
           hocKy: 1,
           namHoc: '2025-2026'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH4316',
           tenMonHoc: 'Công nghệ Java',
           soTinChi: 3,
@@ -323,7 +373,7 @@ class MockData {
           xepLoai: 'B',
           hocKy: 1,
           namHoc: '2025-2026'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH5208',
           tenMonHoc: 'Phân tích & TKHTTT',
           soTinChi: 3,
@@ -337,7 +387,7 @@ class MockData {
           namHoc: '2025-2026'),
 
       // ===== HK2 2025-2026 (mẫu — bạn thay số thực) =====
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH5301',
           tenMonHoc: 'Lập trình .NET',
           soTinChi: 3,
@@ -349,7 +399,7 @@ class MockData {
           xepLoai: 'B',
           hocKy: 2,
           namHoc: '2025-2026'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH5302',
           tenMonHoc: 'Kiểm thử phần mềm',
           soTinChi: 3,
@@ -361,7 +411,7 @@ class MockData {
           xepLoai: 'C',
           hocKy: 2,
           namHoc: '2025-2026'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH5303',
           tenMonHoc: 'Đồ án tốt nghiệp',
           soTinChi: 5,
@@ -375,7 +425,7 @@ class MockData {
           namHoc: '2025-2026'),
 
       // ===== HK1 2024-2025 (mẫu) =====
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'CT3001',
           tenMonHoc: 'Toán cao cấp A1',
           soTinChi: 4,
@@ -387,7 +437,7 @@ class MockData {
           xepLoai: 'C',
           hocKy: 1,
           namHoc: '2024-2025'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'CT3002',
           tenMonHoc: 'Vật lý đại cương',
           soTinChi: 3,
@@ -399,7 +449,7 @@ class MockData {
           xepLoai: 'B',
           hocKy: 1,
           namHoc: '2024-2025'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH3101',
           tenMonHoc: 'Lập trình cơ bản',
           soTinChi: 3,
@@ -413,7 +463,7 @@ class MockData {
           namHoc: '2024-2025'),
 
       // ===== HK2 2024-2025 (mẫu) =====
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'CT3101',
           tenMonHoc: 'Toán cao cấp A2',
           soTinChi: 4,
@@ -425,7 +475,7 @@ class MockData {
           xepLoai: 'C',
           hocKy: 2,
           namHoc: '2024-2025'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH3201',
           tenMonHoc: 'Cấu trúc dữ liệu',
           soTinChi: 3,
@@ -437,7 +487,7 @@ class MockData {
           xepLoai: 'B',
           hocKy: 2,
           namHoc: '2024-2025'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH3202',
           tenMonHoc: 'Cơ sở dữ liệu',
           soTinChi: 3,
@@ -451,7 +501,7 @@ class MockData {
           namHoc: '2024-2025'),
 
       // ===== HK1 2023-2024 =====
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TC2611',
           tenMonHoc: 'Toán Đại số',
           soTinChi: 3,
@@ -463,7 +513,7 @@ class MockData {
           xepLoai: 'B',
           hocKy: 1,
           namHoc: '2023-2024'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'CT3901.1',
           tenMonHoc: 'Triết học Mác - LêNin',
           soTinChi: 3,
@@ -475,7 +525,7 @@ class MockData {
           xepLoai: 'B',
           hocKy: 1,
           namHoc: '2023-2024'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TC2701',
           tenMonHoc: 'Vật lý P1',
           soTinChi: 2,
@@ -489,7 +539,7 @@ class MockData {
           namHoc: '2023-2024'),
 
       // ===== HK2 2023-2024 =====
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'CT3902.1',
           tenMonHoc: 'Kinh tế chính trị Mác - Lênin',
           soTinChi: 2,
@@ -501,7 +551,7 @@ class MockData {
           xepLoai: 'B',
           hocKy: 2,
           namHoc: '2023-2024'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TC2612',
           tenMonHoc: 'Giải tích 1',
           soTinChi: 3,
@@ -515,7 +565,7 @@ class MockData {
           namHoc: '2023-2024'),
 
       // ===== HK2 2022-2023 =====
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TC2610',
           tenMonHoc: 'Toán cao cấp 1',
           soTinChi: 3,
@@ -527,7 +577,7 @@ class MockData {
           xepLoai: 'C',
           hocKy: 2,
           namHoc: '2022-2023'),
-      DiemMonHoc(
+      const DiemMonHoc(
           maMonHoc: 'TH3101',
           tenMonHoc: 'Tin học đại cương',
           soTinChi: 2,

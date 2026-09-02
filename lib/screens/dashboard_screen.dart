@@ -125,15 +125,16 @@ class DashboardScreen extends StatelessWidget {
                                                           height: 1,
                                                         )),
                                                 Padding(
-                                                  padding: const EdgeInsets.only(
-                                                      bottom: 8, left: 4),
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                          bottom: 8, left: 4),
                                                   child: Text('/ 4.0',
                                                       style: Theme.of(context)
                                                           .textTheme
                                                           .titleMedium
                                                           ?.copyWith(
-                                                              color:
-                                                                  Colors.white70)),
+                                                              color: Colors
+                                                                  .white70)),
                                                 ),
                                               ]),
                                           const SizedBox(height: 16),
@@ -277,16 +278,15 @@ class DashboardScreen extends StatelessWidget {
                                         FittedBox(
                                           fit: BoxFit.scaleDown,
                                           alignment: Alignment.centerLeft,
-                                          child:
-                                              Text(_fmt(p.tongHocPhiAllDaDong),
-                                                  style: Theme.of(context)
-                                                      .textTheme
-                                                      .headlineMedium
-                                                      ?.copyWith(
-                                                        fontWeight:
-                                                            FontWeight.w800,
-                                                        color: Colors.white,
-                                                      )),
+                                          child: Text(
+                                              _fmt(p.tongHocPhiAllDaDong),
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .headlineMedium
+                                                  ?.copyWith(
+                                                    fontWeight: FontWeight.w800,
+                                                    color: Colors.white,
+                                                  )),
                                         ),
                                       ]),
                                 ),
@@ -382,7 +382,7 @@ class DashboardScreen extends StatelessWidget {
   }) {
     if (p.lichHocState == LoadState.loading && p.lichHoc.isEmpty) {
       return [
-        SkeletonBox(width: double.infinity, height: 88, radius: 16),
+        const SkeletonBox(width: double.infinity, height: 88, radius: 16),
         const SizedBox(height: 8)
       ];
     }
@@ -403,7 +403,7 @@ class DashboardScreen extends StatelessWidget {
 
   List<Widget> _buildUpcomingExams(BuildContext ctx, AppProvider p) {
     final list = p.getUpcomingExams(daysAhead: 30);
-    if (list.isEmpty) return [_EmptyCard('Không có lịch thi sắp tới')];
+    if (list.isEmpty) return [const _EmptyCard('Không có lịch thi sắp tới')];
     return list
         .take(3)
         .map((e) => Padding(

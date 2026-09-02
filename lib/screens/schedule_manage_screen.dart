@@ -96,8 +96,12 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
     final sp = context.watch<AppProvider>().scheduleProvider;
 
     final semesters = <String>{};
-    for (final l in sp.lichHoc) semesters.add('${l.namHoc}_HK${l.hocKy}');
-    for (final l in sp.lichThi) semesters.add('${l.namHoc}_HK${l.hocKy}');
+    for (final l in sp.lichHoc) {
+      semesters.add('${l.namHoc}_HK${l.hocKy}');
+    }
+    for (final l in sp.lichThi) {
+      semesters.add('${l.namHoc}_HK${l.hocKy}');
+    }
 
     final sortedSemesters = semesters.toList()..sort((a, b) => b.compareTo(a));
 
@@ -172,7 +176,7 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
     return Scaffold(
       backgroundColor: AppTheme.surface,
       appBar: AppBar(
-        title: Text('Quản lý lịch học & thi',
+        title: const Text('Quản lý lịch học & thi',
             style: TextStyle(
                 fontFamily: 'Manrope',
                 fontSize: 18,
@@ -252,7 +256,7 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
                             size: 64,
                             color: AppTheme.outlineVariant.withOpacity(0.3)),
                         const SizedBox(height: 16),
-                        Text('Không có lịch học hoặc thi khả dụng',
+                        const Text('Không có lịch học hoặc thi khả dụng',
                             style: TextStyle(
                                 color: AppTheme.onSurfaceVariant,
                                 fontSize: 14,
@@ -662,7 +666,7 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: Text(item.title,
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                         fontFamily: 'Manrope',
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
@@ -708,7 +712,7 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('THÊM HỌC PHẦN THỦ CÔNG',
+              const Text('THÊM HỌC PHẦN THỦ CÔNG',
                   style: TextStyle(
                       fontFamily: 'Manrope',
                       fontSize: 15,
@@ -774,10 +778,9 @@ class _ScheduleManageScreenState extends State<ScheduleManageScreen> {
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        title: Text('Ghi chú môn học',
-            style: TextStyle(
-                fontFamily: 'Manrope',
-                fontWeight: FontWeight.w800)),
+        title: const Text('Ghi chú môn học',
+            style:
+                TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w800)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,

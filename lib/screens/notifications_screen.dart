@@ -219,8 +219,10 @@ class _NotifCard extends StatelessWidget {
                 ]),
                 const SizedBox(height: 4),
                 Text(notif.body,
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppTheme.onSurfaceVariant),
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: AppTheme.onSurfaceVariant),
                     maxLines: 3,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
@@ -231,7 +233,8 @@ class _NotifCard extends StatelessWidget {
                         ?.copyWith(color: AppTheme.outline)),
               ])),
           const SizedBox(width: 4),
-          Icon(Icons.chevron_right, color: AppTheme.outlineVariant, size: 18),
+          const Icon(Icons.chevron_right,
+              color: AppTheme.outlineVariant, size: 18),
         ]),
       );
 }

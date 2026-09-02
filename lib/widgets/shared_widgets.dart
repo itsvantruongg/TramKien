@@ -64,10 +64,7 @@ class AcademicAppBar extends StatelessWidget implements PreferredSizeWidget {
                         'Đại học Kiến trúc Hà Nội',
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleBrand
-                            .copyWith(
+                        style: Theme.of(context).textTheme.titleBrand.copyWith(
                               color: AppTheme.primary,
                               fontWeight: FontWeight.w800,
                               letterSpacing: 0.5,
@@ -245,7 +242,8 @@ class StatusChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
-          color: backgroundColor ?? (color ?? AppTheme.primary).withOpacity(0.1),
+          color:
+              backgroundColor ?? (color ?? AppTheme.primary).withOpacity(0.1),
           borderRadius: BorderRadius.circular(999),
         ),
         child: Text(
@@ -591,7 +589,7 @@ class ScheduleCard extends StatelessWidget {
             if (lichHoc.giaoVien.isNotEmpty)
               _InfoChip(Icons.person_outline, lichHoc.giaoVien),
           ]),
-          if (lichHoc.note != null && lichHoc.note!.isNotEmpty) ...[
+          if (lichHoc.note.isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -607,7 +605,7 @@ class ScheduleCard extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      lichHoc.note!,
+                      lichHoc.note,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
                             fontStyle: FontStyle.italic,
                             color: Colors.brown,
@@ -703,7 +701,7 @@ class ExamCard extends StatelessWidget {
                 ),
           ),
         ],
-        if (lichThi.note != null && lichThi.note!.isNotEmpty) ...[
+        if (lichThi.note.isNotEmpty) ...[
           const Divider(height: 24),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
@@ -719,7 +717,7 @@ class ExamCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    lichThi.note!,
+                    lichThi.note,
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           fontStyle: FontStyle.italic,
                           color: Colors.brown,
@@ -744,11 +742,13 @@ class _ExamChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) =>
       Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 13, color: isBold ? AppTheme.onSurface : AppTheme.outline),
+        Icon(icon,
+            size: 13, color: isBold ? AppTheme.onSurface : AppTheme.outline),
         const SizedBox(width: 4),
         Text(label,
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: isBold ? AppTheme.onSurface : AppTheme.onSurfaceVariant,
+                  color:
+                      isBold ? AppTheme.onSurface : AppTheme.onSurfaceVariant,
                   fontWeight: isBold ? FontWeight.w700 : FontWeight.w400,
                 )),
       ]);
@@ -906,18 +906,18 @@ class DashboardCardSkeleton extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppTheme.outlineVariant.withOpacity(0.4)),
       ),
-      child: Column(
+      child: const Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
+            children: [
               SkeletonBox(width: 140, height: 16),
               SkeletonBox(width: 60, height: 16),
             ],
           ),
-          const SizedBox(height: 12),
-          const SkeletonBox(width: double.infinity, height: 48, radius: 12),
+          SizedBox(height: 12),
+          SkeletonBox(width: double.infinity, height: 48, radius: 12),
         ],
       ),
     );

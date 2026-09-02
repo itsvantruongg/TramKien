@@ -4,13 +4,15 @@ import '../database_service.dart';
 
 class ScheduleDb {
   /// Kiểm tra xem có bản ghi SQLite nào mang fetched_app_version khác với phiên bản hiện tại (hoặc NULL) hay không. (B2)
-  static Future<bool> needsReconcile(String currentAppVersion, {Database? db}) async {
+  static Future<bool> needsReconcile(String currentAppVersion,
+      {Database? db}) async {
     try {
       final d = db ?? await DatabaseService.db;
       final lichHocRows = await d.query(
         'lich_hoc',
         columns: ['fetched_app_version'],
-        where: 'is_manual = 0 AND (fetched_app_version IS NULL OR fetched_app_version != ?)',
+        where:
+            'is_manual = 0 AND (fetched_app_version IS NULL OR fetched_app_version != ?)',
         whereArgs: [currentAppVersion],
         limit: 1,
       );
@@ -19,7 +21,8 @@ class ScheduleDb {
       final lichThiRows = await d.query(
         'lich_thi',
         columns: ['fetched_app_version'],
-        where: 'is_manual = 0 AND (fetched_app_version IS NULL OR fetched_app_version != ?)',
+        where:
+            'is_manual = 0 AND (fetched_app_version IS NULL OR fetched_app_version != ?)',
         whereArgs: [currentAppVersion],
         limit: 1,
       );
@@ -41,7 +44,7 @@ class ScheduleDb {
   }) async {
     final d = db ?? await DatabaseService.db;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final appVersion = DatabaseService.currentAppVersion;
+    const appVersion = DatabaseService.currentAppVersion;
 
     await d.transaction((txn) async {
       if (clearScope) {
@@ -50,7 +53,8 @@ class ScheduleDb {
           scopes.addAll(scopesToClear);
         }
         for (final item in list) {
-          scopes.add((hocKy: item.hocKy, namHoc: item.namHoc, dotHoc: item.dotHoc));
+          scopes.add(
+              (hocKy: item.hocKy, namHoc: item.namHoc, dotHoc: item.dotHoc));
         }
         if (hocKy != null && namHoc != null && scopes.isEmpty) {
           for (int dot = 1; dot <= 8; dot++) {
@@ -62,12 +66,14 @@ class ScheduleDb {
         for (final s in scopes) {
           final count = await txn.delete(
             'lich_hoc',
-            where: 'hoc_ky = ? AND nam_hoc = ? AND dot_hoc = ? AND is_manual = 0',
+            where:
+                'hoc_ky = ? AND nam_hoc = ? AND dot_hoc = ? AND is_manual = 0',
             whereArgs: [s.hocKy, s.namHoc, s.dotHoc],
           );
           deletedCount += count;
         }
-        print('🗑️ [DB] diff-delete lich_hoc: $deletedCount records cũ (is_manual=0) đã bị xóa ở ${scopes.length} scopes');
+        print(
+            '🗑️ [DB] diff-delete lich_hoc: $deletedCount records cũ (is_manual=0) đã bị xóa ở ${scopes.length} scopes');
       }
 
       int inserted = 0;
@@ -130,7 +136,8 @@ class ScheduleDb {
 
   static Future<void> updateLichHocNote(int id, String note) async {
     final d = await DatabaseService.db;
-    await d.update('lich_hoc', {'note': note}, where: 'id = ?', whereArgs: [id]);
+    await d.update('lich_hoc', {'note': note},
+        where: 'id = ?', whereArgs: [id]);
   }
 
   static Future<void> insertManualLichHoc(LichHoc item) async {
@@ -151,7 +158,7 @@ class ScheduleDb {
   }) async {
     final d = db ?? await DatabaseService.db;
     final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final appVersion = DatabaseService.currentAppVersion;
+    const appVersion = DatabaseService.currentAppVersion;
 
     await d.transaction((txn) async {
       if (clearScope) {
@@ -175,7 +182,8 @@ class ScheduleDb {
           );
           deletedCount += count;
         }
-        print('🗑️ [DB] diff-delete lich_thi: $deletedCount records cũ (is_manual=0) đã bị xóa ở ${scopes.length} scopes');
+        print(
+            '🗑️ [DB] diff-delete lich_thi: $deletedCount records cũ (is_manual=0) đã bị xóa ở ${scopes.length} scopes');
       }
 
       int inserted = 0;
@@ -202,7 +210,8 @@ class ScheduleDb {
 
   static Future<void> updateLichThiNote(int id, String note) async {
     final d = await DatabaseService.db;
-    await d.update('lich_thi', {'note': note}, where: 'id = ?', whereArgs: [id]);
+    await d.update('lich_thi', {'note': note},
+        where: 'id = ?', whereArgs: [id]);
   }
 
   static Future<void> insertManualLichThi(LichThi item) async {
@@ -213,11 +222,13 @@ class ScheduleDb {
 
   static Future<void> deleteManualLichHoc(int id) async {
     final d = await DatabaseService.db;
-    await d.delete('lich_hoc', where: 'id = ? AND is_manual = 1', whereArgs: [id]);
+    await d
+        .delete('lich_hoc', where: 'id = ? AND is_manual = 1', whereArgs: [id]);
   }
 
   static Future<void> deleteManualLichThi(int id) async {
     final d = await DatabaseService.db;
-    await d.delete('lich_thi', where: 'id = ? AND is_manual = 1', whereArgs: [id]);
+    await d
+        .delete('lich_thi', where: 'id = ? AND is_manual = 1', whereArgs: [id]);
   }
 }

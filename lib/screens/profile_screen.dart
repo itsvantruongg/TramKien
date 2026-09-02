@@ -160,8 +160,9 @@ class ProfileScreen extends StatelessWidget {
         builder: (_) => AlertDialog(
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20)),
-              title: Text('Đăng xuất?',
-                  style: TextStyle(fontFamily: 'Manrope', fontWeight: FontWeight.w700)),
+              title: const Text('Đăng xuất?',
+                  style: TextStyle(
+                      fontFamily: 'Manrope', fontWeight: FontWeight.w700)),
               content: const Text('Dữ liệu đã tải về sẽ bị xóa.'),
               actions: [
                 TextButton(
@@ -308,7 +309,7 @@ class _NotificationToggleState extends State<_NotificationToggle> {
         Switch(
           value: enabled,
           onChanged: (widget.mssv.isNotEmpty && !_processing) ? _toggle : null,
-          activeColor: AppTheme.primary,
+          activeThumbColor: AppTheme.primary,
         ),
       ]),
     );
@@ -412,22 +413,22 @@ class StudentInfoScreen extends StatelessWidget {
                                       ?.copyWith(
                                           color: AppTheme.primary,
                                           fontWeight: FontWeight.w600)),
-                               if (s?.gioiTinh.isNotEmpty == true) ...[
-                                 const SizedBox(height: 8),
-                                 Align(
-                                   alignment: Alignment.centerLeft,
-                                   child: StatusChip(
-                                     label: s!.gioiTinh.toUpperCase(),
-                                     color: AppTheme.secondary,
-                                   ),
-                                 ),
-                               ],
+                              if (s?.gioiTinh.isNotEmpty == true) ...[
+                                const SizedBox(height: 8),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: StatusChip(
+                                    label: s!.gioiTinh.toUpperCase(),
+                                    color: AppTheme.secondary,
+                                  ),
+                                ),
+                              ],
                             ])),
                       ])),
                       const SizedBox(height: 12),
 
                       // Academic grid
-                      _SectionTitle('Thông tin học tập'),
+                      const _SectionTitle('Thông tin học tập'),
                       const SizedBox(height: 8),
                       GridView.count(
                         crossAxisCount: 2,
@@ -455,7 +456,7 @@ class StudentInfoScreen extends StatelessWidget {
                       const SizedBox(height: 12),
 
                       // Personal info
-                      _SectionTitle('Thông tin cá nhân'),
+                      const _SectionTitle('Thông tin cá nhân'),
                       const SizedBox(height: 8),
                       SurfaceCard(
                           child: Column(children: [

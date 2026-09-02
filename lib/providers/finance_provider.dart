@@ -1,9 +1,7 @@
 import 'package:flutter/foundation.dart';
-import '../models/models.dart';
 import '../services/hau_api_service.dart';
 import '../services/database_service.dart';
 import '../services/api/finance_api.dart';
-import '../services/db/finance_db.dart';
 
 class FinanceProvider extends ChangeNotifier {
   // ── Constants ────────────────────────────

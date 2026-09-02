@@ -192,22 +192,21 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
           sliver: SliverList(
               delegate: SliverChildListDelegate([
-            GradientCard(
+            const GradientCard(
                 child: Row(children: [
-              const Icon(Icons.rate_review_rounded,
-                  color: Colors.white, size: 32),
-              const SizedBox(width: 16),
+              Icon(Icons.rate_review_rounded, color: Colors.white, size: 32),
+              SizedBox(width: 16),
               Expanded(
                   child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                    const Text('Ý kiến của bạn rất quan trọng!',
+                    Text('Ý kiến của bạn rất quan trọng!',
                         style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
                             fontSize: 15)),
-                    const SizedBox(height: 4),
-                    const Text(
+                    SizedBox(height: 4),
+                    Text(
                         'Góp ý sẽ được gửi qua email. Chúng tôi sẽ phản hồi sớm nhất.',
                         style: TextStyle(color: Colors.white70, fontSize: 12)),
                   ])),
@@ -232,8 +231,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                       hint: '0912 345 678',
                       keyboardType: TextInputType.phone,
                       validator: (v) {
-                        if (v?.trim().isEmpty ?? true)
+                        if (v?.trim().isEmpty ?? true) {
                           return 'Vui lòng nhập số điện thoại';
+                        }
                         if (!RegExp(r'^[0-9]{9,11}$')
                             .hasMatch(v!.trim().replaceAll(' ', ''))) {
                           return 'Số điện thoại không hợp lệ';
@@ -248,8 +248,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                       hint: 'example@email.com',
                       keyboardType: TextInputType.emailAddress,
                       validator: (v) {
-                        if (v?.trim().isEmpty ?? true)
+                        if (v?.trim().isEmpty ?? true) {
                           return 'Vui lòng nhập email';
+                        }
                         if (!RegExp(r'^[\w.-]+@[\w-]+\.\w+$')
                             .hasMatch(v!.trim())) {
                           return 'Email không hợp lệ';

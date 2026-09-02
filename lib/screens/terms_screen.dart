@@ -82,55 +82,55 @@ class TermsScreen extends StatelessWidget {
               ]),
             ),
             const SizedBox(height: 16),
-            _Section(
+            const _Section(
               icon: Icons.lock_outline,
               color: AppTheme.primary,
               title: 'Bảo mật thông tin',
-              items: const [
+              items: [
                 'Ứng dụng KHÔNG lưu trữ mật khẩu của bạn dưới bất kỳ hình thức nào.',
                 'Thông tin đăng nhập chỉ được sử dụng để xác thực với cổng thông tin HAU và không được chia sẻ với bên thứ ba.',
                 'Dữ liệu học tập (điểm, lịch, học phí) chỉ được lưu cục bộ trên thiết bị của bạn.',
               ],
             ),
             const SizedBox(height: 12),
-            _Section(
+            const _Section(
               icon: Icons.visibility_off_outlined,
               color: AppTheme.secondary,
               title: 'Quyền truy cập',
-              items: const [
+              items: [
                 'Ứng dụng KHÔNG truy cập camera, micro, danh bạ hoặc vị trí của bạn.',
                 'Ứng dụng chỉ kết nối đến máy chủ chính thức của Đại học Kiến trúc Hà Nội (tinchi.hau.edu.vn).',
                 'Ứng dụng KHÔNG thực hiện bất kỳ giao dịch tài chính nào thay bạn.',
               ],
             ),
             const SizedBox(height: 12),
-            _Section(
+            const _Section(
               icon: Icons.storage_outlined,
               color: AppTheme.tertiary,
               title: 'Dữ liệu cục bộ',
-              items: const [
+              items: [
                 'Dữ liệu được cache cục bộ giúp xem thông tin nhanh khi offline.',
                 'Bạn có thể xóa toàn bộ dữ liệu bằng cách đăng xuất khỏi ứng dụng.',
                 'Ứng dụng KHÔNG gửi dữ liệu cá nhân đến máy chủ của bên phát triển.',
               ],
             ),
             const SizedBox(height: 12),
-            _Section(
+            const _Section(
               icon: Icons.info_outline,
-              color: const Color(0xFF2E7D32),
+              color: Color(0xFF2E7D32),
               title: 'Phạm vi sử dụng',
-              items: const [
+              items: [
                 'Đây là ứng dụng không chính thức, được phát triển độc lập nhằm hỗ trợ sinh viên HAU.',
                 'Ứng dụng không có liên kết chính thức với Đại học Kiến trúc Hà Nội.',
                 'Thông tin hiển thị phụ thuộc vào dữ liệu từ cổng thông tin HAU; độ chính xác phụ thuộc vào hệ thống gốc.',
               ],
             ),
             const SizedBox(height: 12),
-            _Section(
+            const _Section(
               icon: Icons.update_outlined,
               color: AppTheme.primary,
               title: 'Cập nhật điều khoản',
-              items: const [
+              items: [
                 'Điều khoản có thể được cập nhật khi ứng dụng phát hành phiên bản mới.',
                 'Việc tiếp tục sử dụng ứng dụng sau khi cập nhật đồng nghĩa với việc bạn chấp nhận các điều khoản mới.',
               ],

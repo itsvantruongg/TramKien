@@ -2,8 +2,6 @@ import 'package:flutter/foundation.dart';
 import '../models/models.dart';
 import '../services/hau_api_service.dart';
 import '../services/database_service.dart';
-import '../services/api/grade_api.dart';
-import '../services/db/grade_db.dart';
 
 class GradeProvider extends ChangeNotifier {
   // ── Constants ────────────────────────────
@@ -261,15 +259,15 @@ class GradeProvider extends ChangeNotifier {
         nhanXet: nhanXet,
       );
       if (!ok) return false;
-      
+
       // Đánh dấu đã vote trong DB cục bộ để UI cập nhật ngay lập tức
       if (diemId is int) await GradeDb.markDaVote(diemId);
 
-      // TỰ ĐỘNG ĐỒNG BỘ LẠI ĐIỂM: 
+      // TỰ ĐỘNG ĐỒNG BỘ LẠI ĐIỂM:
       // Việc này sẽ fetch lại điểm từ web (lúc này web đã hiện điểm số thay vì nút Vote)
       // và cập nhật vào Database cục bộ + UI.
       await syncDiem(forceRefresh: true);
-      
+
       return true;
     } catch (e) {
       debugPrint('voteAndRefreshDiem error: $e');

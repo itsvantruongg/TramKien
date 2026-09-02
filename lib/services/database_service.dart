@@ -3,9 +3,6 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
-import 'db/schedule_db.dart';
-import 'db/grade_db.dart';
-import 'db/finance_db.dart';
 
 // Re-export for easier access
 export 'db/schedule_db.dart';
@@ -86,7 +83,8 @@ class DatabaseService {
   // Sửa hàm _init(), thêm onUpgrade:
   static Future<Database> _init() async {
     if (_currentUserId < 0) {
-      throw StateError('Cannot access DatabaseService.db when unauthenticated (_currentUserId == -1). Call DatabaseService.setMssv(mssv) first.');
+      throw StateError(
+          'Cannot access DatabaseService.db when unauthenticated (_currentUserId == -1). Call DatabaseService.setMssv(mssv) first.');
     }
     final uid = _currentUserId;
     final path = join(await getDatabasesPath(), 'schedify_uid$uid.db');
@@ -169,14 +167,18 @@ class DatabaseService {
             'student_grades',
             where: "course_code LIKE 'NO_CODE_%'",
           );
-          print('🗑️ [Migration v15] Đã xóa các bản ghi NO_CODE_% cũ (hashCode không ổn định)');
+          print(
+              '🗑️ [Migration v15] Đã xóa các bản ghi NO_CODE_% cũ (hashCode không ổn định)');
         }
         if (oldV < 16) {
-          await db.execute('ALTER TABLE lich_hoc ADD COLUMN fetched_app_version TEXT');
+          await db.execute(
+              'ALTER TABLE lich_hoc ADD COLUMN fetched_app_version TEXT');
           await db.execute('ALTER TABLE lich_hoc ADD COLUMN synced_at INTEGER');
-          await db.execute('ALTER TABLE lich_thi ADD COLUMN fetched_app_version TEXT');
+          await db.execute(
+              'ALTER TABLE lich_thi ADD COLUMN fetched_app_version TEXT');
           await db.execute('ALTER TABLE lich_thi ADD COLUMN synced_at INTEGER');
-          print('📌 [Migration v16] Đã thêm cột fetched_app_version & synced_at vào lich_hoc & lich_thi');
+          print(
+              '📌 [Migration v16] Đã thêm cột fetched_app_version & synced_at vào lich_hoc & lich_thi');
         }
       },
     );

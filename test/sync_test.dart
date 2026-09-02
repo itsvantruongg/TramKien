@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:Tram_Kien/services/background_sync_service.dart';
 import 'package:Tram_Kien/services/database_service.dart';
-import 'package:Tram_Kien/services/db/schedule_db.dart';
 import 'package:Tram_Kien/models/models.dart';
 
 void main() {
@@ -77,7 +76,9 @@ void main() {
       await db.close();
     });
 
-    test('B1 Real Production Call - ScheduleDb.saveLichHoc diff-delete & scope isolation', () async {
+    test(
+        'B1 Real Production Call - ScheduleDb.saveLichHoc diff-delete & scope isolation',
+        () async {
       // Seed Scope A (hocKy: 1, namHoc: 2024-2025, dotHoc: 1): 4 API + 1 Manual
       for (int i = 1; i <= 4; i++) {
         await db.insert('lich_hoc', {
@@ -130,22 +131,28 @@ void main() {
       await ScheduleDb.saveLichHoc(newItems, db: db);
 
       // Verify Scope A API records replaced (4 old deleted -> 3 new inserted)
-      final scopeAApi = await db.query('lich_hoc', where: 'hoc_ky = 1 AND is_manual = 0');
+      final scopeAApi =
+          await db.query('lich_hoc', where: 'hoc_ky = 1 AND is_manual = 0');
       expect(scopeAApi.length, equals(3));
       expect(scopeAApi.first['ten_hoc_phan'], equals('Môn mới Scope A 1'));
-      expect(scopeAApi.first['fetched_app_version'], equals(DatabaseService.currentAppVersion));
+      expect(scopeAApi.first['fetched_app_version'],
+          equals(DatabaseService.currentAppVersion));
 
       // Verify Scope A Manual record preserved
-      final scopeAManual = await db.query('lich_hoc', where: 'hoc_ky = 1 AND is_manual = 1');
+      final scopeAManual =
+          await db.query('lich_hoc', where: 'hoc_ky = 1 AND is_manual = 1');
       expect(scopeAManual.length, equals(1));
-      expect(scopeAManual.first['ten_hoc_phan'], equals('Lịch cá nhân Scope A'));
+      expect(
+          scopeAManual.first['ten_hoc_phan'], equals('Lịch cá nhân Scope A'));
 
       // Verify Scope B records untouched (Scope isolation)
       final scopeBApi = await db.query('lich_hoc', where: 'hoc_ky = 2');
       expect(scopeBApi.length, equals(2));
     });
 
-    test('B1 Real Production Call - saveLichHoc rollback on mid-transaction failure', () async {
+    test(
+        'B1 Real Production Call - saveLichHoc rollback on mid-transaction failure',
+        () async {
       // 1. Seed Scope A (hocKy: 1, namHoc: 2024-2025, dotHoc: 1): 4 API + 1 Manual
       for (int i = 1; i <= 4; i++) {
         await db.insert('lich_hoc', {
@@ -164,7 +171,10 @@ void main() {
         'is_manual': 1,
       });
 
-      final countBefore = (await db.rawQuery('SELECT COUNT(*) FROM lich_hoc')).first.values.first as int;
+      final countBefore = (await db.rawQuery('SELECT COUNT(*) FROM lich_hoc'))
+          .first
+          .values
+          .first as int;
       expect(countBefore, equals(5));
 
       // 2. Set an SQLite BEFORE INSERT trigger to trigger a mid-insert failure
@@ -214,28 +224,48 @@ void main() {
         await ScheduleDb.saveLichHoc(newItems, db: db);
       } catch (e) {
         exceptionThrown = true;
-        expect(e.toString(), contains('Simulated SQLite Transaction Mid-Insert Failure'));
+        expect(e.toString(),
+            contains('Simulated SQLite Transaction Mid-Insert Failure'));
       }
-      expect(exceptionThrown, isTrue, reason: 'ScheduleDb.saveLichHoc must throw on SQLite failure');
+      expect(exceptionThrown, isTrue,
+          reason: 'ScheduleDb.saveLichHoc must throw on SQLite failure');
 
       // 5. Verify SQLite atomic rollback:
       // - 4 API records restored (DELETE rolled back)
-      final scopeApiCount = (await db.rawQuery('SELECT COUNT(*) FROM lich_hoc WHERE hoc_ky = 1 AND dot_hoc = 1 AND is_manual = 0')).first.values.first as int;
-      expect(scopeApiCount, equals(4), reason: 'DELETE of 4 API records must be completely rolled back');
+      final scopeApiCount = (await db.rawQuery(
+              'SELECT COUNT(*) FROM lich_hoc WHERE hoc_ky = 1 AND dot_hoc = 1 AND is_manual = 0'))
+          .first
+          .values
+          .first as int;
+      expect(scopeApiCount, equals(4),
+          reason: 'DELETE of 4 API records must be completely rolled back');
 
       // - 1 Manual record preserved
-      final manualCount = (await db.rawQuery('SELECT COUNT(*) FROM lich_hoc WHERE hoc_ky = 1 AND dot_hoc = 1 AND is_manual = 1')).first.values.first as int;
-      expect(manualCount, equals(1), reason: 'Manual record must remain untouched');
+      final manualCount = (await db.rawQuery(
+              'SELECT COUNT(*) FROM lich_hoc WHERE hoc_ky = 1 AND dot_hoc = 1 AND is_manual = 1'))
+          .first
+          .values
+          .first as int;
+      expect(manualCount, equals(1),
+          reason: 'Manual record must remain untouched');
 
       // - Total count is still 5 (partial insert rolled back)
-      final countAfter = (await db.rawQuery('SELECT COUNT(*) FROM lich_hoc')).first.values.first as int;
-      expect(countAfter, equals(5), reason: 'Total records in DB must be exactly 5 (full rollback)');
+      final countAfter = (await db.rawQuery('SELECT COUNT(*) FROM lich_hoc'))
+          .first
+          .values
+          .first as int;
+      expect(countAfter, equals(5),
+          reason: 'Total records in DB must be exactly 5 (full rollback)');
 
-      final partialInsert = await db.query('lich_hoc', where: 'ten_hoc_phan = ?', whereArgs: ['Môn hợp lệ 1']);
-      expect(partialInsert.isEmpty, isTrue, reason: 'Item inserted before failure must be rolled back');
+      final partialInsert = await db.query('lich_hoc',
+          where: 'ten_hoc_phan = ?', whereArgs: ['Môn hợp lệ 1']);
+      expect(partialInsert.isEmpty, isTrue,
+          reason: 'Item inserted before failure must be rolled back');
     });
 
-    test('B7 Real Production Call - ScheduleDb.saveLichThi diff-delete & scope isolation', () async {
+    test(
+        'B7 Real Production Call - ScheduleDb.saveLichThi diff-delete & scope isolation',
+        () async {
       // Seed Scope A (hocKy: 1, namHoc: 2024-2025): 4 API + 1 Manual
       for (int i = 1; i <= 4; i++) {
         await db.insert('lich_thi', {
@@ -282,11 +312,14 @@ void main() {
       await ScheduleDb.saveLichThi(newItems, db: db);
 
       // Verify Scope A: 4 old API deleted, 3 new inserted, 1 manual preserved
-      final scopeAApi = await db.query('lich_thi', where: 'hoc_ky = 1 AND is_manual = 0');
+      final scopeAApi =
+          await db.query('lich_thi', where: 'hoc_ky = 1 AND is_manual = 0');
       expect(scopeAApi.length, equals(3));
-      expect(scopeAApi.first['fetched_app_version'], equals(DatabaseService.currentAppVersion));
+      expect(scopeAApi.first['fetched_app_version'],
+          equals(DatabaseService.currentAppVersion));
 
-      final scopeAManual = await db.query('lich_thi', where: 'hoc_ky = 1 AND is_manual = 1');
+      final scopeAManual =
+          await db.query('lich_thi', where: 'hoc_ky = 1 AND is_manual = 1');
       expect(scopeAManual.length, equals(1));
       expect(scopeAManual.first['ten_hoc_phan'], equals('Thi tự chọn'));
 
@@ -295,7 +328,8 @@ void main() {
       expect(scopeBApi.length, equals(2));
     });
 
-    test('B2 Real Production Call - ScheduleDb.needsReconcile logic validation', () async {
+    test('B2 Real Production Call - ScheduleDb.needsReconcile logic validation',
+        () async {
       const currentVer = '1.0.5+3';
 
       // Case 1: Empty DB -> returns false
@@ -343,7 +377,9 @@ void main() {
       expect(await ScheduleDb.needsReconcile(currentVer, db: db), isTrue);
     });
 
-    test('B10 Real Production Call - ScheduleDiffCalculator detects additions and removals', () {
+    test(
+        'B10 Real Production Call - ScheduleDiffCalculator detects additions and removals',
+        () {
       const prevLichHoc = [
         LichHoc(
           tenHocPhan: 'Toán A',
@@ -407,7 +443,8 @@ void main() {
       ];
 
       // CALL PRODUCTION ScheduleDiffCalculator
-      final diff = ScheduleDiffCalculator.computeLichHocDiff(prevLichHoc, nextLichHoc);
+      final diff =
+          ScheduleDiffCalculator.computeLichHocDiff(prevLichHoc, nextLichHoc);
 
       expect(diff.added.length, equals(1));
       expect(diff.added.first, contains('Hóa C'));
@@ -415,43 +452,66 @@ void main() {
       expect(diff.removed.first, contains('Toán A'));
 
       const prevLichThi = [
-        LichThi(maMonHoc: 'THI01', tenMonHoc: 'Toán A', ngayThi: '10/01', caThi: 'Ca 1', hocKy: 1, namHoc: '2024-2025'),
+        LichThi(
+            maMonHoc: 'THI01',
+            tenMonHoc: 'Toán A',
+            ngayThi: '10/01',
+            caThi: 'Ca 1',
+            hocKy: 1,
+            namHoc: '2024-2025'),
       ];
       const nextLichThi = [
-        LichThi(maMonHoc: 'THI02', tenMonHoc: 'Lý B', ngayThi: '12/01', caThi: 'Ca 2', hocKy: 1, namHoc: '2024-2025'),
+        LichThi(
+            maMonHoc: 'THI02',
+            tenMonHoc: 'Lý B',
+            ngayThi: '12/01',
+            caThi: 'Ca 2',
+            hocKy: 1,
+            namHoc: '2024-2025'),
       ];
 
-      final diffThi = ScheduleDiffCalculator.computeLichThiDiff(prevLichThi, nextLichThi);
+      final diffThi =
+          ScheduleDiffCalculator.computeLichThiDiff(prevLichThi, nextLichThi);
       expect(diffThi.added.length, equals(1));
       expect(diffThi.added.first, contains('Lý B'));
       expect(diffThi.removed.length, equals(1));
       expect(diffThi.removed.first, contains('Toán A'));
     });
 
-    test('B4 Real Production Call - SyncMutex acquireLock prevents concurrent sync executions', () async {
+    test(
+        'B4 Real Production Call - SyncMutex acquireLock prevents concurrent sync executions',
+        () async {
       const testMssv = 'TEST_MSSV_B4_HARDENED';
 
       await SyncMutex.releaseLock(testMssv);
 
-      final lock1 = await SyncMutex.acquireLock(testMssv, timeout: const Duration(seconds: 10));
+      final lock1 = await SyncMutex.acquireLock(testMssv,
+          timeout: const Duration(seconds: 10));
       expect(lock1, isTrue, reason: 'First lock acquisition must succeed');
 
-      final lock2 = await SyncMutex.acquireLock(testMssv, timeout: const Duration(seconds: 10));
-      expect(lock2, isFalse, reason: 'Second lock acquisition during active lease must fail');
+      final lock2 = await SyncMutex.acquireLock(testMssv,
+          timeout: const Duration(seconds: 10));
+      expect(lock2, isFalse,
+          reason: 'Second lock acquisition during active lease must fail');
 
       await SyncMutex.releaseLock(testMssv);
 
-      final lock3 = await SyncMutex.acquireLock(testMssv, timeout: const Duration(seconds: 10));
-      expect(lock3, isTrue, reason: 'Lock acquisition after release must succeed');
+      final lock3 = await SyncMutex.acquireLock(testMssv,
+          timeout: const Duration(seconds: 10));
+      expect(lock3, isTrue,
+          reason: 'Lock acquisition after release must succeed');
 
       await SyncMutex.releaseLock(testMssv);
     });
 
-    test('Version Integrity - DatabaseService.currentAppVersion matches pubspec.yaml', () {
+    test(
+        'Version Integrity - DatabaseService.currentAppVersion matches pubspec.yaml',
+        () {
       final pubspecFile = File('pubspec.yaml');
       expect(pubspecFile.existsSync(), isTrue);
       final content = pubspecFile.readAsStringSync();
-      final match = RegExp(r'^version:\s*([^\s]+)', multiLine: true).firstMatch(content);
+      final match =
+          RegExp(r'^version:\s*([^\s]+)', multiLine: true).firstMatch(content);
       expect(match, isNotNull);
       final pubspecVersion = match!.group(1);
 

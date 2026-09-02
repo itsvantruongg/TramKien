@@ -11,12 +11,6 @@ import 'hau_api_service.dart';
 import 'notification_service.dart';
 import 'local_notification_service.dart';
 import 'database_service.dart';
-import 'db/schedule_db.dart';
-import 'db/grade_db.dart';
-import 'db/finance_db.dart';
-import 'api/grade_api.dart';
-import 'api/schedule_api.dart';
-import 'api/finance_api.dart';
 import '../models/models.dart';
 
 /// Tên task
@@ -168,7 +162,8 @@ Future<void> _runSyncLogic() async {
     try {
       // Việc 1: Log TRƯỚC khi gọi Future.wait — để canh thời điểm tắt mạng
       final fetchStart = DateTime.now();
-      debugPrint('🌐 [BG][Step6] Bắt đầu gọi 4 API song song lúc ${fetchStart.toIso8601String()}...');
+      debugPrint(
+          '🌐 [BG][Step6] Bắt đầu gọi 4 API song song lúc ${fetchStart.toIso8601String()}...');
 
       final results = await Future.wait<dynamic>([
         GradeApi.fetchDiem(),
@@ -187,14 +182,17 @@ Future<void> _runSyncLogic() async {
       // Log rõ kết quả fetch để không bao giờ bị "im lặng bỏ qua"
       debugPrint('📊 [BG][Step6-Grade] fetchDiem() → ${fetchedDiem.length} môn'
           '${fetchedDiem.isEmpty ? " ⚠️ (rỗng — admin mock chỉ trả data qua fetchDiemAllKyWithSummary, không qua fetchDiem)" : ""}');
-      debugPrint('📚 [BG][Step6-LichHoc] ${fetchedLichHocResult.items.length} môn'
+      debugPrint(
+          '📚 [BG][Step6-LichHoc] ${fetchedLichHocResult.items.length} môn'
           ' complete=${fetchedLichHocResult.complete}');
-      debugPrint('📚 [BG][Step6-LichThi] ${fetchedLichThiResult.items.length} lịch thi'
+      debugPrint(
+          '📚 [BG][Step6-LichThi] ${fetchedLichThiResult.items.length} lịch thi'
           ' complete=${fetchedLichThiResult.complete}');
     } catch (e) {
       // Việc 1: Log SAU khi Future.wait throw
       debugPrint('🌐 [BG][Step6] Future.wait lỗi/timeout: $e');
-      debugPrint('⚠️ [BG][Step6-FetchAndSave] Sync network/timeout error: $e → data cũ trong DB được GIỮ NGUYÊN (chưa diff-delete)');
+      debugPrint(
+          '⚠️ [BG][Step6-FetchAndSave] Sync network/timeout error: $e → data cũ trong DB được GIỮ NGUYÊN (chưa diff-delete)');
     }
 
     // Ghi dữ liệu Điểm vào DB
@@ -204,7 +202,8 @@ Future<void> _runSyncLogic() async {
           fetchedDiem.map((d) => d.toMap()).toList(),
           mssv: mssv,
         );
-        debugPrint('💾 [BG][Step6-SaveDiem] Đã ghi ${fetchedDiem.length} môn vào DB');
+        debugPrint(
+            '💾 [BG][Step6-SaveDiem] Đã ghi ${fetchedDiem.length} môn vào DB');
       } catch (e) {
         debugPrint('⚠️ [BG][Step6-SaveDiem] Lỗi ghi điểm: $e');
       }
@@ -213,7 +212,6 @@ Future<void> _runSyncLogic() async {
           ' NOTE: admin mock data điểm KHÔNG được sync qua GradeApi.fetchDiem().'
           ' Đây là hành vi chủ đích của demo mode (dữ liệu điểm admin chỉ được seed 1 lần vào DB).');
     }
-
 
     // Ghi Lịch học vào DB nếu complete == true (B1+B7 diff-delete logic)
     if (fetchedLichHocResult.complete &&
@@ -417,16 +415,19 @@ Future<void> _runSyncLogicFaultInject({int delayMs = 300}) async {
   await prefs.reload();
   final mssv = prefs.getString('saved_mssv') ?? '';
 
-  debugPrint('⚡ [DEBUG-FaultInject] Bắt đầu sync với fault inject sau ${delayMs}ms...');
+  debugPrint(
+      '⚡ [DEBUG-FaultInject] Bắt đầu sync với fault inject sau ${delayMs}ms...');
 
   if (BackgroundSyncService.isSyncing) {
-    debugPrint('⚙️ [BG] Task đã đang chạy ở isolate hiện tại, bỏ qua (Mutex active).');
+    debugPrint(
+        '⚙️ [BG] Task đã đang chạy ở isolate hiện tại, bỏ qua (Mutex active).');
     return;
   }
 
   final acquired = await SyncMutex.acquireLock(mssv);
   if (!acquired) {
-    debugPrint('⚙️ [BG] Persistent lock đang active ở isolate/process khác, bỏ qua lần gọi này.');
+    debugPrint(
+        '⚙️ [BG] Persistent lock đang active ở isolate/process khác, bỏ qua lần gọi này.');
     return;
   }
 
@@ -437,13 +438,15 @@ Future<void> _runSyncLogicFaultInject({int delayMs = 300}) async {
     NotificationService.setMssv(mssv);
     await DatabaseService.setMssv(mssv);
 
-    debugPrint('🌐 [DEBUG-FaultInject][Step6] Bắt đầu Future.wait — sẽ inject SocketException sau ${delayMs}ms...');
+    debugPrint(
+        '🌐 [DEBUG-FaultInject][Step6] Bắt đầu Future.wait — sẽ inject SocketException sau ${delayMs}ms...');
     final fetchStart = DateTime.now();
 
     // Inject lỗi giả lập: sau delayMs, throw SocketException
     final faultFuture = Future.delayed(
       Duration(milliseconds: delayMs),
-      () => throw const SocketException('DEBUG: Simulated network failure mid-sync'),
+      () => throw const SocketException(
+          'DEBUG: Simulated network failure mid-sync'),
     );
 
     // Chạy các API call thật (admin sẽ trả mock data ngay, không cần mạng)
@@ -457,12 +460,16 @@ Future<void> _runSyncLogicFaultInject({int delayMs = 300}) async {
       ]).timeout(const Duration(seconds: 25));
 
       final fetchMs = DateTime.now().difference(fetchStart).inMilliseconds;
-      debugPrint('🌐 [DEBUG-FaultInject][Step6] Future.wait hoàn tất sau ${fetchMs}ms (unexpected — fault không trigger?)');
+      debugPrint(
+          '🌐 [DEBUG-FaultInject][Step6] Future.wait hoàn tất sau ${fetchMs}ms (unexpected — fault không trigger?)');
     } catch (e) {
       final fetchMs = DateTime.now().difference(fetchStart).inMilliseconds;
-      debugPrint('🌐 [DEBUG-FaultInject][Step6] Future.wait LỖI sau ${fetchMs}ms: $e');
-      debugPrint('✅ [DEBUG-FaultInject] Xác nhận: data cũ trong DB ĐƯỢC GIỮ NGUYÊN');
-      debugPrint('✅ [DEBUG-FaultInject] diff-delete CHƯA chạy (fetch bị abort trước khi ghi DB)');
+      debugPrint(
+          '🌐 [DEBUG-FaultInject][Step6] Future.wait LỖI sau ${fetchMs}ms: $e');
+      debugPrint(
+          '✅ [DEBUG-FaultInject] Xác nhận: data cũ trong DB ĐƯỢC GIỮ NGUYÊN');
+      debugPrint(
+          '✅ [DEBUG-FaultInject] diff-delete CHƯA chạy (fetch bị abort trước khi ghi DB)');
       return; // Dừng tại đây — không ghi DB, không diff-delete
     }
   } catch (e) {
@@ -633,7 +640,8 @@ class BackgroundSyncService {
       final key = 'bg_sync_scheduled_$mssv';
 
       if (!force && prefs.getBool(key) == true) {
-        debugPrint('ℹ️ [BG] Periodic sync đã được đăng ký trước đó, bỏ qua re-init Workmanager');
+        debugPrint(
+            'ℹ️ [BG] Periodic sync đã được đăng ký trước đó, bỏ qua re-init Workmanager');
         return;
       }
 
@@ -766,7 +774,8 @@ class BackgroundSyncService {
     // Set flag fault inject vào SharedPreferences (đọc bởi _runSyncLogic trong isolate)
     await prefs.setBool('debug_fault_inject', true);
     await prefs.setInt('debug_fault_inject_delay_ms', delayMs);
-    debugPrint('⚡ [DEBUG] Fault inject đã bật (delay=${delayMs}ms), đăng ký one-off task...');
+    debugPrint(
+        '⚡ [DEBUG] Fault inject đã bật (delay=${delayMs}ms), đăng ký one-off task...');
     // Gọi _runSyncLogic trực tiếp trong foreground (không qua WorkManager) để dễ capture log
     await _runSyncLogicFaultInject(delayMs: delayMs);
     await prefs.setBool('debug_fault_inject', false);
@@ -785,7 +794,8 @@ class BackgroundSyncService {
       debugPrint('🚫 [DEBUG] runOnceConcurrent bị chặn: mssv=$mssv ≠ admin');
       return;
     }
-    debugPrint('⚡ [DEBUG][MutexTest] Firing 2 _runSyncLogic() concurrently (<300ms gap)...');
+    debugPrint(
+        '⚡ [DEBUG][MutexTest] Firing 2 _runSyncLogic() concurrently (<300ms gap)...');
     // Chạy 2 lần song song: 1 lần ngay, 1 lần sau 200ms
     final f1 = _runSyncLogic();
     await Future.delayed(const Duration(milliseconds: 200));

@@ -20,7 +20,6 @@ class _LoginScreenState extends State<LoginScreen> {
   String? _mssvError;
   String? _pwError;
 
-
   @override
   void initState() {
     super.initState();
@@ -137,7 +136,8 @@ class _LoginScreenState extends State<LoginScreen> {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 return SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
                       minHeight: constraints.maxHeight - 32,
@@ -176,12 +176,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 22),
 
-                          Text('Đại học Kiến trúc Hà Nội',
+                          const Text('Đại học Kiến trúc Hà Nội',
                               style: TextStyle(
                                 fontFamily: 'Manrope',
                                 fontSize: 24,
                                 fontWeight: FontWeight.w800,
-                                color: const Color(0xFF1E3B59),
+                                color: Color(0xFF1E3B59),
                                 letterSpacing: -0.5,
                               )),
                           const SizedBox(height: 4),
@@ -189,7 +189,8 @@ class _LoginScreenState extends State<LoginScreen> {
                               style: TextStyle(
                                 fontFamily: 'Manrope',
                                 fontSize: 13,
-                                color: const Color(0xFF1E3B59).withOpacity(0.75),
+                                color:
+                                    const Color(0xFF1E3B59).withOpacity(0.75),
                                 fontWeight: FontWeight.w600,
                               )),
                           const SizedBox(height: 24),
@@ -256,8 +257,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                               : Icons.visibility_off_outlined,
                                           color: AppTheme.outline,
                                         ),
-                                        onPressed: () =>
-                                            setState(() => _obscure = !_obscure),
+                                        onPressed: () => setState(
+                                            () => _obscure = !_obscure),
                                       ),
                                     ),
                                   ),
@@ -265,10 +266,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                                   // ── Ghi nhớ đăng nhập ──────────────────
                                   GestureDetector(
-                                    onTap: () => setState(() => _remember = !_remember),
+                                    onTap: () =>
+                                        setState(() => _remember = !_remember),
                                     child: Row(children: [
                                       AnimatedContainer(
-                                        duration: const Duration(milliseconds: 200),
+                                        duration:
+                                            const Duration(milliseconds: 200),
                                         width: 22,
                                         height: 22,
                                         decoration: BoxDecoration(
@@ -281,7 +284,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                                 : AppTheme.outline,
                                             width: 2,
                                           ),
-                                          borderRadius: BorderRadius.circular(6),
+                                          borderRadius:
+                                              BorderRadius.circular(6),
                                         ),
                                         child: _remember
                                             ? const Icon(Icons.check,
@@ -289,9 +293,10 @@ class _LoginScreenState extends State<LoginScreen> {
                                             : null,
                                       ),
                                       const SizedBox(width: 10),
-                                      Expanded(
+                                      const Expanded(
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Text('Ghi nhớ đăng nhập',
                                                 style: TextStyle(
@@ -305,7 +310,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                                 style: TextStyle(
                                                   fontFamily: 'Manrope',
                                                   fontSize: 10,
-                                                  color: AppTheme.onSurfaceVariant,
+                                                  color:
+                                                      AppTheme.onSurfaceVariant,
                                                 )),
                                           ],
                                         ),
@@ -324,7 +330,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                         borderRadius: BorderRadius.circular(16),
                                         boxShadow: [
                                           BoxShadow(
-                                            color: AppTheme.primary.withOpacity(0.3),
+                                            color: AppTheme.primary
+                                                .withOpacity(0.3),
                                             blurRadius: 16,
                                             offset: const Offset(0, 8),
                                           )
@@ -333,14 +340,17 @@ class _LoginScreenState extends State<LoginScreen> {
                                       child: MaterialButton(
                                         onPressed: _loading ? null : _login,
                                         shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(16)),
+                                            borderRadius:
+                                                BorderRadius.circular(16)),
                                         child: _loading
                                             ? const SizedBox(
                                                 width: 22,
                                                 height: 22,
-                                                child: CircularProgressIndicator(
-                                                    strokeWidth: 2, color: Colors.white))
-                                            : Row(
+                                                child:
+                                                    CircularProgressIndicator(
+                                                        strokeWidth: 2,
+                                                        color: Colors.white))
+                                            : const Row(
                                                 mainAxisAlignment:
                                                     MainAxisAlignment.center,
                                                 children: [
@@ -348,12 +358,14 @@ class _LoginScreenState extends State<LoginScreen> {
                                                         style: TextStyle(
                                                           fontFamily: 'Manrope',
                                                           fontSize: 16,
-                                                          fontWeight: FontWeight.w700,
+                                                          fontWeight:
+                                                              FontWeight.w700,
                                                           color: Colors.white,
                                                         )),
-                                                    const SizedBox(width: 8),
-                                                    const Icon(Icons.arrow_forward,
-                                                        color: Colors.white, size: 20),
+                                                    SizedBox(width: 8),
+                                                    Icon(Icons.arrow_forward,
+                                                        color: Colors.white,
+                                                        size: 20),
                                                   ]),
                                       ),
                                     ),
@@ -394,16 +406,18 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ?.copyWith(color: AppTheme.outline)),
 
                           const SizedBox(height: 12),
-                          Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                            const Icon(Icons.verified_user_outlined,
-                                size: 14, color: AppTheme.outline),
-                            const SizedBox(width: 6),
-                            Text('Trợ Lý Học Tập HAU v1.0.6',
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .labelSmall
-                                    ?.copyWith(color: AppTheme.outline)),
-                          ]),
+                          Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.verified_user_outlined,
+                                    size: 14, color: AppTheme.outline),
+                                const SizedBox(width: 6),
+                                Text('Trợ Lý Học Tập HAU v1.0.6',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(color: AppTheme.outline)),
+                              ]),
                         ],
                       ),
                     ),
