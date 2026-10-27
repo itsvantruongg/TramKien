@@ -1,9 +1,32 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/shared_widgets.dart';
+import '../services/app_info_service.dart';
 
-class TermsScreen extends StatelessWidget {
+class TermsScreen extends StatefulWidget {
   const TermsScreen({super.key});
+
+  @override
+  State<TermsScreen> createState() => _TermsScreenState();
+}
+
+class _TermsScreenState extends State<TermsScreen> {
+  String _version = AppInfoService.currentAppVersion;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVersion();
+  }
+
+  Future<void> _loadVersion() async {
+    final v = await AppInfoService.getAppVersion();
+    if (mounted) {
+      setState(() {
+        _version = v;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +96,7 @@ class TermsScreen extends StatelessWidget {
                               .textTheme
                               .titleMedium
                               ?.copyWith(fontWeight: FontWeight.w800)),
-                      Text('Cập nhật: 23/08/2026 • Phiên bản 1.0.6',
+                      Text('Cập nhật: 23/08/2026 • Phiên bản $_version',
                           style: Theme.of(context)
                               .textTheme
                               .labelSmall

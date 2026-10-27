@@ -1,9 +1,8 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
+import '../services/widget_data_sync_service.dart';
 import 'dashboard_screen.dart';
 import 'finance_screen.dart';
 import 'grades_screen.dart';
@@ -19,24 +18,69 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell>
     with SingleTickerProviderStateMixin {
   int _idx = 0;
+  double _slideDirection = 1.0;
+  late final AnimationController _animController;
+  late final List<Widget> _screens;
   DateTime? _lastBackPress;
-  double? _navDragValue;
-  double? _pendingNavDragValue;
-  double? _startDragDx;
-  int? _initialTapIdx;
-  bool _navDragging = false;
   DateTime? _scheduleFocusDate;
 
-  late AnimationController _animController;
-  double _slideDirection = 1.0;
+  final PageStorageBucket _bucket = PageStorageBucket();
 
   @override
   void initState() {
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 130),
-    )..value = 1.0;
+      duration: const Duration(milliseconds: 220),
+      value: 1.0,
+    );
+    _screens = [
+      RepaintBoundary(
+        key: const ValueKey('screen_0'),
+        child: DashboardScreen(
+          key: const PageStorageKey('page_dashboard'),
+          onNavigate: _navigate,
+        ),
+      ),
+      RepaintBoundary(
+        key: const ValueKey('screen_1'),
+        child: ScheduleScreen(
+          key: const PageStorageKey('page_schedule'),
+          onNavigate: _navigate,
+          initialDate: _scheduleFocusDate,
+        ),
+      ),
+      RepaintBoundary(
+        key: const ValueKey('screen_2'),
+        child: GradesScreen(
+          key: const PageStorageKey('page_grades'),
+          onNavigate: _navigate,
+        ),
+      ),
+      RepaintBoundary(
+        key: const ValueKey('screen_3'),
+        child: FinanceScreen(
+          key: const PageStorageKey('page_finance'),
+          onNavigate: _navigate,
+        ),
+      ),
+      const RepaintBoundary(
+        key: ValueKey('screen_4'),
+        child: ProfileScreen(
+          key: PageStorageKey('page_profile'),
+        ),
+      ),
+    ];
+    _checkInitialTargetTab();
+  }
+
+  Future<void> _checkInitialTargetTab() async {
+    try {
+      final tab = await WidgetDataSyncService.getInitialTargetTab();
+      if (tab != null && tab >= 0 && tab <= 4 && mounted) {
+        _navigate(tab);
+      }
+    } catch (_) {}
   }
 
   @override
@@ -50,6 +94,14 @@ class _MainShellState extends State<MainShell>
       if (idx == 1 && focusDate != null && focusDate != _scheduleFocusDate) {
         setState(() {
           _scheduleFocusDate = focusDate;
+          _screens[1] = RepaintBoundary(
+            key: const ValueKey('screen_1'),
+            child: ScheduleScreen(
+              key: const PageStorageKey('page_schedule'),
+              onNavigate: _navigate,
+              initialDate: _scheduleFocusDate,
+            ),
+          );
         });
       }
       return;
@@ -57,6 +109,14 @@ class _MainShellState extends State<MainShell>
     _slideDirection = idx > _idx ? 1.0 : -1.0;
     if (idx == 1 && focusDate != null) {
       _scheduleFocusDate = focusDate;
+      _screens[1] = RepaintBoundary(
+        key: const ValueKey('screen_1'),
+        child: ScheduleScreen(
+          key: const PageStorageKey('page_schedule'),
+          onNavigate: _navigate,
+          initialDate: _scheduleFocusDate,
+        ),
+      );
     }
     setState(() {
       _idx = idx;
@@ -64,78 +124,12 @@ class _MainShellState extends State<MainShell>
     _animController.forward(from: 0.0);
   }
 
-  double get _navBaseValue => _idx.toDouble();
-
-  double get _navVisualValue =>
-      (_navDragValue ?? _navBaseValue).clamp(0.0, 4.0);
-
-  void _startNavDrag(double dx, double itemWidth) {
-    _startDragDx = dx;
-    _initialTapIdx = (dx / itemWidth).floor().clamp(0, 4);
-    _pendingNavDragValue = ((dx / itemWidth) - 0.5).clamp(0.0, 4.0);
-    _navDragging = false;
-    _navDragValue = null;
-  }
-
-  void _updateNavDrag(double dx, double itemWidth) {
-    final newValue = ((dx / itemWidth) - 0.5).clamp(0.0, 4.0);
-    _pendingNavDragValue = newValue;
-
-    // Ngưỡng di chuyển (touch slop) = 8.0 logical pixels để xác nhận kéo
-    if (!_navDragging && _startDragDx != null) {
-      if ((dx - _startDragDx!).abs() > 8.0) {
-        setState(() {
-          _navDragging = true;
-          _navDragValue = newValue;
-        });
-      }
-    } else if (_navDragging) {
-      setState(() {
-        _navDragValue = newValue;
-      });
-    }
-  }
-
-  void _endNavDrag() {
-    if (_navDragging) {
-      // Nếu đang trong chế độ kéo -> về index gần nhất dựa trên vị trí viên thuốc
-      final nextIdx = _navVisualValue.round().clamp(0, 4);
-      if (nextIdx != _idx) {
-        _navigate(nextIdx);
-      }
-    } else {
-      // Nhả tay trước khi vượt ngưỡng kéo -> coi là Tap thật sự.
-      // Dùng _initialTapIdx (vị trí chạm ban đầu) để đảm bảo không bị nhảy nhầm tab nếu tay run nhẹ
-      if (_initialTapIdx != null) {
-        _navigate(_initialTapIdx!);
-      }
-    }
-
-    if (!mounted) return;
-    setState(() {
-      _navDragging = false;
-      _navDragValue = null;
-      _pendingNavDragValue = null;
-      _startDragDx = null;
-      _initialTapIdx = null;
-    });
-  }
-
-  void _cancelNavDrag() {
-    if (!mounted) return;
-    setState(() {
-      _navDragging = false;
-      _navDragValue = null;
-      _pendingNavDragValue = null;
-      _startDragDx = null;
-      _initialTapIdx = null;
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
+    final isWide = MediaQuery.of(context).size.width >= 600;
+
     final slideAnimation = Tween<Offset>(
-      begin: Offset(_slideDirection * 0.04, 0),
+      begin: Offset(_slideDirection * 0.05, 0),
       end: Offset.zero,
     ).animate(CurvedAnimation(
       parent: _animController,
@@ -143,12 +137,23 @@ class _MainShellState extends State<MainShell>
     ));
 
     final fadeAnimation = Tween<double>(
-      begin: 0.7,
+      begin: 0.6,
       end: 1.0,
     ).animate(CurvedAnimation(
       parent: _animController,
       curve: Curves.easeOutCubic,
     ));
+
+    final bodyContent = SlideTransition(
+      position: slideAnimation,
+      child: FadeTransition(
+        opacity: fadeAnimation,
+        child: IndexedStack(
+          index: _idx,
+          children: _screens,
+        ),
+      ),
+    );
 
     return PopScope(
       canPop: false,
@@ -187,162 +192,219 @@ class _MainShellState extends State<MainShell>
           }
         }
       },
-      child: Scaffold(
-        extendBody: true,
-        body: SlideTransition(
-          position: slideAnimation,
-          child: FadeTransition(
-            opacity: fadeAnimation,
-            child: IndexedStack(
-              index: _idx,
-              children: [
-                RepaintBoundary(child: DashboardScreen(onNavigate: _navigate)),
-                RepaintBoundary(
-                    child: ScheduleScreen(
-                        onNavigate: _navigate, initialDate: _scheduleFocusDate)),
-                RepaintBoundary(child: GradesScreen(onNavigate: _navigate)),
-                RepaintBoundary(child: FinanceScreen(onNavigate: _navigate)),
-                const RepaintBoundary(child: ProfileScreen()),
-              ],
-            ),
-          ),
+      child: PageStorage(
+        bucket: _bucket,
+        child: Scaffold(
+          extendBody: true,
+          body: isWide
+              ? Row(
+                  children: [
+                    _buildNavigationRail(),
+                    const VerticalDivider(
+                      thickness: 1,
+                      width: 1,
+                      color: AppTheme.surfaceContainerHigh,
+                    ),
+                    Expanded(child: bodyContent),
+                  ],
+                )
+              : bodyContent,
+          bottomNavigationBar: isWide ? null : _buildNav(),
         ),
-        bottomNavigationBar: _buildNav(),
       ),
     );
   }
 
-  Widget _buildNav() {
-    // Lấy index dựa trên vị trí kéo thực tế (để đổi màu icon ngay khi đang vuốt)
-    final currentVisualIdx = _navVisualValue.round().clamp(0, 4);
-
-    // Lấy bottom safe area padding (home indicator trên iPhone hoặc gesture bar trên Android)
-    // Đây là nguyên nhân chính gây lỗi nav bar trên iOS
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-
-    return Container(
-      // Giữ margin đáy cố định là 20px theo thiết kế mới
-      margin: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-      padding: const EdgeInsets.fromLTRB(3, 3, 3, 3),
-      decoration: BoxDecoration(
-        // Tạo độ bóng 3D cho bề mặt kính bằng Gradient (thay vì dùng màu trơn)
-        // gradient: LinearGradient(
-        //   begin: Alignment.topLeft,
-        //   end: Alignment.bottomRight,
-        //   colors: [
-        //     AppTheme.surface.withOpacity(0.3), // Sáng hơn ở góc trên trái
-        //     AppTheme.surface.withOpacity(0.1), // Trong suốt hơn ở góc dưới phải
-        //   ],
-        // ),
-        color: AppTheme.surface.withOpacity(
-            0.2), // Chỉnh con số 0.2 theo độ mờ bạn muốn (từ 0.0 đến 1.0)
-        borderRadius: BorderRadius.circular(24),
-
-        // Viền trắng mờ để tạo hiệu ứng ánh sáng đập vào mép kính
-        border: Border.all(
-          color: Colors.white.withOpacity(0.4),
-          width: 1.2,
-        ),
-
-        // Bóng đổ để tách biệt khỏi nền app
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.onSurface.withOpacity(0.08),
-            blurRadius: 24,
-            spreadRadius: -10,
-            offset: const Offset(0, -8),
+  Widget _buildNavigationRail() {
+    return NavigationRail(
+      selectedIndex: _idx,
+      onDestinationSelected: (idx) => _navigate(idx),
+      backgroundColor: AppTheme.surface,
+      indicatorColor: AppTheme.primaryFixed,
+      labelType: NavigationRailLabelType.all,
+      minWidth: 72,
+      leading: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.outlineVariant.withOpacity(0.5),
+              width: 0.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
-        ],
+          padding: const EdgeInsets.all(6),
+          child: Image.asset(
+            'assets/logo.png',
+            fit: BoxFit.contain,
+          ),
+        ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: SizedBox(
-            height: 52, // Chiều cao cố định 52px cho tất cả các nền tảng
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final itemWidth = constraints.maxWidth / 5;
-                return GestureDetector(
-                  behavior: HitTestBehavior.opaque,
-                  onPanDown: (details) =>
-                      _startNavDrag(details.localPosition.dx, itemWidth),
-                  onPanUpdate: (details) =>
-                      _updateNavDrag(details.localPosition.dx, itemWidth),
-                  onPanEnd: (_) => _endNavDrag(),
-                  onPanCancel: () => _cancelNavDrag(),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        left: _navVisualValue * itemWidth,
-                        top: 0,
-                        child: AnimatedContainer(
-                          duration:
-                              Duration(milliseconds: _navDragging ? 0 : 220),
-                          curve: Curves.easeOutCubic,
-                          width: itemWidth,
-                          height:
-                              52, // chỉ có 64px — không tràn xuống vng home indicator
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryFixed.withOpacity(0.8),
-                            borderRadius: BorderRadius.circular(24),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.5),
-                              width: 1,
-                            ),
-                          ),
-                        ),
+      selectedIconTheme: const IconThemeData(
+        color: AppTheme.primary,
+        size: 24,
+      ),
+      unselectedIconTheme: const IconThemeData(
+        color: AppTheme.onSurfaceVariant,
+        size: 24,
+      ),
+      selectedLabelTextStyle: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 11,
+        fontWeight: FontWeight.w700,
+        color: AppTheme.primary,
+      ),
+      unselectedLabelTextStyle: const TextStyle(
+        fontFamily: 'Manrope',
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: AppTheme.onSurfaceVariant,
+      ),
+      destinations: const [
+        NavigationRailDestination(
+          icon: Icon(Icons.dashboard_outlined),
+          selectedIcon: Icon(Icons.dashboard),
+          label: Text('Tổng quan'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.calendar_today_outlined),
+          selectedIcon: Icon(Icons.calendar_today),
+          label: Text('Lịch học'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.grade_outlined),
+          selectedIcon: Icon(Icons.grade),
+          label: Text('Điểm số'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.payments_outlined),
+          selectedIcon: Icon(Icons.payments),
+          label: Text('Học phí'),
+        ),
+        NavigationRailDestination(
+          icon: Icon(Icons.person_outline),
+          selectedIcon: Icon(Icons.person),
+          label: Text('Tài khoản'),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildNav() {
+    const double navBarHeight = 60.0;
+    const double navInset = 6.0; // Khoảng đệm đồng nhất cho cả 4 cạnh (Top = Bottom = Left = Right = 6dp)
+    const int tabCount = 5;
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      heightFactor: 1.0,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 500),
+        child: Container(
+          height: navBarHeight,
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          padding: const EdgeInsets.all(navInset),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(navBarHeight / 2), // Bo góc 30dp ôm tròn tự nhiên
+            border: Border.all(
+              color: const Color(0xFFE2E8F0),
+              width: 0.8,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 24,
+                spreadRadius: -4,
+                offset: const Offset(0, 8),
+              ),
+              BoxShadow(
+                color: AppTheme.primary.withOpacity(0.04),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final itemWidth = constraints.maxWidth / tabCount;
+              return Stack(
+                children: [
+                  // Khối thẻ xanh viên thuốc: Tự động căn đều 4 cạnh, đồng tâm với vỏ ngoài
+                  AnimatedPositioned(
+                    left: _idx * itemWidth,
+                    top: 0,
+                    bottom: 0,
+                    width: itemWidth,
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryFixed.withOpacity(0.85),
+                        borderRadius: BorderRadius.circular(
+                            (navBarHeight - navInset * 2) / 2), // R_inner = R_outer - inset = 24dp đồng tâm
                       ),
-                      // Giới hạn Row chỉ chiếm 64px (icon zone).
-                      // Phần bên dưới là khoảng trống trong suốt dành cho home indicator.
-                      SizedBox(
-                        height: 52,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _navItem(
-                              icon: Icons.dashboard_outlined,
-                              activeIcon: Icons.dashboard,
-                              label: 'Dashboard',
-                              idx: 0,
-                              currentActiveIdx: currentVisualIdx,
-                            ),
-                            _navItem(
-                              icon: Icons.calendar_today_outlined,
-                              activeIcon: Icons.calendar_today,
-                              label: 'Lịch',
-                              idx: 1,
-                              currentActiveIdx: currentVisualIdx,
-                            ),
-                            _navItem(
-                              icon: Icons.grade_outlined,
-                              activeIcon: Icons.grade,
-                              label: 'Điểm',
-                              idx: 2,
-                              currentActiveIdx: currentVisualIdx,
-                            ),
-                            _navItem(
-                              icon: Icons.payments_outlined,
-                              activeIcon: Icons.payments,
-                              label: 'Tài chính',
-                              idx: 3,
-                              currentActiveIdx: currentVisualIdx,
-                            ),
-                            _navItem(
-                              icon: Icons.person_outline,
-                              activeIcon: Icons.person,
-                              label: 'Profile',
-                              idx: 4,
-                              currentActiveIdx: currentVisualIdx,
-                            ),
-                          ],
-                        ),
+                    ),
+                  ),
+                  // Hàng chứa các tabs: Icon + Text tự động căn giữa tuyệt đối theo viên thuốc
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _navItem(
+                        icon: Icons.dashboard_outlined,
+                        activeIcon: Icons.dashboard,
+                        label: 'Tổng quan',
+                        idx: 0,
+                        active: _idx == 0,
+                        onTap: () => _navigate(0),
+                      ),
+                      _navItem(
+                        icon: Icons.calendar_today_outlined,
+                        activeIcon: Icons.calendar_today,
+                        label: 'Lịch học',
+                        idx: 1,
+                        active: _idx == 1,
+                        onTap: () => _navigate(1),
+                      ),
+                      _navItem(
+                        icon: Icons.grade_outlined,
+                        activeIcon: Icons.grade,
+                        label: 'Điểm số',
+                        idx: 2,
+                        active: _idx == 2,
+                        onTap: () => _navigate(2),
+                      ),
+                      _navItem(
+                        icon: Icons.payments_outlined,
+                        activeIcon: Icons.payments,
+                        label: 'Học phí',
+                        idx: 3,
+                        active: _idx == 3,
+                        onTap: () => _navigate(3),
+                      ),
+                      _navItem(
+                        icon: Icons.person_outline,
+                        activeIcon: Icons.person,
+                        label: 'Tài khoản',
+                        idx: 4,
+                        active: _idx == 4,
+                        onTap: () => _navigate(4),
                       ),
                     ],
                   ),
-                );
-              },
-            ),
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -354,42 +416,41 @@ class _MainShellState extends State<MainShell>
     required IconData activeIcon,
     required String label,
     required int idx,
-    required int currentActiveIdx, // Thêm tham số này
+    required bool active,
+    required VoidCallback onTap,
   }) {
-    // SỬA: Sử dụng index kéo thực tế thay vì index cố định
-    final active = currentActiveIdx == idx;
-
     return Expanded(
-      child: Container(
-        color: Colors.transparent,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: onTap,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
           children: [
             AnimatedScale(
               duration: const Duration(milliseconds: 220),
               curve: Curves.easeOutBack,
-              scale: active ? 1.04 : 1.0,
+              scale: active ? 1.05 : 1.0,
               child: Icon(
-                activeIcon, // SỬA: Hiển thị icon đã active ngay cả khi đang kéo qua nó
-                color: active ? AppTheme.primary : AppTheme.onPrimaryFixed,
-                size: 24,
+                active ? activeIcon : icon,
+                color: active ? AppTheme.primary : AppTheme.onSurfaceVariant,
+                size: 22,
               ),
             ),
-            const SizedBox(height: 2), // Khoảng cách giữa icon và chữ
-            AnimatedDefaultTextStyle(
-              duration: const Duration(milliseconds: 220),
-              curve: Curves.easeOutCubic,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.w600,
-                color: active ? AppTheme.primary : AppTheme.onSurfaceVariant,
-                letterSpacing: -0.1,
-              ),
+            const SizedBox(height: 2),
+            FittedBox(
+              fit: BoxFit.scaleDown,
               child: Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontFamily: 'Inter',
+                  fontSize: 9,
+                  height: 1.0,
+                  fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+                  color: active ? AppTheme.primary : AppTheme.onSurfaceVariant,
+                  letterSpacing: -0.2,
+                ),
               ),
             ),
           ],

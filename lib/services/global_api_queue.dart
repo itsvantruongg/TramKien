@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'package:http/http.dart' as http;
 
 /// Mức độ ưu tiên của request trong hàng đợi API
 enum RequestPriority {
@@ -103,7 +104,7 @@ class GlobalApiQueue {
     }
   }
 
-  /// Thực thi task với timeout động và retry có backoff cho TimeoutException & SocketException
+  /// Thực thi task với timeout động và retry có backoff cho TimeoutException, SocketException, ClientException, v.v.
   Future<void> _runTask(_QueuedTask queuedTask, int positionAtStart) async {
     print('[Queue] start: ${queuedTask.priority}');
     final timeoutDuration = dynamicTimeout(positionAtStart);
@@ -116,9 +117,22 @@ class GlobalApiQueue {
       _handleRetry(queuedTask, e, st);
     } on SocketException catch (e, st) {
       _handleRetry(queuedTask, e, st);
+    } on http.ClientException catch (e, st) {
+      _handleRetry(queuedTask, e, st);
+    } on HttpException catch (e, st) {
+      _handleRetry(queuedTask, e, st);
     } catch (e, st) {
-      if (!queuedTask.completer.isCompleted) {
-        queuedTask.completer.completeError(e, st);
+      // Kiểm tra chuỗi lỗi nếu là HandshakeException / TlsException
+      final errStr = e.toString();
+      if (errStr.contains('HandshakeException') ||
+          errStr.contains('TlsException') ||
+          errStr.contains('Connection closed') ||
+          errStr.contains('Software caused connection abort')) {
+        _handleRetry(queuedTask, e, st);
+      } else {
+        if (!queuedTask.completer.isCompleted) {
+          queuedTask.completer.completeError(e, st);
+        }
       }
     } finally {
       _activeCount--;

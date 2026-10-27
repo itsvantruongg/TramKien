@@ -5,15 +5,19 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
-
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import 'providers/app_provider.dart';
 import 'screens/login_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/notifications_screen.dart';
+import 'services/analytics_service.dart';
+import 'services/app_info_service.dart';
 import 'services/background_sync_service.dart';
 import 'services/local_notification_service.dart';
+import 'services/widget_data_sync_service.dart';
+import 'screens/widget_studio_screen.dart';
+import 'widgets/shared_widgets.dart';
 import 'theme/app_theme.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -26,6 +30,10 @@ void notificationTapBackground(NotificationResponse notificationResponse) {
 Future<void> main() async {
   final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
+
+  // Safe Analytics & Crashlytics initialization
+  await AnalyticsService.initialize();
+  await AppInfoService.getAppVersion();
 
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: AppTheme.surface,
@@ -45,7 +53,8 @@ Future<void> main() async {
     ),
   );
 
-  WidgetsBinding.instance.addPostFrameCallback((_) {
+  WidgetsBinding.instance.addPostFrameCallback((_) async {
+    unawaited(AnalyticsService.logAppOpen());
     unawaited(LocalNotificationService.init(
       onDidReceiveNotificationResponse: (response) {
         if (navigatorKey.currentState != null) {
@@ -57,6 +66,17 @@ Future<void> main() async {
       onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
     ));
     unawaited(BackgroundSyncService.initialize());
+
+    // Deep link from Android Widget (AC-06)
+    try {
+      final initialRoute = await WidgetDataSyncService.getInitialRoute();
+      if (initialRoute == '/widget_studio' &&
+          navigatorKey.currentState != null) {
+        navigatorKey.currentState!.push(
+          MaterialPageRoute(builder: (_) => const WidgetStudioScreen()),
+        );
+      }
+    } catch (_) {}
   });
 }
 
@@ -73,16 +93,6 @@ class SchedifyApp extends StatelessWidget {
         builder: (context, child) {
           final mediaQuery = MediaQuery.of(context);
           final size = mediaQuery.size;
-          final shortestSide = size.shortestSide;
-
-          final maxContentWidth = shortestSide >= 840
-              ? 600.0
-              : shortestSide >= 600
-                  ? 520.0
-                  : size.width;
-
-          final contentWidth =
-              size.width < maxContentWidth ? size.width : maxContentWidth;
 
           // Tính toán scale factor toàn cục dựa trên breakpoint kích thước màn hình
           final double scaleFactor;
@@ -105,7 +115,6 @@ class SchedifyApp extends StatelessWidget {
           );
 
           final adjustedMediaQuery = mediaQuery.copyWith(
-            size: Size(contentWidth, size.height),
             textScaler: clampedTextScaler,
           );
 
@@ -113,13 +122,10 @@ class SchedifyApp extends StatelessWidget {
             data: AppTheme.lightWithScale(scaleFactor),
             child: ColoredBox(
               color: AppTheme.surface,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: contentWidth),
-                  child: MediaQuery(
-                    data: adjustedMediaQuery,
-                    child: child ?? const SizedBox.shrink(),
-                  ),
+              child: MediaQuery(
+                data: adjustedMediaQuery,
+                child: AppShimmerScope(
+                  child: child ?? const SizedBox.shrink(),
                 ),
               ),
             ),
@@ -147,11 +153,9 @@ class _AppRouterState extends State<AppRouter> {
 
   Future<void> _initAuth() async {
     final p = context.read<AppProvider>();
-    await p.quickAuthReady;
+    await p.authReady;
     if (mounted) {
-      setState(() {
-        _quickAuthDone = true;
-      });
+      setState(() => _quickAuthDone = true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         FlutterNativeSplash.remove();
       });

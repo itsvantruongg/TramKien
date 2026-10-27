@@ -1,0 +1,341 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPEC-WIDGET-STUDIO-01: 4x2 Three Days Android AppWidget Layout (Swiss Typography) -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="10dp"
+    android:background="@android:color/transparent">
+
+    <FrameLayout
+        android:id="@android:id/background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent">
+
+    <ImageView
+        android:id="@+id/widget_bg_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+    <!-- Header: Accent Bar + Title + Subtitle -->
+    <LinearLayout
+        android:id="@+id/widget_header_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- 3dp Accent Bar (Hidden) -->
+        <ImageView
+            android:id="@+id/widget_accent_bar"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="0dp"
+            android:text="Lịch 3 ngày"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="-0.02"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/widget_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="21/10 – 23/10"
+            android:textColor="#98989D"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="-0.02"
+            android:includeFontPadding="false" />
+    </LinearLayout>
+
+    <!-- Hairline Divider 0.5dp -->
+    <ImageView
+        android:id="@+id/widget_hairline"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
+        android:background="#33FFFFFF" />
+
+    <!-- 3-Day Content Container (Horizontal Compact Rows) -->
+    <LinearLayout
+        android:id="@+id/widget_content_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Day 1 (Today) Row -->
+        <LinearLayout
+            android:id="@+id/day_row_1"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="top"
+            android:layout_marginBottom="6dp"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="2dp">
+
+            <ImageView
+                android:id="@+id/day_indicator_1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <!-- Cột trái: "T2 17/08" -->
+            <TextView
+                android:id="@+id/day_1_date_prefix"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
+                android:text="T2 17/08"
+                android:textColor="#1D64F2"
+                android:textSize="10sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+
+            <!-- Cột phải: TÁCH RÕ RÀNG 2 HÀNG RIÊNG BIỆT -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <!-- Hàng 1: Tên môn -->
+                <TextView
+                    android:id="@+id/day_1_class_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Đồ họa và hiện thực ảo"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <!-- Hàng 2: Giờ (Tiết) • Phòng -->
+                <TextView
+                    android:id="@+id/day_1_class_hybrid"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="12:45 – 17:00 (T8–12) • P.M-M5.03"
+                    android:textColor="#98989D"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <!-- Hàng 3: Badge (+N môn nữa) khi kéo cao minHeightDp >= 200dp -->
+                <TextView
+                    android:id="@+id/day_1_class_extra"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text=""
+                    android:textColor="#1D64F2"
+                    android:textSize="8.5sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Day 2 (Tomorrow) Row -->
+        <LinearLayout
+            android:id="@+id/day_row_2"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="top"
+            android:layout_marginBottom="6dp"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="2dp">
+
+            <ImageView
+                android:id="@+id/day_indicator_2"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <!-- Cột trái: "T3 18/08" -->
+            <TextView
+                android:id="@+id/day_2_date_prefix"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
+                android:text="T3 18/08"
+                android:textColor="#FFFFFF"
+                android:textSize="10sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+
+            <!-- Cột phải: TÁCH RÕ RÀNG 2 HÀNG RIÊNG BIỆT -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <!-- Hàng 1: Tên môn -->
+                <TextView
+                    android:id="@+id/day_2_class_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Kiến trúc máy tính"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <!-- Hàng 2: Giờ (Tiết) • Phòng -->
+                <TextView
+                    android:id="@+id/day_2_class_hybrid"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="07:00 – 09:25 (T1–3) • P.I801"
+                    android:textColor="#98989D"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <!-- Hàng 3: Badge (+N môn nữa) khi kéo cao minHeightDp >= 200dp -->
+                <TextView
+                    android:id="@+id/day_2_class_extra"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text=""
+                    android:textColor="#1D64F2"
+                    android:textSize="8.5sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Day 3 (Day After Tomorrow) Row -->
+        <LinearLayout
+            android:id="@+id/day_row_3"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="horizontal"
+            android:gravity="top"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="2dp">
+
+            <ImageView
+                android:id="@+id/day_indicator_3"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+
+            <!-- Cột trái: "T4 19/08" -->
+            <TextView
+                android:id="@+id/day_3_date_prefix"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
+                android:text="T4 19/08"
+                android:textColor="#98989D"
+                android:textSize="10sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+
+            <!-- Cột phải: TÁCH RÕ RÀNG 2 HÀNG RIÊNG BIỆT -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <!-- Hàng 1: Tên môn (hoặc Không có lịch) -->
+                <TextView
+                    android:id="@+id/day_3_class_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Không có lịch"
+                    android:textColor="#98989D"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <!-- Hàng 2: Giờ (Tiết) • Phòng -->
+                <TextView
+                    android:id="@+id/day_3_class_hybrid"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text=""
+                    android:textColor="#98989D"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <!-- Hàng 3: Badge (+N môn nữa) khi kéo cao minHeightDp >= 200dp -->
+                <TextView
+                    android:id="@+id/day_3_class_extra"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text=""
+                    android:textColor="#1D64F2"
+                    android:textSize="8.5sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+    </LinearLayout>
+    </FrameLayout>
+</FrameLayout>

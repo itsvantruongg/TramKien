@@ -32,6 +32,26 @@ class ScheduleDb {
     }
   }
 
+  /// Dập cờ reconcile bằng cách cập nhật fetched_app_version mới cho toàn bộ bản ghi hệ thống (is_manual = 0)
+  static Future<void> stampAllRecordsWithAppVersion(String appVersion,
+      {Database? db}) async {
+    final d = db ?? await DatabaseService.db;
+    await d.update(
+      'lich_hoc',
+      {'fetched_app_version': appVersion},
+      where:
+          'is_manual = 0 AND (fetched_app_version IS NULL OR fetched_app_version != ?)',
+      whereArgs: [appVersion],
+    );
+    await d.update(
+      'lich_thi',
+      {'fetched_app_version': appVersion},
+      where:
+          'is_manual = 0 AND (fetched_app_version IS NULL OR fetched_app_version != ?)',
+      whereArgs: [appVersion],
+    );
+  }
+
   // ── LỊCH HỌC ─────────────────────────────
 
   /// Upsert lịch học (Bug 6 fix): không xóa trắng scope trước khi insert.

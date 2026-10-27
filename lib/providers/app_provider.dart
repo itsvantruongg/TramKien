@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,6 +11,7 @@ import './schedule_provider.dart';
 import './grade_provider.dart';
 import './finance_provider.dart';
 import '../services/local_notification_service.dart';
+import '../services/widget_data_sync_service.dart';
 
 /// Keys for persistent login storage
 const _kMssv = 'saved_mssv';
@@ -51,16 +51,49 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   Completer<void> _authCompleter = Completer<void>();
   Future<void> get authReady => _authCompleter.future;
 
+  // ── Completer theo dõi thời điểm SQLite cache nạp xong 100% ────
+  Completer<void> _cacheLoadedCompleter = Completer<void>();
+  Future<void> get cacheLoaded => _cacheLoadedCompleter.future;
+
+  String _appVersion = DatabaseService.currentAppVersion;
   bool _isCacheLoaded = false;
+  bool _isSyncingHistory = false;
 
   // ── Getters ─────────────────────────────
   AuthState get authState => _authState;
+  bool get isLoggedIn => _authState == AuthState.loggedIn;
   String get currentMssv => _currentMssv;
   String get authError => _authError;
   Student? get student => _student;
+  @visibleForTesting
+  set student(Student? s) => _student = s;
+  String get appVersion => _appVersion;
+  @visibleForTesting
+  set appVersion(String v) => _appVersion = v;
+  @visibleForTesting
+  set isSyncingForTest(bool v) {
+    _isSyncing = v;
+    notifyListeners();
+  }
+  @visibleForTesting
+  set hocPhiLoadingForTest(bool v) {
+    financeProvider.hocPhiLoadingForTest = v;
+    notifyListeners();
+  }
+  @visibleForTesting
+  set lichHocLoadingForTest(bool v) {
+    scheduleProvider.lichHocLoadingForTest = v;
+    notifyListeners();
+  }
   bool get isSyncing => _isSyncing;
+  bool get isSyncingHistory => _isSyncingHistory;
   bool get notifEnabled => _notifEnabled;
   bool get isCacheLoaded => _isCacheLoaded;
+  @visibleForTesting
+  set isCacheLoaded(bool v) {
+    _isCacheLoaded = v;
+    notifyListeners();
+  }
   int get curriculumTotalCredits => _curriculumMandatoryCredits;
   int get unreadNotifCount => _unreadNotifCount;
   List<AppNotif> get notifications => _notifications;
@@ -85,6 +118,15 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       init();
     });
+
+    unawaited(_initAppVersion());
+  }
+
+  Future<void> _initAppVersion() async {
+    try {
+      _appVersion = await AppInfoService.getAppVersion();
+      notifyListeners();
+    } catch (_) {}
   }
 
   void _onSubProviderChanged() {
@@ -101,8 +143,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      final remember = prefs.getBool(_kRemember) ?? false;
-      if (remember) {
+      final remember = prefs.getBool(_kRemember);
+      if (remember == true) {
         final mssv = prefs.getString(_kMssv) ?? '';
         final pw = prefs.getString(_kPw) ?? '';
         if (mssv.isNotEmpty && pw.isNotEmpty) {
@@ -119,13 +161,26 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         _authState = AuthState.loggedIn;
       } else {
         _authState = AuthState.loggedOut;
+        if (remember == false) {
+          await WidgetDataSyncService.clearAllWidgetData(prefs: prefs);
+        }
       }
     } catch (e) {
       _authError = 'Lỗi khởi tạo: $e';
       _authState = AuthState.loggedOut;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final remember = prefs.getBool(_kRemember);
+        if (remember == false) {
+          await WidgetDataSyncService.clearAllWidgetData(prefs: prefs);
+        }
+      } catch (_) {}
     }
 
     if (!_quickAuthCompleter.isCompleted) _quickAuthCompleter.complete();
+    if (_authState != AuthState.loggedIn) {
+      if (!_cacheLoadedCompleter.isCompleted) _cacheLoadedCompleter.complete();
+    }
     notifyListeners();
   }
 
@@ -153,19 +208,23 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         // Load cache SQLite hiển thị lên UI (dùng skeleton loader nếu chưa xong)
         await _loadFromCache();
         _isCacheLoaded = true;
+        if (!_cacheLoadedCompleter.isCompleted) _cacheLoadedCompleter.complete();
         notifyListeners();
 
         final prefs = await SharedPreferences.getInstance();
         final pw = prefs.getString(_kPw) ?? '';
         // Sync ngầm ở background không chặn UI
         unawaited(_asyncBackgroundLoginAndSync(_currentMssv, pw, prefs));
+      } else {
+        if (!_cacheLoadedCompleter.isCompleted) _cacheLoadedCompleter.complete();
       }
     } catch (e) {
       debugPrint('⚠️ Lỗi init dữ liệu nặng: $e');
+    } finally {
+      if (!_cacheLoadedCompleter.isCompleted) _cacheLoadedCompleter.complete();
+      if (!_authCompleter.isCompleted) _authCompleter.complete();
+      notifyListeners();
     }
-
-    if (!_authCompleter.isCompleted) _authCompleter.complete();
-    notifyListeners();
   }
 
   Future<void> _asyncBackgroundLoginAndSync(
@@ -186,6 +245,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
               '🔄 [Reconcile] Phát hiện bản ghi DB có fetched_app_version != $currentVer (hoặc NULL) → Ép sync full & diff-delete');
         }
         await syncAll(forceRefresh: needsReconcile);
+        await ScheduleDb.stampAllRecordsWithAppVersion(currentVer);
         await prefs.setString('last_reconciled_app_version', currentVer);
 
         // [B5] Chỉ đăng ký periodic sync sau khi đăng nhập thành công
@@ -233,19 +293,24 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         // Load notification state
         _notifEnabled =
             await LocalNotificationService.isNotificationEnabled(mssv);
+        // Bật sẵn cờ _isSyncing = true để Dashboard mở ra hiển thị Skeleton Shimmer ngay từ Frame 0
+        _isSyncing = true;
         _authState = AuthState.loggedIn;
         notifyListeners();
 
         // Admin: seed + load cache NGAY (data là local, không cần chờ)
         if (mssv == 'admin') {
-          await NotificationService.seedMockData();
-          await _loadFromCache();
-        }
-        if (mssv == 'admin') {
           await HauApiService.seedAdminMockData();
           await NotificationService.seedMockData(); // Bổ sung seeding thông báo
           await _loadFromCache();
           await refreshNotifications(); // Ép buộc load thông báo vào state ngay lập tức
+          try {
+            await WidgetDataSyncService.loadAndSyncFromDb();
+            await WidgetDataSyncService.triggerNativeWidgetUpdate();
+          } catch (e) {
+            debugPrint('⚠️ Error auto-updating widget for admin: $e');
+          }
+          _isSyncing = false;
           notifyListeners();
         }
 
@@ -258,13 +323,27 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         if (!hasFullSync && mssv != 'admin') {
           // Lần đầu: chạy Full History trong cùng 1 chu trình syncAll() duy nhất (không chạy trùng lịch học)
           debugPrint('📚 [Bug3] Lần đầu đăng nhập — kích hoạt full history sync');
-          syncAll(isInitialFullSync: true).then((_) {
+          syncAll(isInitialFullSync: true, fromLogin: true).then((_) async {
             syncPrefs.setBool(fullSyncKey, true);
             debugPrint('📚 [Bug3] Full history sync hoàn tất, đánh dấu done');
+            try {
+              await WidgetDataSyncService.loadAndSyncFromDb();
+              await WidgetDataSyncService.triggerNativeWidgetUpdate();
+            } catch (e) {
+              debugPrint('⚠️ Error auto-updating widget on login: $e');
+            }
             notifyListeners();
           });
-        } else {
-          syncAll().then((_) => notifyListeners());
+        } else if (mssv != 'admin') {
+          syncAll(fromLogin: true).then((_) async {
+            try {
+              await WidgetDataSyncService.loadAndSyncFromDb();
+              await WidgetDataSyncService.triggerNativeWidgetUpdate();
+            } catch (e) {
+              debugPrint('⚠️ Error auto-updating widget on login: $e');
+            }
+            notifyListeners();
+          });
         }
         // Đăng ký background sync định kỳ
         BackgroundSyncService.schedulePeriodicSync();
@@ -297,6 +376,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       await prefs.remove(_kPw);
       await prefs.setBool(_kRemember, false);
       await prefs.remove('notif_start_time_$mssvToDelete');
+      await prefs.remove('has_done_initial_full_sync_$mssvToDelete');
+      await prefs.remove('has_done_history_schedule_$mssvToDelete');
 
       // Xóa thông báo đã lên lịch & hủy background sync
       await LocalNotificationService.setNotificationEnabled(
@@ -320,6 +401,13 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       scheduleProvider.clearData();
       gradeProvider.clearData();
       financeProvider.clearData();
+
+      _isCacheLoaded = false;
+      _isSyncingHistory = false;
+      _cacheLoadedCompleter = Completer<void>();
+
+      // Xóa data widget ngoài màn hình chính Android
+      await WidgetDataSyncService.clearAllWidgetData();
     } catch (e) {
       _authError = 'Lỗi đăng xuất: $e';
     }
@@ -331,9 +419,13 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
     notifyListeners();
   }
 
-  Future<void> syncAll({bool forceRefresh = false, bool isInitialFullSync = false}) async {
+  Future<void> syncAll({
+    bool forceRefresh = false,
+    bool isInitialFullSync = false,
+    bool fromLogin = false,
+  }) async {
     final acquired = await SyncMutex.acquireLock(_currentMssv);
-    if (_isSyncing || BackgroundSyncService.isSyncing || !acquired) {
+    if ((_isSyncing && !fromLogin) || BackgroundSyncService.isSyncing || !acquired) {
       debugPrint(
           '⚙️ [AppProvider] Sync bị hoãn do sync/BG sync đang chạy (Mutex active)');
       // Bug 1: set flag để UI biết lần gọi này bị skip (không phải đang sync)
@@ -384,26 +476,54 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       await LocalNotificationService.generateScheduleCards(
           _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi);
 
-      // 2. CHẠY CUỐI CÙNG TIẾN TRÌNH: Quét lịch cũ của các năm trước (nếu là lần đầu đăng nhập)
+      // Cập nhật dữ liệu widget tức thì sau khi sync kỳ hiện tại
+      try {
+        await WidgetDataSyncService.loadAndSyncFromDb();
+        await WidgetDataSyncService.triggerNativeWidgetUpdate();
+      } catch (e) {
+        debugPrint('⚠️ Error updating widget after syncAll: $e');
+      }
+
+      // ── TẦNG 1 HOÀN TẤT (Data kỳ này về máy): LẬP TỨC set _isSyncing = false & giải phóng Mutex ──
+      _isSyncing = false;
+      await SyncMutex.releaseLock(_currentMssv);
+      _lastSyncTime = DateTime.now(); // Cập nhật thời điểm sync xong
+      await refreshUnreadCount();
+      notifyListeners(); // Gỡ bỏ ngay lập tức lớp phủ xám mờ trên Dashboard
+
+      // ── TẦNG 2 CHẠY NGẦM BACKGROUND: Quét lịch cũ của các năm trước (nếu là lần đầu đăng nhập) ──
       final syncPrefs = await SharedPreferences.getInstance();
       final historyKey = 'has_done_history_schedule_$_currentMssv';
       final hasDoneHistory = syncPrefs.getBool(historyKey) ?? false;
 
       if ((isInitialFullSync || !hasDoneHistory) && _currentMssv != 'admin') {
-        debugPrint('📚 [ScheduleHistory] Bắt đầu fetch lịch cũ các năm trước ở cuối tiến trình...');
-        await scheduleProvider.syncLichHocFullHistory();
-        await scheduleProvider.syncLichThiFullHistory();
-        await syncPrefs.setBool(historyKey, true);
-        debugPrint('📚 [ScheduleHistory] Hoàn tất fetch lịch cũ các năm trước.');
+        _isSyncingHistory = true;
+        notifyListeners();
+        unawaited(() async {
+          try {
+            debugPrint('📚 [ScheduleHistory] Bắt đầu fetch lịch cũ các năm trước ở background...');
+            await scheduleProvider.syncLichHocFullHistory();
+            await scheduleProvider.syncLichThiFullHistory();
+            await syncPrefs.setBool(historyKey, true);
+            debugPrint('📚 [ScheduleHistory] Hoàn tất fetch lịch cũ các năm trước.');
+          } catch (e) {
+            debugPrint('⚠️ Error sync history: $e');
+          } finally {
+            _isSyncingHistory = false;
+            notifyListeners();
+          }
+        }());
       }
     } catch (e) {
       debugPrint('⚠️ syncAll error: $e');
     } finally {
-      _isSyncing = false;
-      await SyncMutex.releaseLock(_currentMssv);
-      _lastSyncTime = DateTime.now(); // Cập nhật thời điểm sync xong
-      await refreshUnreadCount();
-      notifyListeners(); // Đảm bảo icon quay sẽ dừng
+      if (_isSyncing) {
+        _isSyncing = false;
+        await SyncMutex.releaseLock(_currentMssv);
+        _lastSyncTime = DateTime.now(); // Cập nhật thời điểm sync xong
+        await refreshUnreadCount();
+        notifyListeners(); // Đảm bảo icon quay sẽ dừng
+      }
     }
   }
 
@@ -637,6 +757,8 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   double get tongHocPhiAllPhaiDong => financeProvider.tongHocPhiPhaiDong;
   double get tongHocPhiAllDaDong => financeProvider.tongHocPhiDaDong;
   double get tongHocPhiAllConLai => financeProvider.tongHocPhiConLai;
+  double get hocPhiAllDaDong => tongHocPhiAllDaDong;
+  List<Map<String, Object?>> get hocPhiHocKy => feeSummaries;
   double get progressHocPhiAll => tongHocPhiAllPhaiDong > 0
       ? (tongHocPhiAllDaDong / tongHocPhiAllPhaiDong).clamp(0.0, 1.0)
       : 0.0;
@@ -799,7 +921,15 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
   ///      giúp prevCount trong syncAll() luôn khớp thực tế — tránh thông báo trùng lặp.
   @override
   Future<void> didChangeAppLifecycleState(AppLifecycleState state) async {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.detached) {
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final remember = prefs.getBool(_kRemember) ?? false;
+        if (!remember) {
+          await WidgetDataSyncService.clearAllWidgetData();
+        }
+      } catch (_) {}
+    } else if (state == AppLifecycleState.resumed) {
       debugPrint('[⚡ Resume] App mở lại — đang làm mới cache từ SQLite...');
       try {
         if (_currentMssv.isNotEmpty) {

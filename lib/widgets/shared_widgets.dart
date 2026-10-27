@@ -177,6 +177,10 @@ class SurfaceCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: color ?? AppTheme.surfaceContainerLowest,
             borderRadius: BorderRadius.circular(radius),
+            border: Border.all(
+              color: AppTheme.outlineVariant.withOpacity(0.4),
+              width: 0.5,
+            ),
             boxShadow: [
               BoxShadow(
                 color: AppTheme.onSurface.withOpacity(0.04),
@@ -357,18 +361,21 @@ class CircularProgressWidget extends StatelessWidget {
                   valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
                   strokeCap: StrokeCap.round,
                 )),
-            Column(mainAxisSize: MainAxisSize.min, children: [
-              Text(center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w800)),
-              Text(subtitle,
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelSmall
-                      ?.copyWith(color: AppTheme.onSurfaceVariant)),
-            ]),
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Text(center,
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.w800)),
+                Text(subtitle,
+                    style: Theme.of(context)
+                        .textTheme
+                        .labelSmall
+                        ?.copyWith(color: AppTheme.onSurfaceVariant)),
+              ]),
+            ),
           ]),
         ),
       );
@@ -465,49 +472,206 @@ class SectionHeader extends StatelessWidget {
       );
 }
 
-// ── SkeletonBox ───────────────────────────────────────────────
+// ── Synchronized Shimmer System (AC-06) ───────────────────────────
 
-class SkeletonBox extends StatefulWidget {
-  final double width, height, radius;
-  const SkeletonBox(
-      {super.key, required this.width, required this.height, this.radius = 8});
+class AppShimmerScope extends StatefulWidget {
+  final Widget child;
+  final Duration duration;
+
+  const AppShimmerScope({
+    super.key,
+    required this.child,
+    this.duration = const Duration(milliseconds: 1500),
+  });
+
+  static AppShimmerScopeState? maybeOf(BuildContext context) {
+    final _AppShimmerScopeInherited? inherited =
+        context.dependOnInheritedWidgetOfExactType<_AppShimmerScopeInherited>();
+    return inherited?.state;
+  }
+
+  static AppShimmerScopeState of(BuildContext context) {
+    final state = maybeOf(context);
+    assert(state != null, 'No AppShimmerScope found in context');
+    return state!;
+  }
+
   @override
-  State<SkeletonBox> createState() => _SkeletonState();
+  State<AppShimmerScope> createState() => AppShimmerScopeState();
 }
 
-class _SkeletonState extends State<SkeletonBox>
+class AppShimmerScopeState extends State<AppShimmerScope>
     with SingleTickerProviderStateMixin {
-  late AnimationController _ctrl;
-  late Animation<double> _anim;
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  Animation<double> get animation => _animation;
+  AnimationController get controller => _controller;
+
+  // Cached gradients per animation tick to avoid GC pause & memory churn (AC-05)
+  LinearGradient? _cachedLightGradient;
+  LinearGradient? _cachedDarkGradient;
+  double _lastTickValue = -1.0;
+
+  static const List<Color> _lightColors = [
+    Color(0xFFE2E8F0),
+    Color(0xFFF1F5F9),
+    Color(0xFFE2E8F0),
+  ];
+  static const List<Color> _darkColors = [
+    Color(0xFF2D3238),
+    Color(0xFF3B424B),
+    Color(0xFF2D3238),
+  ];
+  static const List<double> _stops = [0.0, 0.5, 1.0];
+
+  LinearGradient getShimmerGradient({required bool isDark}) {
+    final t = _animation.value;
+    if (t != _lastTickValue) {
+      _lastTickValue = t;
+      // 135-degree sweep: LinearGradient from top-left to bottom-right
+      final offset = (t * 4.0) - 2.0;
+      _cachedLightGradient = LinearGradient(
+        begin: Alignment(-1.5 + offset, -1.5 + offset),
+        end: Alignment(1.5 + offset, 1.5 + offset),
+        colors: _lightColors,
+        stops: _stops,
+      );
+      _cachedDarkGradient = LinearGradient(
+        begin: Alignment(-1.5 + offset, -1.5 + offset),
+        end: Alignment(1.5 + offset, 1.5 + offset),
+        colors: _darkColors,
+        stops: _stops,
+      );
+    }
+    return isDark ? _cachedDarkGradient! : _cachedLightGradient!;
+  }
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-        vsync: this, duration: const Duration(milliseconds: 1200))
-      ..repeat(reverse: true);
-    _anim = Tween(begin: 0.3, end: 0.7)
-        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+    _controller = AnimationController(
+      vsync: this,
+      duration: widget.duration,
+    )..repeat();
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
   void dispose() {
-    _ctrl.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-        animation: _anim,
-        builder: (_, __) => Container(
-          width: widget.width,
-          height: widget.height,
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceContainerHigh.withOpacity(_anim.value),
-            borderRadius: BorderRadius.circular(widget.radius),
-          ),
+  Widget build(BuildContext context) {
+    return _AppShimmerScopeInherited(
+      state: this,
+      child: widget.child,
+    );
+  }
+}
+
+class _AppShimmerScopeInherited extends InheritedWidget {
+  final AppShimmerScopeState state;
+
+  const _AppShimmerScopeInherited({
+    required this.state,
+    required super.child,
+  });
+
+  @override
+  bool updateShouldNotify(_AppShimmerScopeInherited oldWidget) => false;
+}
+
+typedef SynchronizedShimmer = AppShimmerScope;
+
+// ── SkeletonBox (AC-06: Synchronized, Zero Independent Tickers) ────
+
+class SkeletonBox extends StatelessWidget {
+  final double width, height, radius;
+
+  const SkeletonBox({
+    super.key,
+    required this.width,
+    required this.height,
+    this.radius = 8,
+  });
+
+  static final BorderRadius _defaultRadius = BorderRadius.circular(8);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor =
+        isDark ? const Color(0xFF2D3238) : const Color(0xFFE2E8F0);
+
+    final shimmer = AppShimmerScope.maybeOf(context);
+    final borderRadius = radius == 8 ? _defaultRadius : BorderRadius.circular(radius);
+
+    if (shimmer == null) {
+      return Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: baseColor,
+          borderRadius: borderRadius,
         ),
       );
+    }
+
+    return AnimatedBuilder(
+      animation: shimmer.animation,
+      builder: (context, _) {
+        final gradient = shimmer.getShimmerGradient(isDark: isDark);
+        return Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            borderRadius: borderRadius,
+            gradient: gradient,
+          ),
+        );
+      },
+    );
+  }
+}
+
+// ── Material Motion: FadeThroughTransition (AC-02) ───────────────
+
+class FadeThroughTransition extends StatelessWidget {
+  final Animation<double> animation;
+  final Animation<double>? secondaryAnimation;
+  final Widget child;
+
+  const FadeThroughTransition({
+    super.key,
+    required this.animation,
+    this.secondaryAnimation,
+    required this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeInOutCubicEmphasized,
+      ),
+      child: ScaleTransition(
+        scale: Tween<double>(begin: 0.96, end: 1.0).animate(
+          CurvedAnimation(
+            parent: animation,
+            curve: Curves.easeInOutCubicEmphasized,
+          ),
+        ),
+        child: child,
+      ),
+    );
+  }
 }
 
 // ── CountdownBadge ────────────────────────────────────────────
@@ -555,70 +719,132 @@ class CountdownBadge extends StatelessWidget {
 class ScheduleCard extends StatelessWidget {
   final LichHoc lichHoc;
   final VoidCallback? onTap;
-  const ScheduleCard({super.key, required this.lichHoc, this.onTap});
+  final bool showClassCode;
+
+  const ScheduleCard({
+    super.key,
+    required this.lichHoc,
+    this.onTap,
+    this.showClassCode = false,
+  });
+
+  static String formatStartHour(String timeSlot) {
+    final raw = timeSlot.split(RegExp(r'[–\-]')).first.trim();
+    if (raw.isEmpty) return '';
+    final firstToken = raw.split(' ').first.trim();
+    if (firstToken.contains(':')) {
+      final parts = firstToken.split(':');
+      final h = int.tryParse(parts[0].trim());
+      final m = parts.length > 1 ? int.tryParse(parts[1].trim()) : null;
+      if (h != null) {
+        if (h == 6 && m == 55) return '7h';
+        if (h == 12 && m == 55) return '12h45';
+        if (m == null || m == 0) return '${h}h';
+        return '${h}h${m.toString().padLeft(2, '0')}';
+      }
+    }
+    if (firstToken.toLowerCase().endsWith('h')) {
+      final numPart = firstToken.substring(0, firstToken.length - 1);
+      final h = int.tryParse(numPart);
+      if (h != null) return '${h}h';
+      return firstToken;
+    }
+    final h = int.tryParse(firstToken);
+    if (h != null) return '${h}h';
+    return firstToken;
+  }
+
+  static String formatEndHour(String timeSlot) {
+    final parts = timeSlot.split(RegExp(r'[–\-]'));
+    if (parts.length <= 1) return '';
+    final raw = parts[1].trim();
+    if (raw.isEmpty) return '';
+    final firstToken = raw.split(' ').first.trim();
+    if (firstToken.isEmpty) return '';
+    String formatted = firstToken;
+    if (firstToken.contains(':')) {
+      final colonParts = firstToken.split(':');
+      final h = int.tryParse(colonParts[0].trim());
+      final m = colonParts.length > 1 ? int.tryParse(colonParts[1].trim()) : null;
+      if (h != null) {
+        if (m == null || m == 0) {
+          formatted = '${h}h';
+        } else {
+          formatted = '${h}h${m.toString().padLeft(2, '0')}';
+        }
+      }
+    } else if (firstToken.toLowerCase().endsWith('h')) {
+      final numPart = firstToken.substring(0, firstToken.length - 1);
+      final h = int.tryParse(numPart);
+      if (h != null) {
+        formatted = '${h}h';
+      }
+    } else {
+      final h = int.tryParse(firstToken);
+      if (h != null) {
+        formatted = '${h}h';
+      }
+    }
+    return formatted.isNotEmpty ? '- $formatted' : '';
+  }
 
   @override
   Widget build(BuildContext context) => SurfaceCard(
         onTap: onTap,
-        padding: const EdgeInsets.all(18),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-            const StatusChip(label: 'LỊCH HỌC', color: AppTheme.primary),
-            Row(children: [
-              const Icon(Icons.schedule_outlined,
-                  size: 14, color: AppTheme.outline),
-              const SizedBox(width: 4),
-              Text(lichHoc.gioHocFull,
-                  style: Theme.of(context)
-                      .textTheme
-                      .labelMedium
-                      ?.copyWith(color: AppTheme.onSurfaceVariant)),
-            ]),
-          ]),
-          const SizedBox(height: 10),
-          Text(lichHoc.tenHocPhan,
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const StatusChip(label: 'LỊCH HỌC', color: AppTheme.primary),
+                Row(
+                  children: [
+                    const Icon(Icons.schedule_outlined,
+                        size: 14, color: AppTheme.outline),
+                    const SizedBox(width: 4),
+                    Text(
+                      lichHoc.gioHocFull,
+                      style: Theme.of(context)
+                          .textTheme
+                          .labelMedium
+                          ?.copyWith(color: AppTheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              lichHoc.tenHocPhan,
               style: Theme.of(context)
                   .textTheme
                   .titleMedium
-                  ?.copyWith(fontWeight: FontWeight.w700)),
-          const SizedBox(height: 10),
-          Wrap(spacing: 12, runSpacing: 6, children: [
-            _InfoChip(Icons.location_on_outlined,
-                lichHoc.phong.isNotEmpty ? lichHoc.phong : '—'),
-            _InfoChip(Icons.class_outlined, 'Tiết ${lichHoc.tiet}'),
-            if (lichHoc.giaoVien.isNotEmpty)
-              _InfoChip(Icons.person_outline, lichHoc.giaoVien),
-          ]),
-          if (lichHoc.note.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: Colors.amber.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.amber.withOpacity(0.2)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.lightbulb_outline_rounded,
-                      size: 14, color: Colors.orange),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      lichHoc.note,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            fontStyle: FontStyle.italic,
-                            color: Colors.brown,
-                          ),
-                    ),
-                  ),
-                ],
-              ),
+                  ?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                if (lichHoc.phong.isNotEmpty)
+                  _InfoChip(Icons.location_on_outlined, lichHoc.phong),
+                _InfoChip(Icons.class_outlined, 'Tiết ${lichHoc.tiet}'),
+                if (lichHoc.giaoVien.isNotEmpty)
+                  _InfoChip(Icons.person_outline, lichHoc.giaoVien),
+                if (lichHoc.tenLopTinChi.isNotEmpty)
+                  _InfoChip(Icons.tag, lichHoc.tenLopTinChi),
+              ],
             ),
           ],
-        ]),
+        ),
       );
 }
+
+typedef ScheduleTimelineCard = ScheduleCard;
 
 // ── ExamCard (shared) ─────────────────────────────────────────
 

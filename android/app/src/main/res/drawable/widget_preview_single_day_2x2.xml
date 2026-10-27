@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="110dp"
+    android:height="110dp"
+    android:viewportWidth="110"
+    android:viewportHeight="110">
+    <!-- Card Background -->
+    <path
+        android:fillColor="#18181B"
+        android:strokeColor="#33FFFFFF"
+        android:strokeWidth="0.5"
+        android:pathData="M 14,0 H 96 Q 110,0 110,14 V 96 Q 110,110 96,110 H 14 Q 0,110 0,96 V 14 Q 0,0 14,0 Z" />
+
+    <!-- Accent Bar -->
+    <path
+        android:fillColor="#1D64F2"
+        android:pathData="M 11.5,10 A 1.5,1.5 0 0,1 13,11.5 V 19.5 A 1.5,1.5 0 0,1 11.5,21 A 1.5,1.5 0 0,1 10,19.5 V 11.5 A 1.5,1.5 0 0,1 11.5,10 Z" />
+
+    <!-- Header Title Bar ("Hôm nay | 20/10") -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 18,12 H 78 Q 79.5,12 79.5,13.5 V 17.5 Q 79.5,19 78,19 H 18 Q 16.5,19 16.5,17.5 V 13.5 Q 16.5,12 18,12 Z" />
+
+    <!-- Hairline Divider -->
+    <path
+        android:fillColor="#26FFFFFF"
+        android:pathData="M 10,25 H 100 V 25.5 H 10 Z" />
+
+    <!-- Course Title Bar ("Môn học 1") -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 10,32 H 88 Q 90,32 90,34 V 42 Q 90,44 88,44 H 10 Q 8,44 8,42 V 34 Q 8,32 10,32 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 10,48 H 65 Q 66.5,48 66.5,49.5 V 54.5 Q 66.5,56 65,56 H 10 Q 8.5,56 8.5,54.5 V 49.5 Q 8.5,48 10,48 Z" />
+
+    <!-- Time slot ("06:55 – 09:20") -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 10,68 H 75 Q 76.5,68 76.5,69.5 V 73.5 Q 76.5,75 75,75 H 10 Q 8.5,75 8.5,73.5 V 69.5 Q 8.5,68 10,68 Z" />
+
+    <!-- Bottom Row: Room ("P.I801") on left -->
+    <path
+        android:fillColor="#1D64F2"
+        android:pathData="M 10,84 H 42 Q 43.5,84 43.5,85.5 V 91.5 Q 43.5,93 42,93 H 10 Q 8.5,93 8.5,91.5 V 85.5 Q 8.5,84 10,84 Z" />
+
+    <!-- Badge on right ("+3 ca nữa →") -->
+    <path
+        android:fillColor="#261D64F2"
+        android:strokeColor="#591D64F2"
+        android:strokeWidth="0.5"
+        android:pathData="M 52,82 H 96 Q 100,82 100,86 V 90 Q 100,94 96,94 H 52 Q 48,94 48,90 V 86 Q 48,82 52,82 Z" />
+    <path
+        android:fillColor="#3B82F6"
+        android:pathData="M 54,86 H 94 Q 95,86 95,87 V 89 Q 95,90 94,90 H 54 Q 53,90 53,89 V 87 Q 53,86 54,86 Z" />
+</vector>

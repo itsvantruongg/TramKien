@@ -7,6 +7,7 @@ import '../widgets/shared_widgets.dart';
 import 'curriculum_screen.dart';
 import 'feedback_screen.dart';
 import 'terms_screen.dart';
+import 'widget_studio_screen.dart';
 import '../services/local_notification_service.dart';
 import 'debug_sync_screen.dart';
 
@@ -28,129 +29,149 @@ class ProfileScreen extends StatelessWidget {
         body: Column(children: [
           const AcademicAppBar(subtitle: 'PROFILE'),
           Expanded(
-            child: CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 100),
-                  sliver: SliverList(
-                    delegate: SliverChildListDelegate(
-                      [
-                        // Hero
-                        Text(s?.hoTen ?? 'Sinh viên',
-                            style: (MediaQuery.of(context).size.width < 360
-                                    ? Theme.of(context).textTheme.headlineMedium
-                                    : Theme.of(context).textTheme.displaySmall)
-                                ?.copyWith(
-                                    fontWeight: FontWeight.w800,
-                                    letterSpacing: -0.5)),
-                        const SizedBox(height: 4),
-                        Text(p.currentMssv ?? '',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(color: AppTheme.primary)),
-                        if (s?.chuyenNganh.isNotEmpty == true) ...[
-                          const SizedBox(height: 8),
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: StatusChip(
-                              label: s!.chuyenNganh.toUpperCase(),
-                              color: AppTheme.secondary,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 16),
-
-                        // Settings list
-                        SurfaceCard(
-                          padding: EdgeInsets.zero,
-                          child: Column(children: [
-                            _NotificationToggle(mssv: p.currentMssv ?? ''),
-                            const Divider(
-                                height: 1,
-                                color: AppTheme.surfaceContainerHigh),
-                            _Item(Icons.badge_outlined, 'Thông tin sinh viên',
-                                () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                          const StudentInfoScreen()));
-                            }),
-                            _Item(Icons.account_tree_outlined,
-                                'Chương trình đào tạo chính', () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) =>
-                                          const CurriculumScreen()));
-                            }),
-                            _Item(Icons.rate_review_outlined, 'Góp ý ứng dụng',
-                                () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => const FeedbackScreen()));
-                            }),
-                            _Item(Icons.policy_outlined, 'Điều khoản dịch vụ',
-                                () {
-                              Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                      builder: (_) => const TermsScreen()));
-                            }),
-                            _Item(
-                              Icons.logout,
-                              'Đăng xuất',
-                              () => _confirmLogout(context, p),
-                              iconColor: AppTheme.error,
-                              textColor: AppTheme.error,
-                            ),
-                            // ── DEBUG ONLY (hidden in release) ──────
-                            if (kDebugMode) ...[
-                              const Divider(
-                                  height: 1,
-                                  color: AppTheme.surfaceContainerHigh),
-                              _Item(
-                                Icons.data_object,
-                                '[DEBUG] DB Verification & SQL Export',
-                                () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) =>
-                                            const DebugSyncScreen())),
-                                iconColor: Colors.orange,
-                                textColor: Colors.orange,
-                              ),
-                            ],
-                          ]),
-                        ),
-
-                        const SizedBox(height: 20),
-                        Center(
-                            child: Column(
-                          children: [
-                            Text('VERSION 1.0.6',
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: CustomScrollView(
+                  slivers: [
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
+                      sliver: SliverList(
+                        delegate: SliverChildListDelegate(
+                          [
+                            // Hero
+                            Text(s?.hoTen ?? 'Sinh viên',
+                                style: (MediaQuery.of(context).size.width < 360
+                                        ? Theme.of(context)
+                                            .textTheme
+                                            .headlineMedium
+                                        : Theme.of(context)
+                                            .textTheme
+                                            .displaySmall)
+                                    ?.copyWith(
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: -0.5)),
+                            const SizedBox(height: 4),
+                            Text(p.currentMssv ?? '',
                                 style: Theme.of(context)
                                     .textTheme
-                                    .labelSmall
-                                    ?.copyWith(
-                                        color: AppTheme.outline,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 2)),
-                            // const SizedBox(height: 4),
-                            // Text('Cập nhật: 30/04/2026',
-                            //     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            //         color: AppTheme.outlineVariant, fontSize: 10)),
+                                    .titleMedium
+                                    ?.copyWith(color: AppTheme.primary)),
+                            if (s?.chuyenNganh.isNotEmpty == true) ...[
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: StatusChip(
+                                  label: s!.chuyenNganh.toUpperCase(),
+                                  color: AppTheme.secondary,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 16),
+
+                            // Settings list
+                            SurfaceCard(
+                              padding: EdgeInsets.zero,
+                              child: Column(children: [
+                                _NotificationToggle(mssv: p.currentMssv ?? ''),
+                                const Divider(
+                                    height: 1,
+                                    color: AppTheme.surfaceContainerHigh),
+                                _Item(
+                                    Icons.badge_outlined, 'Thông tin sinh viên',
+                                    () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const StudentInfoScreen()));
+                                }),
+                                _Item(Icons.account_tree_outlined,
+                                    'Chương trình đào tạo chính', () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const CurriculumScreen()));
+                                }),
+                                _Item(Icons.rate_review_outlined,
+                                    'Góp ý ứng dụng', () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const FeedbackScreen()));
+                                }),
+                                _Item(Icons.widgets_outlined,
+                                    'Xưởng tùy biến Widget', () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) =>
+                                              const WidgetStudioScreen()));
+                                }),
+                                _Item(
+                                    Icons.policy_outlined, 'Điều khoản dịch vụ',
+                                    () {
+                                  Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                          builder: (_) => const TermsScreen()));
+                                }),
+                                _Item(
+                                  Icons.logout,
+                                  'Đăng xuất',
+                                  () => _confirmLogout(context, p),
+                                  iconColor: AppTheme.error,
+                                  textColor: AppTheme.error,
+                                ),
+                                // ── DEBUG ONLY (hidden in release) ──────
+                                if (kDebugMode) ...[
+                                  const Divider(
+                                      height: 1,
+                                      color: AppTheme.surfaceContainerHigh),
+                                  _Item(
+                                    Icons.data_object,
+                                    '[DEBUG] DB Verification & SQL Export',
+                                    () => Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const DebugSyncScreen())),
+                                    iconColor: Colors.orange,
+                                    textColor: Colors.orange,
+                                  ),
+                                ],
+                              ]),
+                            ),
+
+                            const SizedBox(height: 20),
+                            Center(
+                                child: Column(
+                              children: [
+                                Text('VERSION ${p.appVersion}',
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .labelSmall
+                                        ?.copyWith(
+                                            color: AppTheme.outline,
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: 2)),
+                                // const SizedBox(height: 4),
+                                // Text('Cập nhật: 30/04/2026',
+                                //     style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                //         color: AppTheme.outlineVariant, fontSize: 10)),
+                              ],
+                            )),
                           ],
-                        )),
-                      ],
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          )
+          ),
         ]));
   }
 
@@ -379,7 +400,7 @@ class StudentInfoScreen extends StatelessWidget {
               onRefresh: () => p.syncAll(forceRefresh: true),
               child: CustomScrollView(slivers: [
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 100),
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
                   sliver: SliverList(
                     delegate: SliverChildListDelegate([
                       // Identity card

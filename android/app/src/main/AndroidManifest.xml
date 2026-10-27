@@ -65,6 +65,88 @@
         <receiver
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"/>
+
+        <!-- AppWidget Option 1: 4x2 Lịch Hôm Nay (Timeline) -->
+        <receiver
+            android:name=".SingleDayScheduleWidgetProvider"
+            android:exported="true"
+            android:enabled="true"
+            android:label="Lịch hôm nay (4x2 Timeline)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.tramkien.hau.ACTION_UPDATE_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_schedule_single_day_info" />
+        </receiver>
+
+        <!-- AppWidget 2: Lịch 3 Ngày Tới (4x2) -->
+        <receiver
+            android:name=".ThreeDaysScheduleWidgetProvider"
+            android:exported="true"
+            android:label="Lịch 3 ngày">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.tramkien.hau.ACTION_UPDATE_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_schedule_three_days_info" />
+        </receiver>
+
+        <!-- AppWidget Option 4: 4x2 Weekly Strip Calendar (Legacy) -->
+        <receiver
+            android:name=".WeeklyStripScheduleWidgetProvider"
+            android:exported="true"
+            android:enabled="false"
+            android:label="Lịch 7 ngày">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.tramkien.hau.ACTION_UPDATE_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_schedule_weekly_strip_info" />
+        </receiver>
+
+        <!-- AppWidget 3: Lịch Tuần Toàn Cảnh 8 Ô (4x4) -->
+        <receiver
+            android:name=".WeeklyScheduleWidgetProvider"
+            android:exported="true"
+            android:label="Lịch tuần">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.tramkien.hau.ACTION_UPDATE_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_schedule_weekly_info" />
+        </receiver>
+
+        <!-- AppWidget Option 6: 4x2 Lịch Ngày Mai (Legacy) -->
+        <receiver
+            android:name=".TomorrowScheduleWidgetProvider"
+            android:exported="true"
+            android:enabled="false"
+            android:label="Lịch ngày mai">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.tramkien.hau.ACTION_UPDATE_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_schedule_tomorrow_info" />
+        </receiver>
+
+        <!-- Receiver nhận callback khi người dùng bấm "Thêm tự động" trên hộp thoại Launcher -->
+        <receiver
+            android:name=".WidgetPinSuccessReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="com.tramkien.hau.ACTION_PIN_WIDGET_SUCCESS" />
+            </intent-filter>
+        </receiver>
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and

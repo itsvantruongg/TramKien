@@ -1,0 +1,278 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPEC-WIDGET-STUDIO-01: 4x2 Tomorrow Android AppWidget Layout -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card_rounded_bg">
+
+    <ImageView
+        android:id="@+id/widget_bg_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="12dp">
+
+    <!-- Header: Accent Bar + Title + Subtitle -->
+    <LinearLayout
+        android:id="@+id/widget_header_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- 3dp Accent Bar (Hidden) -->
+        <ImageView
+            android:id="@+id/widget_accent_bar"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="0dp"
+            android:text="Lịch ngày mai"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="-0.02"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/widget_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Thứ Ba, 27/10"
+            android:textColor="#98989D"
+            android:textSize="10sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="-0.02"
+            android:includeFontPadding="false" />
+    </LinearLayout>
+
+    <!-- Hairline Divider 0.5dp -->
+    <ImageView
+        android:id="@+id/widget_hairline"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:background="#33FFFFFF" />
+
+    <!-- Schedule Content Container -->
+    <LinearLayout
+        android:id="@+id/widget_content_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <!-- Class Item 1 -->
+        <LinearLayout
+            android:id="@+id/class_item_1"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:padding="6dp"
+            android:layout_marginBottom="6dp"
+            android:background="#15FFFFFF">
+
+            <!-- Hàng 1: Tên môn to rõ -->
+            <TextView
+                android:id="@+id/class_1_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Đồ án Kiến trúc 1"
+                android:textColor="#FFFFFF"
+                android:textSize="11.5sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <!-- Hàng 2: Giờ (Tiết) • Phòng • Mã lớp -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="2dp">
+
+                <TextView
+                    android:id="@+id/class_1_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="06:55 – 11:55 (T1–6)"
+                    android:textColor="#98989D"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/class_1_dot1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" • "
+                    android:textColor="#98989D"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/class_1_room"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="P.A401"
+                    android:textColor="#1D64F2"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/class_1_dot2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" • "
+                    android:textColor="#98989D"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/class_1_code"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TH4327_23CN 2"
+                    android:textColor="#98989D"
+                    android:textSize="8sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Class Item 2 (Nếu 2 ca học: chia 2 card ngang xếp dọc) -->
+        <LinearLayout
+            android:id="@+id/class_item_2"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_vertical"
+            android:padding="6dp"
+            android:background="#15FFFFFF"
+            android:visibility="gone">
+
+            <!-- Hàng 1: Tên môn to rõ -->
+            <TextView
+                android:id="@+id/class_2_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Hệ trợ giúp quyết định"
+                android:textColor="#FFFFFF"
+                android:textSize="11.5sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:ellipsize="end" />
+
+            <!-- Hàng 2: Giờ (Tiết) • Phòng • Mã lớp -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="2dp">
+
+                <TextView
+                    android:id="@+id/class_2_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="12:55 – 17:05 (T8–12)"
+                    android:textColor="#98989D"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/class_2_dot1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" • "
+                    android:textColor="#98989D"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/class_2_room"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="P.M-M5.02"
+                    android:textColor="#1D64F2"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/class_2_dot2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" • "
+                    android:textColor="#98989D"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/class_2_code"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="TH5216_23CN 2"
+                    android:textColor="#98989D"
+                    android:textSize="8sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- Empty state when no classes -->
+        <TextView
+            android:id="@+id/class_empty_message"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:text="Không có ca học nào"
+            android:textColor="#98989D"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif"
+            android:letterSpacing="-0.02"
+            android:includeFontPadding="false"
+            android:visibility="gone" />
+    </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

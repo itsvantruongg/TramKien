@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 //import 'package:android_intent_plus/android_intent.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tz;
@@ -157,28 +158,37 @@ class LocalNotificationService {
     if (date.weekday != expectedWeekday) return false;
 
     final tg = l.thoiGian.trim();
-    final sepIdx = tg.indexOf('-', 10);
-    if (sepIdx < 0) return false;
+    final dateMatches = RegExp(r'\d{1,2}/\d{1,2}/\d{4}')
+        .allMatches(tg)
+        .map((m) => m.group(0)!)
+        .toList();
 
-    final startStr = tg.substring(0, sepIdx).trim();
-    final endStr = tg.substring(sepIdx + 1).trim();
+    if (dateMatches.length < 2) return false;
 
     DateTime? parseDMY(String s) {
       final p = s.split('/');
       if (p.length == 3) {
-        return DateTime.tryParse(
-            '${p[2].padLeft(4, '0')}-${p[1].padLeft(2, '0')}-${p[0].padLeft(2, '0')}');
+        final d = int.tryParse(p[0]);
+        final m = int.tryParse(p[1]);
+        final y = int.tryParse(p[2]);
+        if (d != null && m != null && y != null) {
+          return DateTime(y, m, d);
+        }
       }
       return null;
     }
 
-    final start = parseDMY(startStr);
-    final end = parseDMY(endStr);
+    final start = parseDMY(dateMatches[0]);
+    final end = parseDMY(dateMatches[1]);
     if (start == null || end == null) return false;
 
-    final d = DateTime(date.year, date.month, date.day);
-    return !d.isBefore(start) && !d.isAfter(end);
+    final targetDate = DateTime(date.year, date.month, date.day);
+    return !targetDate.isBefore(start) && !targetDate.isAfter(end);
   }
+
+  @visibleForTesting
+  static bool lichHocMatchesDate(LichHoc l, DateTime date) =>
+      _lichHocMatchesDate(l, date);
 
   static DateTime? _parseDate(String dateStr) {
     try {

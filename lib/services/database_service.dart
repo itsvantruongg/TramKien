@@ -3,16 +3,19 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/models.dart';
+import 'app_info_service.dart';
 
 // Re-export for easier access
 export 'db/schedule_db.dart';
 export 'db/grade_db.dart';
 export 'db/finance_db.dart';
+export 'app_info_service.dart';
 
 class DatabaseService {
   static Database? _db;
   static const _version = 17;
-  static const String currentAppVersion = '1.0.6+4';
+  static const String currentAppVersion = '1.1.0+5';
+  static Future<String> getAppVersion() => AppInfoService.getAppVersion();
   static String _currentMssv = '';
   static String get currentMssv => _currentMssv;
   static int _currentUserId = -1;

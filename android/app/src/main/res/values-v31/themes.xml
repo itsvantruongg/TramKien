@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+    Having themes.xml for v31 variant because @android:dimen/system_app_widget_background_radius
+    and @android:dimen/system_app_widget_inner_radius requires API level 31
+    -->
+    <style name="Theme.TramKien.AppWidgetContainerParent" parent="@android:style/Theme.DeviceDefault.DayNight">
+        <item name="appWidgetRadius">@android:dimen/system_app_widget_background_radius</item>
+        <item name="appWidgetInnerRadius">@android:dimen/system_app_widget_inner_radius</item>
+    </style>
+
+    <style name="Theme.TramKien.AppWidgetContainer" parent="Theme.TramKien.AppWidgetContainerParent">
+        <item name="appWidgetPadding">16dp</item>
+    </style>
+</resources>

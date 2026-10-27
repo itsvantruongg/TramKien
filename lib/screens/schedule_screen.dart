@@ -18,12 +18,10 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
-  late DateTime _selectedDate;
 
   @override
   void initState() {
     super.initState();
-    _selectedDate = widget.initialDate ?? DateTime.now();
     _tabCtrl = TabController(length: 2, vsync: this, initialIndex: 1);
   }
 
@@ -31,16 +29,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
   void dispose() {
     _tabCtrl.dispose();
     super.dispose();
-  }
-
-  void _updateSelectedDate(DateTime d) {
-    if (_selectedDate.year != d.year ||
-        _selectedDate.month != d.month ||
-        _selectedDate.day != d.day) {
-      setState(() {
-        _selectedDate = d;
-      });
-    }
   }
 
   @override
@@ -79,7 +67,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
 
         // Tab bar: Tháng | Tuần
         Container(
-          margin: const EdgeInsets.fromLTRB(20, 8, 20, 8),
+          margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
           height: 40,
           decoration: BoxDecoration(
             color: AppTheme.surfaceContainerHigh,
@@ -107,13 +95,11 @@ class _ScheduleScreenState extends State<ScheduleScreen>
           children: [
             _MonthView(
               p: p,
-              initialDate: _selectedDate,
-              onDateSelected: _updateSelectedDate,
+              initialDate: widget.initialDate,
             ),
             _WeekView(
               p: p,
-              initialDate: _selectedDate,
-              onDateSelected: _updateSelectedDate,
+              initialDate: widget.initialDate,
             ),
           ],
         )),
@@ -129,8 +115,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
 class _MonthView extends StatefulWidget {
   final AppProvider p;
   final DateTime? initialDate;
-  final ValueChanged<DateTime>? onDateSelected;
-  const _MonthView({required this.p, this.initialDate, this.onDateSelected});
+  const _MonthView({required this.p, this.initialDate});
   @override
   State<_MonthView> createState() => _MonthViewState();
 }
@@ -166,35 +151,23 @@ class _MonthViewState extends State<_MonthView> {
     final target = widget.initialDate ?? DateTime.now();
     _currentPage = _dateToPage(target.year, target.month);
     _selected = target;
-    _pageCtrl = PageController(initialPage: _currentPage);
-  }
-
-  void _selectDate(DateTime d) {
-    final newPage = _dateToPage(d.year, d.month);
-    if (newPage != _currentPage && _pageCtrl.hasClients) {
-      _pageCtrl.animateToPage(
-        newPage,
-        duration: const Duration(milliseconds: 320),
-        curve: Curves.fastOutSlowIn,
-      );
-    }
-    setState(() {
-      _selected = d;
-    });
-    widget.onDateSelected?.call(d);
+    _pageCtrl = PageController(initialPage: _currentPage, keepPage: false);
   }
 
   void _goToToday() {
     final now = DateTime.now();
     final page = _dateToPage(now.year, now.month);
     if (page != _currentPage && _pageCtrl.hasClients) {
+      _currentPage = page;
       _pageCtrl.animateToPage(
         page,
         duration: const Duration(milliseconds: 320),
         curve: Curves.fastOutSlowIn,
       );
     }
-    _selectDate(now);
+    setState(() {
+      _selected = now;
+    });
   }
 
   @override
@@ -222,93 +195,139 @@ class _MonthViewState extends State<_MonthView> {
 
   @override
   Widget build(BuildContext context) {
-    // Đổi ListView thành Column để PageView có thể nhận chiều cao cố định
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-          child: _buildMonthHeader(),
-        ),
-        const SizedBox(height: 12),
+    final firstDay = DateTime(_displayYear, _displayMonth, 1);
+    final startOffset = firstDay.weekday - 1; // 0=T2, 6=CN
+    final daysInMonth = DateTime(_displayYear, _displayMonth + 1, 0).day;
+    final totalCells = startOffset + daysInMonth;
+    final rowCount = (totalCells / 7).ceil(); // 5 hoặc 6
 
-        // Khu vực Lịch vuốt được (bao gồm header T2-CN và lưới 7x6)
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            color: AppTheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                  color: AppTheme.onSurface.withOpacity(0.05),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4))
-            ],
-          ),
-          padding: const EdgeInsets.all(20),
-          child: Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 600;
+
+        if (isWide) {
+          // Tablet Split View (AC-03): Cột trái (40%, max ~400dp) Lịch tháng mini, Cột phải (Expanded) Danh sách ca học
+          final leftWidth = (constraints.maxWidth * 0.40).clamp(320.0, 400.0);
+          final innerWidth = leftWidth - 72; // 32 margin + 40 padding
+          final cellSize = (innerWidth / 7).clamp(28.0, 52.0);
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildDayHeaders(),
-              const SizedBox(height: 15),
-              // PageView bọc lấy GridView
-              Builder(
-                builder: (context) {
-                  // Tính số hàng thực tế của tháng đang hiển thị
-                  final firstDay = DateTime(_displayYear, _displayMonth, 1);
-                  final startOffset = firstDay.weekday - 1; // 0=T2, 6=CN
-                  final daysInMonth =
-                      DateTime(_displayYear, _displayMonth + 1, 0).day;
-                  final totalCells = startOffset + daysInMonth;
-                  final rowCount = (totalCells / 7).ceil(); // 5 hoặc 6
-
-                  // Mỗi ô = (screenWidth - 40 margin - 40 padding) / 7
-                  final cellSize = (MediaQuery.of(context).size.width - 80) / 7;
-                  final gridHeight = rowCount * cellSize;
-
-                  return SizedBox(
-                    height: gridHeight,
-                    child: PageView.builder(
-                      controller: _pageCtrl,
-                      onPageChanged: (page) {
-                        setState(() {
-                          _currentPage = page;
-                          int selDay = _selected.day;
-                          int maxDay =
-                              DateTime(_displayYear, _displayMonth + 1, 0).day;
-                          if (selDay > maxDay) selDay = maxDay;
-                          _selected =
-                              DateTime(_displayYear, _displayMonth, selDay);
-                        });
-                      },
-                      itemBuilder: (ctx, page) {
-                        final date = _pageToDate(page);
-                        return _MonthGrid(
-                          year: date.year,
-                          month: date.month,
-                          p: widget.p,
-                          selected: _selected,
-                          onSelect: _selectDate,
-                        );
-                      },
-                    ),
-                  );
-                },
+              SizedBox(
+                width: leftWidth,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: _buildMonthHeader(),
+                      ),
+                      const SizedBox(height: 12),
+                      _buildCalendarCard(cellSize, rowCount),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(12, 8, 16, 100),
+                  children: [
+                    _buildSelectedDayEvents(context, widget.p),
+                  ],
+                ),
               ),
             ],
-          ),
-        ),
+          );
+        }
 
-        const SizedBox(height: 20),
+        // Compact / Mobile (< 600dp): Giới hạn cellSize <= 52dp và bọc maxWidth 480
+        final innerWidth = constraints.maxWidth - 72;
+        final cellSize = (innerWidth / 7).clamp(28.0, 52.0);
 
-        // Danh sách sự kiện bên dưới (cuộn độc lập)
-        Expanded(
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
-            children: [
-              _buildSelectedDayEvents(context, widget.p),
-            ],
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: _buildMonthHeader(),
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: _buildCalendarCard(cellSize, rowCount),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Danh sách sự kiện bên dưới (cuộn độc lập)
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
+                children: [
+                  _buildSelectedDayEvents(context, widget.p),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCalendarCard(double cellSize, int rowCount) {
+    final gridHeight = rowCount * cellSize;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.onSurface.withOpacity(0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
           ),
-        ),
-      ],
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          _buildDayHeaders(),
+          const SizedBox(height: 15),
+          SizedBox(
+            height: gridHeight,
+            child: PageView.builder(
+              controller: _pageCtrl,
+              onPageChanged: (page) {
+                // Ngưỡng cuộn an toàn (AC-02): Không bao giờ bị tụt về mốc 0 (Jan 2018)
+                if (page <= 0 && _currentPage > 12) {
+                  return;
+                }
+                setState(() {
+                  _currentPage = page;
+                  int selDay = _selected.day;
+                  int maxDay = DateTime(_displayYear, _displayMonth + 1, 0).day;
+                  if (selDay > maxDay) selDay = maxDay;
+                  _selected = DateTime(_displayYear, _displayMonth, selDay);
+                });
+              },
+              itemBuilder: (ctx, page) {
+                final date = _pageToDate(page);
+                return _MonthGrid(
+                  year: date.year,
+                  month: date.month,
+                  p: widget.p,
+                  selected: _selected,
+                  onSelect: (d) => setState(() => _selected = d),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -472,21 +491,31 @@ class _MonthViewState extends State<_MonthView> {
       ]),
       const SizedBox(height: 12),
       if (classes.isEmpty && exams.isEmpty)
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 24),
-            child: Column(children: [
-              const Icon(Icons.event_available,
-                  size: 40, color: AppTheme.outlineVariant),
-              const SizedBox(height: 8),
-              Text('Không có lịch',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodyMedium
-                      ?.copyWith(color: AppTheme.outline)),
-            ]),
+        if (p.lichHocState == LoadState.loading ||
+            p.lichThiState == LoadState.loading)
+          const Column(
+            children: [
+              SkeletonBox(width: double.infinity, height: 88, radius: 16),
+              SizedBox(height: 12),
+              SkeletonBox(width: double.infinity, height: 88, radius: 16),
+            ],
+          )
+        else
+          Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              child: Column(children: [
+                const Icon(Icons.event_available,
+                    size: 40, color: AppTheme.outlineVariant),
+                const SizedBox(height: 8),
+                Text('Không có lịch',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodyMedium
+                        ?.copyWith(color: AppTheme.outline)),
+              ]),
+            ),
           ),
-        ),
       ...exams.map((t) => Padding(
           padding: const EdgeInsets.only(bottom: 12),
           child: ExamCard(lichThi: t))),
@@ -764,31 +793,12 @@ class _MonthGrid extends StatelessWidget {
       itemBuilder: (ctx, index) {
         if (index < startOffset) {
           final d = prevMonthDays - startOffset + index + 1;
-          final date = DateTime(year, month - 1, d);
-          final isSel = _isSameDay(date, selected);
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => onSelect(date),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              margin: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: isSel ? AppTheme.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '$d',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isSel ? FontWeight.w800 : FontWeight.w500,
-                      color: isSel ? Colors.white : AppTheme.outlineVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                ],
+          return Center(
+            child: Text(
+              '$d',
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.outlineVariant,
               ),
             ),
           );
@@ -796,31 +806,12 @@ class _MonthGrid extends StatelessWidget {
         final dayNum = index - startOffset + 1;
         if (dayNum > daysInMonth) {
           final d = dayNum - daysInMonth;
-          final date = DateTime(year, month + 1, d);
-          final isSel = _isSameDay(date, selected);
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => onSelect(date),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              margin: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: isSel ? AppTheme.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '$d',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isSel ? FontWeight.w800 : FontWeight.w500,
-                      color: isSel ? Colors.white : AppTheme.outlineVariant,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                ],
+          return Center(
+            child: Text(
+              '$d',
+              style: const TextStyle(
+                fontSize: 13,
+                color: AppTheme.outlineVariant,
               ),
             ),
           );
@@ -836,8 +827,7 @@ class _MonthGrid extends StatelessWidget {
         return GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: () => onSelect(date),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 150),
+          child: Container(
             margin: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               color: isSel
@@ -909,8 +899,7 @@ class _MonthGrid extends StatelessWidget {
 class _WeekView extends StatefulWidget {
   final AppProvider p;
   final DateTime? initialDate;
-  final ValueChanged<DateTime>? onDateSelected;
-  const _WeekView({required this.p, this.initialDate, this.onDateSelected});
+  const _WeekView({required this.p, this.initialDate});
   @override
   State<_WeekView> createState() => _WeekViewState();
 }
@@ -942,7 +931,7 @@ class _WeekViewState extends State<_WeekView> {
     _selectedDay = target;
     final monday = _getMondayOfWeek(target);
     _currentPage = monday.difference(_baseMonday).inDays ~/ 7;
-    _pageCtrl = PageController(initialPage: _currentPage);
+    _pageCtrl = PageController(initialPage: _currentPage, keepPage: false);
   }
 
   bool _isProgrammaticPageChange = false;
@@ -951,7 +940,6 @@ class _WeekViewState extends State<_WeekView> {
     setState(() {
       _selectedDay = d;
     });
-    widget.onDateSelected?.call(d);
   }
 
   void _goToToday() async {
@@ -1134,8 +1122,7 @@ class _WeekViewState extends State<_WeekView> {
 
   String _weekLabel(DateTime monday) {
     final sunday = monday.add(const Duration(days: 6));
-    final fmt = DateFormat('dd/MM', 'vi_VN');
-    return '${fmt.format(monday)} – ${fmt.format(sunday)}';
+    return '${monday.day.toString().padLeft(2, '0')}/${monday.month.toString().padLeft(2, '0')} – ${sunday.day.toString().padLeft(2, '0')}/${sunday.month.toString().padLeft(2, '0')}';
   }
 }
 
@@ -1550,7 +1537,7 @@ class _DayList extends StatelessWidget {
 
     if (!hasAny) {
       return ListView(
-        padding: const EdgeInsets.fromLTRB(20, 8, 20, 80),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
         children: [
           const SizedBox(height: 40),
           Center(
@@ -1569,7 +1556,7 @@ class _DayList extends StatelessWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 80),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 80),
       children: items,
     );
   }
@@ -1605,13 +1592,20 @@ class _ScheduleCardFull extends StatelessWidget {
                   .titleMedium
                   ?.copyWith(fontWeight: FontWeight.w700)),
           const SizedBox(height: 8),
-          Wrap(spacing: 12, runSpacing: 6, children: [
-            if (lichHoc.phong.isNotEmpty)
-              _Chip(Icons.location_on_outlined, lichHoc.phong),
-            _Chip(Icons.class_outlined, 'Tiết ${lichHoc.tiet}'),
-            if (lichHoc.giaoVien.isNotEmpty)
-              _Chip(Icons.person_outline, lichHoc.giaoVien),
-          ]),
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (lichHoc.phong.isNotEmpty)
+                _Chip(Icons.location_on_outlined, lichHoc.phong),
+              _Chip(Icons.class_outlined, 'Tiết ${lichHoc.tiet}'),
+              if (lichHoc.giaoVien.isNotEmpty)
+                _Chip(Icons.person_outline, lichHoc.giaoVien),
+              if (lichHoc.tenLopTinChi.isNotEmpty)
+                _Chip(Icons.tag, lichHoc.tenLopTinChi),
+            ],
+          ),
           if (lichHoc.note.isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(

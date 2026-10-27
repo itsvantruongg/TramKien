@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPEC-NATIVE-VECTOR-WIDGET-01: Light Rounded Card Background -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#F8F9FA" />
+    <corners android:radius="16dp" />
+    <stroke
+        android:width="0.5dp"
+        android:color="#CBD5E1" />
+</shape>

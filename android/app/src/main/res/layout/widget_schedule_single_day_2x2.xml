@@ -1,0 +1,321 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPEC-WIDGET-STUDIO-01: 2x2 Single Day Square Android AppWidget Layout -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="10dp"
+    android:background="@android:color/transparent">
+
+    <FrameLayout
+        android:id="@android:id/background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent">
+
+    <ImageView
+        android:id="@+id/widget_bg_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+    <!-- Header: Title + Subtitle (Bỏ vạch cam ở header) -->
+    <LinearLayout
+        android:id="@+id/widget_header_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- Hidden Accent Bar -->
+        <ImageView
+            android:id="@+id/widget_accent_bar"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Lịch hôm nay"
+            android:textColor="#FFFFFF"
+            android:textSize="13sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="-0.02"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/widget_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="21/10"
+            android:textColor="#98989D"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="-0.02"
+            android:includeFontPadding="false" />
+    </LinearLayout>
+
+    <!-- Hairline Divider 0.5dp -->
+    <ImageView
+        android:id="@+id/widget_hairline"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
+        android:background="#33FFFFFF" />
+
+    <!-- Content Area -->
+    <LinearLayout
+        android:id="@+id/widget_content_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="top">
+
+        <!-- Active Class Content (Chứa môn học xếp từ trên xuống, đệm 6dp) -->
+        <LinearLayout
+            android:id="@+id/single_2x2_content"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="top">
+
+            <!-- Môn 1 -->
+            <LinearLayout
+                android:id="@+id/single_2x2_class_1_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/single_2x2_class_1_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Môn học 1"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11.5sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/single_2x2_class_1_hybrid"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text="06:55 – 09:20 (T1–3) • P.I801"
+                    android:textColor="#98989D"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <!-- Môn 2 (Đệm 6dp phía trên) -->
+            <LinearLayout
+                android:id="@+id/single_2x2_class_2_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/single_2x2_class_2_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Môn học 2"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11.5sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/single_2x2_class_2_hybrid"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text="09:30 – 11:55 (T4–6) • P.H302"
+                    android:textColor="#98989D"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <!-- Môn 3 (Ẩn mặc định, hiển thị khi minHeightDp >= 200dp) -->
+            <LinearLayout
+                android:id="@+id/single_2x2_class_3_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/single_2x2_class_3_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Môn học 3"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11.5sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/single_2x2_class_3_hybrid"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text=""
+                    android:textColor="#98989D"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <!-- Môn 4 (Ẩn mặc định, hiển thị khi minHeightDp >= 200dp) -->
+            <LinearLayout
+                android:id="@+id/single_2x2_class_4_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:id="@+id/single_2x2_class_4_name"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Môn học 4"
+                    android:textColor="#FFFFFF"
+                    android:textSize="11.5sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/single_2x2_class_4_hybrid"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:text=""
+                    android:textColor="#98989D"
+                    android:textSize="9sp"
+                    android:fontFamily="sans-serif"
+                    android:letterSpacing="-0.02"
+                    android:includeFontPadding="false"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+            </LinearLayout>
+
+            <!-- Footer dưới cùng: Chỉ ghi duy nhất "+1 môn nữa" (hoặc ẩn đi nếu chỉ có 1-2 môn) -->
+            <TextView
+                android:id="@+id/single_2x2_badge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:text="+1 môn nữa"
+                android:textColor="#1D64F2"
+                android:textSize="9sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+
+            <!-- Aliases for backwards compatibility -->
+            <TextView
+                android:id="@+id/single_2x2_name"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:fontFamily="sans-serif"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+            <TextView
+                android:id="@+id/single_2x2_time"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:fontFamily="sans-serif"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+            <TextView
+                android:id="@+id/single_2x2_room"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:fontFamily="sans-serif"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <!-- Empty / Sắp tới State -->
+        <LinearLayout
+            android:id="@+id/single_2x2_empty"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/single_2x2_empty_tag"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="SẮP TỚI"
+                android:textColor="#1D64F2"
+                android:textSize="8.5sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:paddingHorizontal="5dp"
+                android:paddingVertical="2dp"
+                android:background="#251D64F2" />
+
+            <TextView
+                android:id="@+id/single_2x2_empty_text"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Hôm nay nghỉ"
+                android:textColor="#98989D"
+                android:textSize="10sp"
+                android:fontFamily="sans-serif"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+        </LinearLayout>
+    </LinearLayout>
+    </LinearLayout>
+    </FrameLayout>
+</FrameLayout>

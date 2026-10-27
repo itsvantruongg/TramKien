@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="250dp"
+    android:height="110dp"
+    android:viewportWidth="250"
+    android:viewportHeight="110">
+    <!-- Card Background -->
+    <path
+        android:fillColor="#18181B"
+        android:strokeColor="#33FFFFFF"
+        android:strokeWidth="0.5"
+        android:pathData="M 14,0 H 236 Q 250,0 250,14 V 96 Q 250,110 236,110 H 14 Q 0,110 0,96 V 14 Q 0,0 14,0 Z" />
+
+    <!-- Accent Bar -->
+    <path
+        android:fillColor="#1D64F2"
+        android:pathData="M 15.5,10 A 1.5,1.5 0 0,1 17,11.5 V 20.5 A 1.5,1.5 0 0,1 15.5,22 A 1.5,1.5 0 0,1 14,20.5 V 11.5 A 1.5,1.5 0 0,1 15.5,10 Z" />
+
+    <!-- Header Title Bar ("3 ngày tới | 20–22/10") -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 24,12 H 85 Q 87,12 87,14 V 18 Q 87,20 85,20 H 24 Q 22,20 22,18 V 14 Q 22,12 24,12 Z" />
+    <path
+        android:fillColor="#64748B"
+        android:pathData="M 93,13.5 H 140 Q 141.5,13.5 141.5,15 V 17 Q 141.5,18.5 140,18.5 H 93 Q 91.5,18.5 91.5,17 V 15 Q 91.5,13.5 93,13.5 Z" />
+
+    <!-- Hairline Divider -->
+    <path
+        android:fillColor="#26FFFFFF"
+        android:pathData="M 14,26 H 236 V 26.5 H 14 Z" />
+
+    <!-- Row 1: Hôm nay -->
+    <path
+        android:fillColor="#1D64F2"
+        android:pathData="M 14,35 H 48 Q 50,35 50,37 V 43 Q 50,45 48,45 H 14 Q 12,45 12,43 V 37 Q 12,35 14,35 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 58,34 H 135 Q 136.5,34 136.5,35.5 V 38.5 Q 136.5,40 135,40 H 58 Q 56.5,40 56.5,38.5 V 35.5 Q 56.5,34 58,34 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 58,42 H 180 Q 181.5,42 181.5,43 V 45 Q 181.5,46 180,46 H 58 Q 56.5,46 56.5,45 V 43 Q 56.5,42 58,42 Z" />
+
+    <!-- Row 2: Ngày mai -->
+    <path
+        android:fillColor="#475569"
+        android:pathData="M 14,60 H 48 Q 50,60 50,62 V 68 Q 50,70 48,70 H 14 Q 12,70 12,68 V 62 Q 12,60 14,60 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 58,59 H 130 Q 131.5,59 131.5,60.5 V 63.5 Q 131.5,65 130,65 H 58 Q 56.5,65 56.5,63.5 V 60.5 Q 56.5,59 58,59 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 58,67 H 185 Q 186.5,67 186.5,68 V 70 Q 186.5,71 185,71 H 58 Q 56.5,71 56.5,70 V 68 Q 56.5,67 58,67 Z" />
+
+    <!-- Row 3: Ngày kia -->
+    <path
+        android:fillColor="#334155"
+        android:pathData="M 14,85 H 48 Q 50,85 50,87 V 93 Q 50,95 48,95 H 14 Q 12,95 12,93 V 87 Q 12,85 14,85 Z" />
+    <path
+        android:fillColor="#CBD5E1"
+        android:pathData="M 58,84 H 130 Q 131.5,84 131.5,85.5 V 88.5 Q 131.5,90 130,90 H 58 Q 56.5,90 56.5,88.5 V 85.5 Q 56.5,84 58,84 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 58,92 H 185 Q 186.5,92 186.5,93 V 95 Q 186.5,96 185,96 H 58 Q 56.5,96 56.5,95 V 93 Q 56.5,92 58,92 Z" />
+</vector>

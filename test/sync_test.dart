@@ -380,6 +380,75 @@ void main() {
     });
 
     test(
+        'AC-06 Production Call - ScheduleDb.stampAllRecordsWithAppVersion stamps records and clears reconcile flag',
+        () async {
+      const currentVer = '1.0.6+4';
+
+      // Insert records with old versions and null versions
+      await db.insert('lich_hoc', {
+        'ten_hoc_phan': 'Môn cũ 1',
+        'hoc_ky': 1,
+        'nam_hoc': '2023-2024',
+        'is_manual': 0,
+        'fetched_app_version': '1.0.4',
+      });
+      await db.insert('lich_hoc', {
+        'ten_hoc_phan': 'Môn cũ 2',
+        'hoc_ky': 2,
+        'nam_hoc': '2023-2024',
+        'is_manual': 0,
+        'fetched_app_version': null,
+      });
+      await db.insert('lich_hoc', {
+        'ten_hoc_phan': 'Môn tự tạo thủ công',
+        'hoc_ky': 1,
+        'nam_hoc': '2023-2024',
+        'is_manual': 1,
+        'fetched_app_version': '1.0.0',
+      });
+      await db.insert('lich_thi', {
+        'ten_hoc_phan': 'Môn thi cũ',
+        'hoc_ky': 1,
+        'nam_hoc': '2023-2024',
+        'is_manual': 0,
+        'fetched_app_version': '1.0.3',
+      });
+
+      // Verification before stamp: needsReconcile should be true
+      expect(await ScheduleDb.needsReconcile(currentVer, db: db), isTrue);
+
+      // Execute stampAllRecordsWithAppVersion
+      await ScheduleDb.stampAllRecordsWithAppVersion(currentVer, db: db);
+
+      // Verification after stamp: needsReconcile should now be false
+      expect(await ScheduleDb.needsReconcile(currentVer, db: db), isFalse);
+
+      // Manual record should NOT be altered
+      final manualRows = await db.query(
+        'lich_hoc',
+        where: 'is_manual = 1',
+      );
+      expect(manualRows.first['fetched_app_version'], equals('1.0.0'));
+
+      // Non-manual records should all have currentVer
+      final nonManualHocRows = await db.query(
+        'lich_hoc',
+        where: 'is_manual = 0',
+      );
+      for (final row in nonManualHocRows) {
+        expect(row['fetched_app_version'], equals(currentVer));
+      }
+
+      final nonManualThiRows = await db.query(
+        'lich_thi',
+        where: 'is_manual = 0',
+      );
+      for (final row in nonManualThiRows) {
+        expect(row['fetched_app_version'], equals(currentVer));
+      }
+    });
+
+    test(
         'B10 Real Production Call - ScheduleDiffCalculator detects additions and removals',
         () {
       const prevLichHoc = [

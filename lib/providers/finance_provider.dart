@@ -18,6 +18,11 @@ class FinanceProvider extends ChangeNotifier {
   List<Map<String, Object?>> get feeDetails => _feeDetails;
   List<Map<String, Object?>> get feeSummaries => _feeSummaries;
   bool get hocPhiLoading => _hocPhiState;
+  @visibleForTesting
+  set hocPhiLoadingForTest(bool v) {
+    _hocPhiState = v;
+    notifyListeners();
+  }
 
   // Computed getters - đọc từ fee_summary (da_nop, phai_nop, thua_thieu)
   double get tongHocPhiPhaiDong => _feeSummaries.fold(

@@ -170,10 +170,14 @@ class ScheduleApi {
 
       final dotResults = await Future.wait(dotFutures);
       bool dotHasItems = false;
+      bool dotAllSuccessful = true;
 
       for (int cn = 0; cn <= 1; cn++) {
         final r = dotResults[cn];
-        if (!r.success) complete = false;
+        if (!r.success) {
+          complete = false;
+          dotAllSuccessful = false;
+        }
         if (r.items.isNotEmpty) {
           dotHasItems = true;
           allResults.addAll(r.items);
@@ -185,11 +189,9 @@ class ScheduleApi {
         }
       }
 
-      // Early-Stop Heuristic:
-      // Ở HAU, học kỳ thường chỉ có Đợt 1 và 2. Sau khi đã quét đủ Đợt 1 & 2,
-      // nếu Đợt 3 hoàn toàn không có môn ở cả 2 chuyên ngành -> dừng ngay lập tức, bỏ qua Đợt 4..8.
-      if (dot >= 3 && !dotHasItems) {
-        print('   🛑 [Early-Stop] Đợt $dot rỗng ở cả 2 ngành → kết thúc quét kỳ này.');
+      // Early-Stop Heuristic: Chỉ dừng khi Đợt 3 thành công mạng 100% nhưng không có môn
+      if (dot >= 3 && !dotHasItems && dotAllSuccessful) {
+        print('   🛑 [Early-Stop] Đợt $dot rỗng ở cả 2 ngành (mạng OK) → kết thúc quét kỳ này.');
         break;
       }
     }

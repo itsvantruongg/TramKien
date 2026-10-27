@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SPEC-WIDGET-STUDIO-01: 4x2 Weekly Strip Calendar Android AppWidget Layout -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/widget_card_rounded_bg">
+
+    <ImageView
+        android:id="@+id/widget_bg_image"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="10dp">
+
+    <!-- Header: Accent Bar + Title -->
+    <LinearLayout
+        android:id="@+id/widget_header_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <!-- 3dp Accent Bar (Hidden) -->
+        <ImageView
+            android:id="@+id/widget_accent_bar"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="0dp"
+            android:text="Lịch 7 ngày"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="-0.02"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <TextView
+            android:id="@+id/widget_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="21/10 – 27/10"
+            android:textColor="#98989D"
+            android:textSize="10sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="-0.02"
+            android:includeFontPadding="false" />
+    </LinearLayout>
+
+    <!-- Hairline Divider 0.5dp -->
+    <ImageView
+        android:id="@+id/widget_hairline"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
+        android:background="#33FFFFFF" />
+
+    <!-- Top Half: 7-day strip (T2-CN) with dot indicator -->
+    <LinearLayout
+        android:id="@+id/strip_days_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <!-- Day 1 (T2) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+            <TextView
+                android:id="@+id/strip_day_weekday_1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="T2"
+                android:textColor="#FFFFFF"
+                android:textSize="9.5sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+            <TextView
+                android:id="@+id/strip_day_date_1"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:fontFamily="sans-serif"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+            <ImageView
+                android:id="@+id/strip_day_dot_1"
+                android:layout_width="4dp"
+                android:layout_height="4dp"
+                android:layout_marginTop="3dp"
+                android:background="#1D64F2" />
+        </LinearLayout>
+
+        <!-- Day 2 (T3) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+            <TextView
+                android:id="@+id/strip_day_weekday_2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="T3"
+                android:textColor="#FFFFFF"
+                android:textSize="9.5sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+            <TextView
+                android:id="@+id/strip_day_date_2"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:fontFamily="sans-serif"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+            <ImageView
+                android:id="@+id/strip_day_dot_2"
+                android:layout_width="4dp"
+                android:layout_height="4dp"
+                android:layout_marginTop="3dp"
+                android:background="#1D64F2" />
+        </LinearLayout>
+
+        <!-- Day 3 (T4) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+            <TextView
+                android:id="@+id/strip_day_weekday_3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="T4"
+                android:textColor="#FFFFFF"
+                android:textSize="9.5sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+            <TextView
+                android:id="@+id/strip_day_date_3"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:fontFamily="sans-serif"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+            <ImageView
+                android:id="@+id/strip_day_dot_3"
+                android:layout_width="4dp"
+                android:layout_height="4dp"
+                android:layout_marginTop="3dp"
+                android:background="#00000000" />
+        </LinearLayout>
+
+        <!-- Day 4 (T5) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+            <TextView
+                android:id="@+id/strip_day_weekday_4"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="T5"
+                android:textColor="#FFFFFF"
+                android:textSize="9.5sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+            <TextView
+                android:id="@+id/strip_day_date_4"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:fontFamily="sans-serif"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+            <ImageView
+                android:id="@+id/strip_day_dot_4"
+                android:layout_width="4dp"
+                android:layout_height="4dp"
+                android:layout_marginTop="3dp"
+                android:background="#1D64F2" />
+        </LinearLayout>
+
+        <!-- Day 5 (T6) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+            <TextView
+                android:id="@+id/strip_day_weekday_5"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="T6"
+                android:textColor="#FFFFFF"
+                android:textSize="9.5sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+            <TextView
+                android:id="@+id/strip_day_date_5"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:fontFamily="sans-serif"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+            <ImageView
+                android:id="@+id/strip_day_dot_5"
+                android:layout_width="4dp"
+                android:layout_height="4dp"
+                android:layout_marginTop="3dp"
+                android:background="#1D64F2" />
+        </LinearLayout>
+
+        <!-- Day 6 (T7) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+            <TextView
+                android:id="@+id/strip_day_weekday_6"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="T7"
+                android:textColor="#98989D"
+                android:textSize="9.5sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+            <TextView
+                android:id="@+id/strip_day_date_6"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:fontFamily="sans-serif"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+            <ImageView
+                android:id="@+id/strip_day_dot_6"
+                android:layout_width="4dp"
+                android:layout_height="4dp"
+                android:layout_marginTop="3dp"
+                android:background="#00000000" />
+        </LinearLayout>
+
+        <!-- Day 7 (CN) -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+            <TextView
+                android:id="@+id/strip_day_weekday_7"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CN"
+                android:textColor="#98989D"
+                android:textSize="9.5sp"
+                android:fontFamily="sans-serif-medium"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false" />
+            <TextView
+                android:id="@+id/strip_day_date_7"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:fontFamily="sans-serif"
+                android:letterSpacing="-0.02"
+                android:includeFontPadding="false"
+                android:visibility="gone" />
+            <ImageView
+                android:id="@+id/strip_day_dot_7"
+                android:layout_width="4dp"
+                android:layout_height="4dp"
+                android:layout_marginTop="3dp"
+                android:background="#00000000" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Hairline Divider -->
+    <ImageView
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="5dp"
+        android:layout_marginBottom="5dp"
+        android:background="#22FFFFFF" />
+
+    <!-- Bottom Half: Chi tiết môn học của ngày được chọn (Tách 2 dòng) -->
+    <LinearLayout
+        android:id="@+id/strip_detail_container"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:gravity="top"
+        android:padding="6dp"
+        android:background="#15FFFFFF">
+
+        <!-- Dòng 1: Tên môn học to rõ -->
+        <TextView
+            android:id="@+id/strip_class_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Đồ họa và hiện thực ảo"
+            android:textColor="#FFFFFF"
+            android:textSize="11.5sp"
+            android:fontFamily="sans-serif-medium"
+            android:letterSpacing="-0.02"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:ellipsize="end" />
+
+        <!-- Dòng 2: Giờ (Tiết) • Phòng • Mã lớp -->
+        <TextView
+            android:id="@+id/strip_class_hybrid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="12:45 – 17:00 (T8–12) • P.M-M5.03 • TH4327_23CN 2"
+            android:textColor="#98989D"
+            android:textSize="8.5sp"
+            android:fontFamily="sans-serif"
+            android:letterSpacing="-0.02"
+            android:includeFontPadding="false"
+            android:maxLines="1"
+            android:ellipsize="end" />
+    </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

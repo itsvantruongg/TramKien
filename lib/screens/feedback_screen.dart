@@ -1,12 +1,37 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../providers/app_provider.dart';
 import '../theme/app_theme.dart';
 import '../widgets/shared_widgets.dart';
 
 class FeedbackScreen extends StatefulWidget {
-  const FeedbackScreen({super.key});
+  static const String googleFormEndpoint =
+      'https://docs.google.com/forms/d/e/1FAIpQLSfe_FG1oCxfXZkRt0R766Rj9aWSX2z-w96-lMZsrxA6kAQlew/formResponse';
+  static const String entryName = 'entry.1036072439';
+  static const String entryEmail = 'entry.336370746';
+  static const String entryContent = 'entry.2114228';
+
+  final http.Client? httpClient;
+
+  const FeedbackScreen({super.key, this.httpClient});
+
+  static Uri buildEmailFallbackUri({
+    required String name,
+    required String email,
+    required String content,
+  }) {
+    final subject = Uri.encodeComponent('Góp ý ứng dụng Schedify HAU - $name');
+    final body = Uri.encodeComponent(
+      'Họ và tên: $name\n'
+      'Email: $email\n\n'
+      'Nội dung:\n$content',
+    );
+    return Uri.parse(
+        'mailto:loginchily1@gmail.com?subject=$subject&body=$body');
+  }
+
   @override
   State<FeedbackScreen> createState() => _FeedbackScreenState();
 }
@@ -14,31 +39,42 @@ class FeedbackScreen extends StatefulWidget {
 class _FeedbackScreenState extends State<FeedbackScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
-  final _phoneCtrl = TextEditingController();
   final _emailCtrl = TextEditingController();
   final _contentCtrl = TextEditingController();
   bool _sending = false;
 
   @override
+  void initState() {
+    super.initState();
+    try {
+      final student = context.read<AppProvider>().student;
+      if (student != null) {
+        if (student.hoTen.trim().isNotEmpty && _nameCtrl.text.isEmpty) {
+          _nameCtrl.text = student.hoTen.trim();
+        }
+        if (student.email.trim().isNotEmpty && _emailCtrl.text.isEmpty) {
+          _emailCtrl.text = student.email.trim();
+        }
+      }
+    } catch (_) {
+      // In standalone tests or environments without AppProvider
+    }
+  }
+
+  @override
   void dispose() {
     _nameCtrl.dispose();
-    _phoneCtrl.dispose();
     _emailCtrl.dispose();
     _contentCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _openEmailFallback() async {
-    final subject = Uri.encodeComponent(
-        'Góp ý ứng dụng Schedify HAU - ${_nameCtrl.text.trim()}');
-    final body = Uri.encodeComponent(
-      'Họ và tên: ${_nameCtrl.text.trim()}\n'
-      'Số điện thoại: ${_phoneCtrl.text.trim()}\n'
-      'Email: ${_emailCtrl.text.trim()}\n\n'
-      'Nội dung:\n${_contentCtrl.text.trim()}',
+    final uri = FeedbackScreen.buildEmailFallbackUri(
+      name: _nameCtrl.text.trim(),
+      email: _emailCtrl.text.trim(),
+      content: _contentCtrl.text.trim(),
     );
-    final uri =
-        Uri.parse('mailto:loginchily1@gmail.com?subject=$subject&body=$body');
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
     }
@@ -88,40 +124,26 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     setState(() => _sending = true);
 
     try {
-      // FormSubmit AJAX — thêm Origin/Referer để bypass web-origin check
-      final response = await http
-          .post(
-            Uri.parse('https://formsubmit.co/ajax/loginchily1@gmail.com'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-              // FormSubmit kiểm tra Origin để xác nhận request từ web
-              'Origin': 'https://tinchi.hau.edu.vn',
-              'Referer': 'https://tinchi.hau.edu.vn/',
-            },
-            body: jsonEncode({
-              'name': _nameCtrl.text.trim(),
-              '_replyto': _emailCtrl.text.trim(),
-              'phone': _phoneCtrl.text.trim(),
-              'message': _contentCtrl.text.trim(),
-              '_subject': 'Góp ý Schedify HAU - ${_nameCtrl.text.trim()}',
-              '_captcha': 'false',
-              '_template': 'table',
-            }),
-          )
-          .timeout(const Duration(seconds: 15));
+      final uri = Uri.parse(FeedbackScreen.googleFormEndpoint);
+      final headers = {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      };
+      final body = {
+        FeedbackScreen.entryName: _nameCtrl.text.trim(),
+        FeedbackScreen.entryEmail: _emailCtrl.text.trim(),
+        FeedbackScreen.entryContent: _contentCtrl.text.trim(),
+      };
 
-      // Parse response
-      Map<String, dynamic> data;
-      try {
-        data = jsonDecode(response.body) as Map<String, dynamic>;
-      } catch (_) {
-        throw Exception(
-            'Phản hồi không hợp lệ từ server (${response.statusCode})');
-      }
+      final client = widget.httpClient;
+      final response = client != null
+          ? await client
+              .post(uri, headers: headers, body: body)
+              .timeout(const Duration(seconds: 15))
+          : await http
+              .post(uri, headers: headers, body: body)
+              .timeout(const Duration(seconds: 15));
 
-      final success = data['success'];
-      if (success == true || success == 'true') {
+      if (response.statusCode < 400) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
             content: Text('✅ Gửi góp ý thành công! Cảm ơn bạn.'),
@@ -129,14 +151,10 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
             behavior: SnackBarBehavior.floating,
             duration: Duration(seconds: 3),
           ));
-          _nameCtrl.clear();
-          _phoneCtrl.clear();
-          _emailCtrl.clear();
           _contentCtrl.clear();
         }
       } else {
-        final msg = data['message'] as String? ?? 'HTTP ${response.statusCode}';
-        throw Exception(msg);
+        throw Exception('HTTP ${response.statusCode}');
       }
     } catch (e) {
       if (mounted) {
@@ -154,7 +172,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       body: CustomScrollView(slivers: [
         SliverToBoxAdapter(
             child: Container(
-          color: AppTheme.surface.withOpacity(0.7),
+          color: AppTheme.surface.withValues(alpha: 0.7),
           child: SafeArea(
               top: true,
               bottom: false,
@@ -207,7 +225,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                             fontSize: 15)),
                     SizedBox(height: 4),
                     Text(
-                        'Góp ý sẽ được gửi qua email. Chúng tôi sẽ phản hồi sớm nhất.',
+                        'Góp ý sẽ được gửi trực tiếp đến ban phát triển. Chúng tôi sẽ phản hồi sớm nhất.',
                         style: TextStyle(color: Colors.white70, fontSize: 12)),
                   ])),
             ])),
@@ -225,23 +243,6 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                           : null),
                   const SizedBox(height: 14),
                   _Field(
-                      controller: _phoneCtrl,
-                      label: 'Số điện thoại',
-                      icon: Icons.phone_outlined,
-                      hint: '0912 345 678',
-                      keyboardType: TextInputType.phone,
-                      validator: (v) {
-                        if (v?.trim().isEmpty ?? true) {
-                          return 'Vui lòng nhập số điện thoại';
-                        }
-                        if (!RegExp(r'^[0-9]{9,11}$')
-                            .hasMatch(v!.trim().replaceAll(' ', ''))) {
-                          return 'Số điện thoại không hợp lệ';
-                        }
-                        return null;
-                      }),
-                  const SizedBox(height: 14),
-                  _Field(
                       controller: _emailCtrl,
                       label: 'Email',
                       icon: Icons.email_outlined,
@@ -251,7 +252,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                         if (v?.trim().isEmpty ?? true) {
                           return 'Vui lòng nhập email';
                         }
-                        if (!RegExp(r'^[\w.-]+@[\w-]+\.\w+$')
+                        if (!RegExp(r'^[\w.-]+@[\w.-]+\.\w+$')
                             .hasMatch(v!.trim())) {
                           return 'Email không hợp lệ';
                         }
@@ -351,12 +352,12 @@ class _Field extends StatelessWidget {
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide:
-                BorderSide(color: AppTheme.outlineVariant.withOpacity(0.4)),
+                BorderSide(color: AppTheme.outlineVariant.withValues(alpha: 0.4)),
           ),
           enabledBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide:
-                BorderSide(color: AppTheme.outlineVariant.withOpacity(0.3)),
+                BorderSide(color: AppTheme.outlineVariant.withValues(alpha: 0.3)),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
