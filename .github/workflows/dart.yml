@@ -14,7 +14,16 @@ jobs:
         with:
           channel: 'stable'
           architecture: x64
-          
+      - name: Restore Firebase Options
+        env:
+          FIREBASE_OPTIONS_BASE64: ${{ secrets.FIREBASE_OPTIONS_BASE64 }}
+        run: |
+          if [ -n "$FIREBASE_OPTIONS_BASE64" ]; then
+            echo "$FIREBASE_OPTIONS_BASE64" | base64 -d > lib/firebase_options.dart 2>/dev/null || echo "$FIREBASE_OPTIONS_BASE64" | base64 -D > lib/firebase_options.dart
+          elif [ -f lib/firebase_options.dart.example ]; then
+            cp lib/firebase_options.dart.example lib/firebase_options.dart
+          fi
+
       - run: flutter pub get
 
       - name: Generate native splash
