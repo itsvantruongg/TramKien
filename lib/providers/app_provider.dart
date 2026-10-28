@@ -213,6 +213,20 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
 
         final prefs = await SharedPreferences.getInstance();
         final pw = prefs.getString(_kPw) ?? '';
+
+        // Auto-migration cho Background Sync: Nếu cập nhật từ bản cũ lên, SharedPreferences có pw nhưng Secure Storage rỗng
+        if (_currentMssv != 'admin' && pw.isNotEmpty) {
+          try {
+            final bgCreds = await BgCredentials.load();
+            if (bgCreds == null) {
+              await BgCredentials.save(_currentMssv, pw);
+              debugPrint('🔑 [Auto-Migration] Đã di trú credentials sang Secure Storage cho Background Sync');
+            }
+          } catch (e) {
+            debugPrint('⚠️ [Auto-Migration] Lỗi: $e');
+          }
+        }
+
         // Sync ngầm ở background không chặn UI
         unawaited(_asyncBackgroundLoginAndSync(_currentMssv, pw, prefs));
       } else {
@@ -244,7 +258,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
           debugPrint(
               '🔄 [Reconcile] Phát hiện bản ghi DB có fetched_app_version != $currentVer (hoặc NULL) → Ép sync full & diff-delete');
         }
-        await syncAll(forceRefresh: needsReconcile);
+        await syncAll(forceRefresh: needsReconcile, isReconcile: needsReconcile);
         await ScheduleDb.stampAllRecordsWithAppVersion(currentVer);
         await prefs.setString('last_reconciled_app_version', currentVer);
 
@@ -423,6 +437,7 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
     bool forceRefresh = false,
     bool isInitialFullSync = false,
     bool fromLogin = false,
+    bool isReconcile = false,
   }) async {
     final acquired = await SyncMutex.acquireLock(_currentMssv);
     if ((_isSyncing && !fromLogin) || BackgroundSyncService.isSyncing || !acquired) {
@@ -464,13 +479,15 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       await LocalNotificationService.scheduleClasses(
           _currentMssv, scheduleProvider.lichHoc, scheduleProvider.lichThi);
 
-      // Phát hiện thay đổi và tạo thông báo
-      await _detectAndNotify(
-        prevDiemCount: prevDiemCount,
-        prevLichHocCount: prevLichHocCount,
-        prevLichThiCount: prevLichThiCount,
-        prevDaDong: prevDaDong,
-      );
+      // Phát hiện thay đổi và tạo thông báo (bỏ qua nếu là lần reconcile cập nhật version mới)
+      if (!isReconcile) {
+        await _detectAndNotify(
+          prevDiemCount: prevDiemCount,
+          prevLichHocCount: prevLichHocCount,
+          prevLichThiCount: prevLichThiCount,
+          prevDaDong: prevDaDong,
+        );
+      }
 
       // Sinh thẻ thông báo lịch học/thi (cho cả quá khứ/catch-up và tương lai)
       await LocalNotificationService.generateScheduleCards(

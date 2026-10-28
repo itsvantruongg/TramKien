@@ -46,6 +46,17 @@ Future<void> main() async {
   ]);
   await initializeDateFormatting('vi_VN', null);
 
+  await LocalNotificationService.init(
+    onDidReceiveNotificationResponse: (response) {
+      if (navigatorKey.currentState != null) {
+        navigatorKey.currentState!.push(
+          MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+        );
+      }
+    },
+    onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
+  );
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => AppProvider(),
@@ -55,16 +66,6 @@ Future<void> main() async {
 
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     unawaited(AnalyticsService.logAppOpen());
-    unawaited(LocalNotificationService.init(
-      onDidReceiveNotificationResponse: (response) {
-        if (navigatorKey.currentState != null) {
-          navigatorKey.currentState!.push(
-            MaterialPageRoute(builder: (_) => const NotificationsScreen()),
-          );
-        }
-      },
-      onDidReceiveBackgroundNotificationResponse: notificationTapBackground,
-    ));
     unawaited(BackgroundSyncService.initialize());
 
     // Deep link from Android Widget (AC-06)

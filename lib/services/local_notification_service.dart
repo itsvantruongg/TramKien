@@ -55,6 +55,7 @@ class LocalNotificationService {
   }
 
   static Future<void> requestPermissions() async {
+    if (!_initialized) await init();
     final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
 
@@ -90,6 +91,7 @@ class LocalNotificationService {
 
   static Future<void> cancelAll() async {
     try {
+      if (!_initialized) await init();
       await _plugin.cancelAll();
       print('Đã hủy toàn bộ thông báo.');
     } catch (e) {
@@ -100,6 +102,7 @@ class LocalNotificationService {
   static Future<void> showImmediate(
       {required int id, required String title, required String body}) async {
     try {
+      if (!_initialized) await init();
       await _plugin.show(
         id,
         title,
@@ -128,6 +131,7 @@ class LocalNotificationService {
 
   static Future<void> showTestNotification() async {
     try {
+      if (!_initialized) await init();
       await _plugin.show(
         9999,
         'Thử nghiệm thông báo',
@@ -141,7 +145,11 @@ class LocalNotificationService {
             priority: Priority.max,
             icon: 'ic_notification',
           ),
-          iOS: DarwinNotificationDetails(),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
         ),
       );
       print('Đã gửi thông báo thử nghiệm.');
