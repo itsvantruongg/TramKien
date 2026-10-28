@@ -169,10 +169,39 @@ class _AppRouterState extends State<AppRouter> {
 
     final Widget child;
     if (!_quickAuthDone || p.authState == AuthState.unknown) {
-      child = const Scaffold(
-        key: ValueKey('splash_holder'),
+      child = Scaffold(
+        key: const ValueKey('splash_holder'),
         backgroundColor: Colors.white,
-        body: SizedBox.expand(),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/splash_logo_android12.png',
+                width: 110,
+                height: 110,
+                errorBuilder: (_, __, ___) => Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.primaryGradient,
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: const Icon(Icons.school, color: Colors.white, size: 40),
+                ),
+              ),
+              const SizedBox(height: 28),
+              const SizedBox(
+                width: 26,
+                height: 26,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppTheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
       );
     } else if (p.authState == AuthState.loggedOut) {
       child = const LoginScreen(key: ValueKey('login'));

@@ -302,7 +302,8 @@ class _MainShellState extends State<MainShell>
 
   Widget _buildNav() {
     const double navBarHeight = 60.0;
-    const double navInset = 6.0; // Khoảng đệm đồng nhất cho cả 4 cạnh (Top = Bottom = Left = Right = 6dp)
+    const double navInset =
+        6.0; // Khoảng đệm đồng nhất cho cả 4 cạnh (Top = Bottom = Left = Right = 6dp)
     const int tabCount = 5;
 
     return Align(
@@ -312,11 +313,12 @@ class _MainShellState extends State<MainShell>
         constraints: const BoxConstraints(maxWidth: 500),
         child: Container(
           height: navBarHeight,
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 22),
           padding: const EdgeInsets.all(navInset),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(navBarHeight / 2), // Bo góc 30dp ôm tròn tự nhiên
+            borderRadius: BorderRadius.circular(
+                navBarHeight / 2), // Bo góc 30dp ôm tròn tự nhiên
             border: Border.all(
               color: const Color(0xFFE2E8F0),
               width: 0.8,
@@ -352,7 +354,8 @@ class _MainShellState extends State<MainShell>
                       decoration: BoxDecoration(
                         color: AppTheme.primaryFixed.withOpacity(0.85),
                         borderRadius: BorderRadius.circular(
-                            (navBarHeight - navInset * 2) / 2), // R_inner = R_outer - inset = 24dp đồng tâm
+                            (navBarHeight - navInset * 2) /
+                                2), // R_inner = R_outer - inset = 24dp đồng tâm
                       ),
                     ),
                   ),

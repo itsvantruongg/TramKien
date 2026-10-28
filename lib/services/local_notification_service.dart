@@ -296,29 +296,38 @@ class LocalNotificationService {
             body += ' và ${details.length - 3} sự kiện khác...';
           }
 
-          await _plugin.zonedSchedule(
-            scheduledCount + 1,
-            'Nhắc nhở lịch học ngày mai ($dateStr)',
-            body,
-            scheduleTime,
-            const NotificationDetails(
-              android: AndroidNotificationDetails(
-                'schedule_channel',
-                'Nhắc nhở lịch học',
-                channelDescription:
-                    'Thông báo lịch học vào 20:00 ngày hôm trước',
-                importance: Importance.high,
-                priority: Priority.high,
+          try {
+            await _plugin.zonedSchedule(
+              scheduledCount + 1,
+              'Nhắc nhở lịch học ngày mai ($dateStr)',
+              body,
+              scheduleTime,
+              const NotificationDetails(
+                android: AndroidNotificationDetails(
+                  'schedule_channel',
+                  'Nhắc nhở lịch học',
+                  channelDescription:
+                      'Thông báo lịch học vào 20:00 ngày hôm trước',
+                  importance: Importance.high,
+                  priority: Priority.high,
+                  icon: 'ic_notification',
+                ),
+                iOS: DarwinNotificationDetails(
+                  presentAlert: true,
+                  presentBadge: true,
+                  presentSound: true,
+                ),
               ),
-              iOS: DarwinNotificationDetails(),
-            ),
-            androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-            uiLocalNotificationDateInterpretation:
-                UILocalNotificationDateInterpretation.absoluteTime,
-          );
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+              uiLocalNotificationDateInterpretation:
+                  UILocalNotificationDateInterpretation.absoluteTime,
+            );
 
-          print('🔔 Lên lịch TỔNG HỢP lúc $scheduleTime cho ngày $dateOnly');
-          scheduledCount++;
+            print('🔔 Lên lịch TỔNG HỢP lúc $scheduleTime cho ngày $dateOnly');
+            scheduledCount++;
+          } catch (e) {
+            print('⚠️ Lỗi khi zonedSchedule (Tổng hợp ngày mai): $e');
+          }
         }
       }
 
@@ -346,8 +355,13 @@ class LocalNotificationService {
                     channelDescription: 'Thông báo trước giờ học 1 tiếng',
                     importance: Importance.max,
                     priority: Priority.max,
+                    icon: 'ic_notification',
                   ),
-                  iOS: DarwinNotificationDetails(),
+                  iOS: DarwinNotificationDetails(
+                    presentAlert: true,
+                    presentBadge: true,
+                    presentSound: true,
+                  ),
                 ),
                 androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
                 uiLocalNotificationDateInterpretation:
@@ -388,8 +402,13 @@ class LocalNotificationService {
                     channelDescription: 'Thông báo trước giờ thi 1 tiếng',
                     importance: Importance.max,
                     priority: Priority.max,
+                    icon: 'ic_notification',
                   ),
-                  iOS: DarwinNotificationDetails(),
+                  iOS: DarwinNotificationDetails(
+                    presentAlert: true,
+                    presentBadge: true,
+                    presentSound: true,
+                  ),
                 ),
                 androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
                 uiLocalNotificationDateInterpretation:

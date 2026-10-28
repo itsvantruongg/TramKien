@@ -720,9 +720,13 @@ class BgCredentials {
 
   /// Lưu credentials cho background sync (chỉ gọi khi user bật toggle "Đồng bộ nền").
   static Future<void> save(String mssv, String pw) async {
-    await _storage.write(key: _keyMssv, value: mssv);
-    await _storage.write(key: _keyPw, value: pw);
-    debugPrint('🔐 [BgCredentials] Credentials đã lưu vào Secure Storage cho $mssv');
+    try {
+      await _storage.write(key: _keyMssv, value: mssv);
+      await _storage.write(key: _keyPw, value: pw);
+      debugPrint('🔐 [BgCredentials] Credentials đã lưu vào Secure Storage cho $mssv');
+    } catch (e) {
+      debugPrint('⚠️ [BgCredentials] Lỗi ghi Secure Storage: $e');
+    }
   }
 
   /// Đọc credentials. Trả về null nếu không có hoặc rỗng.

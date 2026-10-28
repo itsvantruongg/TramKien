@@ -107,7 +107,24 @@ Future<void> _runSyncLogic() async {
       bgMssv = 'admin';
       pw = 'admin@123';
     } else {
-      final creds = await BgCredentials.load();
+      var creds = await BgCredentials.load();
+      if (creds == null) {
+        // Fallback auto-migration: Nếu cập nhật từ bản cũ 1.0.6 lên và user chưa từng mở app,
+        // SharedPreferences vẫn còn lưu saved_pw và saved_mssv.
+        // Ta tự động di trú ngay tại background isolate để không làm gián đoạn sync định kỳ.
+        final savedPw = prefs.getString('saved_pw') ?? '';
+        if (_preCheckMssv.isNotEmpty && savedPw.isNotEmpty) {
+          try {
+            await BgCredentials.save(_preCheckMssv, savedPw);
+            debugPrint('🔑 [BG Auto-Migration] Isolate nền đã tự động di trú credentials từ SharedPreferences');
+            creds = (mssv: _preCheckMssv, pw: savedPw);
+          } catch (e) {
+            debugPrint('⚠️ [BG Auto-Migration] Lỗi ghi Secure Storage: $e');
+            creds = (mssv: _preCheckMssv, pw: savedPw);
+          }
+        }
+      }
+
       if (creds == null) {
         debugPrint(
             '⚙️ [BG][Step1-Credentials] Secure Storage rỗng → dừng sync '
