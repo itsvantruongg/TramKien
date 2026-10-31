@@ -342,6 +342,11 @@ class HauApiService {
     // 1. Thông tin sinh viên
     await DatabaseService.saveStudent(MockData.student);
 
+    // Dọn dẹp bản ghi lịch học và lịch thi cũ để nạp mới toàn bộ 28 ca học & lịch thi đan xen
+    final d = await DatabaseService.db;
+    await d.delete('lich_hoc', where: 'is_manual = 0');
+    await d.delete('lich_thi', where: 'is_manual = 0');
+
     // 2. Lịch học
     await ScheduleDb.saveLichHoc(MockData.getLichHoc());
 

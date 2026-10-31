@@ -5,6 +5,9 @@ import '../services/hau_api_service.dart';
 import '../services/database_service.dart';
 import '../services/api/schedule_api.dart';
 import '../services/db/schedule_db.dart';
+import '../services/widget/widget_snapshot_generator.dart';
+import '../services/widget/widget_snapshot_storage.dart';
+import '../services/widget_data_sync_service.dart';
 
 class ScheduleProvider extends ChangeNotifier {
   // ── Constants ────────────────────────────
@@ -124,6 +127,25 @@ class ScheduleProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Tự động sinh bản chụp Snapshot và cập nhật native widget (SPEC-DYNAMIC-SQLITE-WIDGET-SYSTEM-01)
+  Future<void> _updateWidgetSnapshot() async {
+    try {
+      final snapshot = WidgetSnapshotGenerator.generateSnapshot(
+        lichHocList: _lichHoc,
+        lichThiList: _lichThi,
+      );
+      const storage = WidgetSnapshotStorage();
+      await storage.saveSnapshot(snapshot);
+      await WidgetDataSyncService.triggerNativeWidgetUpdate();
+    } catch (e) {
+      debugPrint('⚠️ [ScheduleProvider] Error generating widget snapshot: $e');
+    }
+  }
+
+  /// Alias fetchLichHoc tương thích đặc tả
+  Future<void> fetchLichHoc({bool forceRefresh = false}) =>
+      syncLichHoc(forceRefresh: forceRefresh);
+
   /// Sync lịch học TẤT CẢ kỳ từ năm bắt đầu → hiện tại
   // Bug 3 Fix: syncLichHoc mặc định chỉ fetch HK hiện tại (~16 requests)
   Future<void> syncLichHoc({bool forceRefresh = false}) async {
@@ -146,6 +168,7 @@ class ScheduleProvider extends ChangeNotifier {
 
       if (currentIsCached) {
         await refreshFromCache();
+      await _updateWidgetSnapshot();
         print('📚 [LichHoc] Dùng cache HK hiện tại, skip fetch API');
         return;
       }
@@ -169,6 +192,7 @@ class ScheduleProvider extends ChangeNotifier {
       }
 
       await refreshFromCache();
+      await _updateWidgetSnapshot();
     } catch (e) {
       print('❌ [LichHoc] syncLichHoc lỗi: $e');
     } finally {
@@ -208,6 +232,7 @@ class ScheduleProvider extends ChangeNotifier {
       }
 
       await refreshFromCache();
+      await _updateWidgetSnapshot();
     } catch (e) {
       print('❌ [LichHoc] syncLichHocFullHistory lỗi: $e');
     } finally {
@@ -236,6 +261,7 @@ class ScheduleProvider extends ChangeNotifier {
 
       if (isCached) {
         await refreshFromCache();
+      await _updateWidgetSnapshot();
         print('🗓️ [LichThi] Dùng cache HK hiện tại, skip fetch API');
         return;
       }
@@ -257,6 +283,7 @@ class ScheduleProvider extends ChangeNotifier {
       print('🏁 [LichThi] HK hiện tại: ${result.items.length} lịch thi '
           'success=${result.success}');
       _lichThi = await ScheduleDb.getLichThi();
+      await _updateWidgetSnapshot();
       notifyListeners();
     } catch (e) {
       print('❌ [LichThi] syncLichThi lỗi: $e');
@@ -295,6 +322,7 @@ class ScheduleProvider extends ChangeNotifier {
       print('🏁 [LichThi] Full sync: ${result.items.length} lịch thi '
           'complete=${result.complete}');
       _lichThi = await ScheduleDb.getLichThi();
+      await _updateWidgetSnapshot();
       notifyListeners();
     } catch (e) {
       print('❌ [LichThi] syncLichThiFullHistory lỗi: $e');

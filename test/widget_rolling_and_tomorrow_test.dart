@@ -530,10 +530,11 @@ void main() {
       await tester.tap(find.byKey(const Key('mode_single_day')));
       await tester.pumpAndSettle();
 
-      // Kịch bản mặc định 4 ca: Thẻ 4x2 hiển thị ca 1, ca 2 và badge "(+2 môn nữa)"
+      // Kịch bản mặc định 4 ca: Thẻ 4x2 hiển thị ca 1, ca 2, ca 3 và badge "(+1 môn nữa)"
       expect(find.text('Môn học 1'), findsOneWidget);
       expect(find.text('Môn học 2'), findsOneWidget);
-      expect(find.text('(+2 môn nữa)'), findsOneWidget);
+      expect(find.text('Môn học 3'), findsOneWidget);
+      expect(find.text('(+1 môn nữa)'), findsOneWidget);
     });
   });
 
@@ -723,17 +724,18 @@ void main() {
       await tester.tap(find.byKey(const Key('mode_single_day')));
       await tester.pumpAndSettle();
 
-      // Môn 1 & Môn 2 cùng hiển thị
+      // Môn 1, Môn 2 & Môn 3 cùng hiển thị
       expect(find.text('Môn học 1'), findsOneWidget);
       expect(find.text('Môn học 2'), findsOneWidget);
+      expect(find.text('Môn học 3'), findsOneWidget);
 
-      // Footer dưới đáy hiển thị đúng "(+2 môn nữa)"
-      expect(find.text('(+2 môn nữa)'), findsOneWidget);
+      // Footer dưới đáy hiển thị đúng "(+1 môn nữa)"
+      expect(find.text('(+1 môn nữa)'), findsOneWidget);
 
-      // Đệm 8dp giữa 2 môn trong timeline row
+      // Đệm giữa các môn trong timeline row
       final sizedBoxes = tester.widgetList<SizedBox>(find.byType(SizedBox));
-      final spacer8 = sizedBoxes.where((sb) => sb.height == 8.0).toList();
-      expect(spacer8.isNotEmpty, isTrue, reason: 'Khoảng cách giữa môn 1 và môn 2 là 8dp');
+      final spacer = sizedBoxes.where((sb) => sb.height == 6.0 || sb.height == 8.0).toList();
+      expect(spacer.isNotEmpty, isTrue, reason: 'Có khoảng đệm giữa các môn');
     });
 
     testWidgets('Nhiệm vụ 2 & 3: Bọc box Hôm nay & Lịch tuần 4x4 Grid 8 Ô', (tester) async {

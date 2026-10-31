@@ -13,6 +13,9 @@ import 'notification_service.dart';
 import 'local_notification_service.dart';
 import 'database_service.dart';
 import '../models/models.dart';
+import 'widget/widget_snapshot_generator.dart';
+import 'widget/widget_snapshot_storage.dart';
+import 'widget_data_sync_service.dart';
 
 /// Tên task
 const kBgSyncTaskName = 'tramkien_bg_sync';
@@ -572,6 +575,20 @@ Future<void> _runSyncLogic() async {
     } catch (e) {
       debugPrint(
           '⚠️ [BG][Step10-NotifSchedule] Lỗi khi lên lịch thông báo: $e');
+    }
+
+    // 11. Đồng bộ bản chụp Widget Snapshot từ SQLite và kích hoạt native widget (SPEC-DYNAMIC-SQLITE-WIDGET-SYSTEM-01)
+    try {
+      final snapshot = WidgetSnapshotGenerator.generateSnapshot(
+        lichHocList: newLichHoc,
+        lichThiList: newLichThi,
+      );
+      const snapshotStorage = WidgetSnapshotStorage();
+      await snapshotStorage.saveSnapshot(snapshot);
+      await WidgetDataSyncService.triggerNativeWidgetUpdate();
+      debugPrint('💾 [BG][Step11-WidgetSnapshot] Đã sinh và lưu snapshot (${snapshot.sessions.length} sessions)');
+    } catch (e) {
+      debugPrint('⚠️ [BG][Step11-WidgetSnapshot] Lỗi sinh snapshot: $e');
     }
 
     debugPrint('⚙️ [BG] Sync hoàn tất thành công!');

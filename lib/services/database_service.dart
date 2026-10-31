@@ -583,7 +583,7 @@ class DatabaseService {
   // Dùng SharedPreferences để đánh dấu cho chắc chắn
   static Future<bool> isAdminSeeded() async {
     final prefs = await SharedPreferences.getInstance();
-    final seeded = prefs.getBool('admin_data_seeded_v2') ?? false;
+    final seeded = prefs.getBool('admin_data_seeded_v3') ?? false;
     if (!seeded) return false;
 
     // Check thêm thực tế trong DB
@@ -594,7 +594,7 @@ class DatabaseService {
 
   static Future<void> setAdminSeeded(bool value) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('admin_data_seeded_v2', value);
+    await prefs.setBool('admin_data_seeded_v3', value);
   }
 
   // ── KẾT QUẢ ĐĂNG KÝ ──────────────────────

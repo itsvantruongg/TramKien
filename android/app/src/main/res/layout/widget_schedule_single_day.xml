@@ -191,10 +191,10 @@
                 android:id="@+id/class_item_2"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
+                android:layout_marginTop="6dp"
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
-                android:paddingVertical="2dp"
+                android:paddingVertical="1dp"
                 android:visibility="gone">
 
                 <!-- Cột trái: Giờ bắt đầu & Giờ kết thúc -->
@@ -280,7 +280,101 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Spacer co dãn đẩy badge xuống đáy Footer khi có >= 3 ca (RemoteViews safe: dung ImageView) -->
+            <!-- Ca 3: Timeline Row (Cột trái: Giờ; Trục timeline; Cột phải: Tên + Hàng phụ trợ) -->
+            <LinearLayout
+                android:id="@+id/class_item_3"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="1dp"
+                android:visibility="gone">
+
+                <!-- Cột trái: Giờ bắt đầu & Giờ kết thúc -->
+                <LinearLayout
+                    android:layout_width="46dp"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:gravity="start|center_vertical">
+
+                    <TextView
+                        android:id="@+id/single_class_3_time"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="start"
+                        android:text="14h40"
+                        android:textColor="#1D64F2"
+                        android:textSize="12.5sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold"
+                        android:letterSpacing="-0.02"
+                        android:includeFontPadding="false"
+                        android:maxLines="1" />
+
+                    <TextView
+                        android:id="@+id/single_class_3_time_end"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:gravity="start"
+                        android:text="- 17h05"
+                        android:textColor="#98989D"
+                        android:textSize="9.5sp"
+                        android:fontFamily="sans-serif"
+                        android:letterSpacing="-0.02"
+                        android:includeFontPadding="false"
+                        android:maxLines="1" />
+                </LinearLayout>
+
+                <!-- Trục Timeline Indicator (Capsule / Line màu Accent) -->
+                <ImageView
+                    android:id="@+id/single_class_3_indicator"
+                    android:layout_width="3dp"
+                    android:layout_height="28dp"
+                    android:layout_marginStart="4dp"
+                    android:layout_marginEnd="10dp"
+                    android:background="#1D64F2" />
+
+                <!-- Cột phải: 2 dòng -->
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <!-- Dòng 1: Tên môn học -->
+                    <TextView
+                        android:id="@+id/single_class_3_name"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="Lập trình Android Kotlin"
+                        android:textColor="#FFFFFF"
+                        android:textSize="13sp"
+                        android:fontFamily="sans-serif-medium"
+                        android:textStyle="bold"
+                        android:letterSpacing="-0.02"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
+
+                    <!-- Dòng 2: Hàng thông tin phụ trợ gom trên ĐÚNG 1 HÀNG DUY NHẤT -->
+                    <TextView
+                        android:id="@+id/single_class_3_hybrid"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="P.I.303 • ThS. Trịnh Hữu M"
+                        android:textColor="#98989D"
+                        android:textSize="9.5sp"
+                        android:fontFamily="sans-serif"
+                        android:letterSpacing="-0.02"
+                        android:includeFontPadding="false"
+                        android:maxLines="1"
+                        android:ellipsize="end" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Spacer co dãn đẩy badge xuống đáy Footer khi có >= 4 ca (RemoteViews safe: dung ImageView) -->
             <ImageView
                 android:id="@+id/single_day_spacer"
                 android:layout_width="match_parent"
@@ -288,11 +382,12 @@
                 android:layout_weight="1"
                 android:visibility="gone" />
 
-            <!-- Badge hiển thị khi có >= 3 ca: (+N môn nữa) -->
+            <!-- Badge hiển thị khi có >= 4 ca: (+N môn nữa) -->
             <TextView
                 android:id="@+id/single_day_badge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
                 android:text="(+1 môn nữa)"
                 android:textColor="#1D64F2"
                 android:textSize="9sp"

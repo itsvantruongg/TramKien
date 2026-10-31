@@ -129,7 +129,7 @@ void main() {
         }
       }
 
-      expect(totalTextViews, equals(129), reason: 'Tổng số TextView tìm thấy phải đúng 129 across 6 layouts (SPEC-WIDGET-TIMELINE-TIME-RANGE)');
+      expect(totalTextViews, equals(133), reason: 'Tổng số TextView tìm thấy phải đúng 133 across 6 layouts (SPEC-WIDGET-TIMELINE-TIME-RANGE)');
       expect(missingFontFamily, isEmpty, reason: 'Không có TextView nào thiếu android:fontFamily');
       expect(missingLetterSpacing, isEmpty, reason: 'Không có TextView nào thiếu hoặc sai android:letterSpacing="-0.02"');
       expect(missingFontPadding, isEmpty, reason: 'Không có TextView nào thiếu hoặc sai android:includeFontPadding="false"');
@@ -137,7 +137,7 @@ void main() {
 
     test('Chi tiết từng layout XML native đạt chuẩn Swiss Typography 100%', () {
       final counts = {
-        'widget_schedule_single_day.xml': 12,
+        'widget_schedule_single_day.xml': 16,
         'widget_schedule_single_day_2x2.xml': 16,
         'widget_schedule_three_days.xml': 14,
         'widget_schedule_weekly_strip.xml': 18,

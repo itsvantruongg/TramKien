@@ -1,0 +1,458 @@
+import 'package:flutter/material.dart';
+import '../services/widget/widget_service.dart';
+import 'widget_today_2x2_card.dart';
+
+/// Giao diện Widget Tuần 4x4 (~320x318 dp/pt, bo góc 20dp, padding 12dp, viền 0.5dp)
+/// Tuân thủ nghiêm ngặt SPEC-DYNAMIC-SQLITE-WIDGET-SYSTEM-01 Mục 1, 3.4, 3.5, 3.6, 7
+class WidgetWeekly4x4Card extends StatelessWidget {
+  final Weekly4x4Data data;
+  final bool isDarkMode;
+  final VoidCallback? onPrevWeek;
+  final VoidCallback? onNextWeek;
+  final ValueChanged<WeeklySessionItem>? onSessionTap;
+  final VoidCallback? onTap;
+
+  const WidgetWeekly4x4Card({
+    super.key,
+    required this.data,
+    this.isDarkMode = false,
+    this.onPrevWeek,
+    this.onNextWeek,
+    this.onSessionTap,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = isDarkMode ? WidgetDesignTokens.darkBg : WidgetDesignTokens.lightBg;
+    final borderColor = isDarkMode ? WidgetDesignTokens.darkBorder : WidgetDesignTokens.lightBorder;
+
+    return Semantics(
+      label: 'Widget Tuần 4x4: ${data.title}',
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: 320,
+          height: 318,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: bgColor,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: borderColor, width: 0.5),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // 1. Dòng tiêu đề kèm nút ‹ › chuyển tuần (cỡ 12, vừa)
+              _buildHeader(context),
+              const SizedBox(height: 8),
+
+              // 2. Dải 7 ngày (T2..CN, số lượng môn / ·, hôm nay viên thuốc accent)
+              _buildDaysStrip(context),
+              const SizedBox(height: 8),
+
+              // Đường kẻ phân cách siêu mảnh 0.5dp
+              Divider(
+                height: 1,
+                thickness: 0.5,
+                color: borderColor,
+              ),
+              const SizedBox(height: 6),
+
+              // 3. Danh sách chi tiết theo nhóm ngày hoặc Empty State
+              Expanded(
+                child: !data.hasSnapshot
+                    ? _buildAuthEmptyState(context)
+                    : _buildDetailedList(context),
+              ),
+
+              // 4. Footer nếu có tràn chỗ ("+N môn nữa" - AC-11)
+              if (data.footerText != null) ...[
+                const SizedBox(height: 4),
+                _buildFooter(context),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Dòng tiêu đề "Tuần dd/MM – dd/MM" (cỡ 12, vừa) kèm nút ‹ › chuyển tuần
+  Widget _buildHeader(BuildContext context) {
+    final textPrimary = isDarkMode
+        ? WidgetDesignTokens.darkTextPrimary
+        : WidgetDesignTokens.lightTextPrimary;
+    final textSecondary = isDarkMode
+        ? WidgetDesignTokens.darkTextSecondary
+        : WidgetDesignTokens.lightTextSecondary;
+
+    return Row(
+      children: [
+        // Nút lùi tuần ‹
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onPrevWeek,
+          child: Container(
+            width: 28,
+            height: 24,
+            alignment: Alignment.center,
+            child: Text(
+              '‹',
+              style: TextStyle(
+                color: textSecondary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'sans-serif-medium',
+                height: 1.0,
+              ),
+            ),
+          ),
+        ),
+        // Tiêu đề tuần căn giữa
+        Expanded(
+          child: Text(
+            data.title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: textPrimary,
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              fontFamily: 'sans-serif-medium',
+              letterSpacing: -0.2,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        // Nút tiến tuần ›
+        GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onNextWeek,
+          child: Container(
+            width: 28,
+            height: 24,
+            alignment: Alignment.center,
+            child: Text(
+              '›',
+              style: TextStyle(
+                color: textSecondary,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'sans-serif-medium',
+                height: 1.0,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Dải 7 ngày (Hàng nhãn T2..CN cỡ 11 phụ, Hàng số môn / · mờ, Hôm nay viên thuốc accent)
+  Widget _buildDaysStrip(BuildContext context) {
+    final textPrimary = isDarkMode
+        ? WidgetDesignTokens.darkTextPrimary
+        : WidgetDesignTokens.lightTextPrimary;
+    final textSecondary = isDarkMode
+        ? WidgetDesignTokens.darkTextSecondary
+        : WidgetDesignTokens.lightTextSecondary;
+    final textDimmed = isDarkMode
+        ? WidgetDesignTokens.darkTextDimmed
+        : WidgetDesignTokens.lightTextDimmed;
+    final accentColor = isDarkMode
+        ? WidgetDesignTokens.darkAccent
+        : WidgetDesignTokens.lightAccent;
+    final accentOn = isDarkMode
+        ? WidgetDesignTokens.darkAccentOn
+        : WidgetDesignTokens.lightAccentOn;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: data.daysStrip.map((dayItem) {
+        final isToday = dayItem.isToday;
+
+        return Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Hàng nhãn: T2 T3 T4 T5 T6 T7 CN (cỡ 11, màu phụ)
+              Text(
+                dayItem.weekdayLabel,
+                style: TextStyle(
+                  color: isToday ? accentColor : textSecondary,
+                  fontSize: 11,
+                  fontWeight: isToday ? FontWeight.w600 : FontWeight.w400,
+                  fontFamily: 'sans-serif-medium',
+                ),
+              ),
+              const SizedBox(height: 4),
+
+              // Hàng số môn: số môn hoặc dấu "·" mờ; Hôm nay là viên thuốc accent đầy
+              if (isToday)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: accentColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    dayItem.countText,
+                    style: TextStyle(
+                      color: accentOn,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      fontFamily: 'sans-serif-medium',
+                      height: 1.1,
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  child: Text(
+                    dayItem.countText,
+                    style: TextStyle(
+                      color: dayItem.sessionCount > 0 ? textPrimary : textDimmed,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w400,
+                      fontFamily: 'sans-serif-medium',
+                      height: 1.1,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  /// Trạng thái trống khi chưa có snapshot (AC-10)
+  Widget _buildAuthEmptyState(BuildContext context) {
+    final textSecondary = isDarkMode
+        ? WidgetDesignTokens.darkTextSecondary
+        : WidgetDesignTokens.lightTextSecondary;
+
+    return Center(
+      child: Text(
+        data.authMessage ?? 'Đăng nhập để xem lịch',
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: textSecondary,
+          fontSize: 12,
+          fontWeight: FontWeight.w500,
+          fontFamily: 'sans-serif-medium',
+        ),
+      ),
+    );
+  }
+
+  /// Danh sách chi tiết theo nhóm ngày
+  Widget _buildDetailedList(BuildContext context) {
+    if (data.items.isEmpty) {
+      final textDimmed = isDarkMode
+          ? WidgetDesignTokens.darkTextDimmed
+          : WidgetDesignTokens.lightTextDimmed;
+      return Center(
+        child: Text(
+          'Tuần này không có lịch',
+          style: TextStyle(
+            color: textDimmed,
+            fontSize: 11,
+            fontFamily: 'sans-serif-medium',
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.zero,
+      physics: const BouncingScrollPhysics(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: data.items.map((item) {
+          switch (item.type) {
+            case WeeklyItemType.dayHeader:
+              return _buildDayHeaderRow(context, item.dayGroup!);
+            case WeeklyItemType.session:
+              return _buildSessionRow(context, item.sessionItem!);
+            case WeeklyItemType.mergedEmptyDays:
+              return _buildMergedEmptyDaysRow(context, item.emptyDaysItem!);
+          }
+        }).toList(),
+      ),
+    );
+  }
+
+  /// Tiêu đề nhóm ngày (cỡ 11, vừa): "Hôm nay · Thứ dd/MM", "Thứ dd/MM"...
+  Widget _buildDayHeaderRow(BuildContext context, WeeklyDayGroup group) {
+    final textPrimary = isDarkMode
+        ? WidgetDesignTokens.darkTextPrimary
+        : WidgetDesignTokens.lightTextPrimary;
+    final accentColor = isDarkMode
+        ? WidgetDesignTokens.darkAccent
+        : WidgetDesignTokens.lightAccent;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 6, bottom: 2),
+      child: Text(
+        group.headerTitle,
+        style: TextStyle(
+          color: group.isToday ? accentColor : textPrimary,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          fontFamily: 'sans-serif-medium',
+        ),
+      ),
+    );
+  }
+
+  /// Hàng môn học cao 19dp
+  Widget _buildSessionRow(BuildContext context, WeeklySessionItem item) {
+    final textPrimary = isDarkMode
+        ? WidgetDesignTokens.darkTextPrimary
+        : WidgetDesignTokens.lightTextPrimary;
+    final textSecondary = isDarkMode
+        ? WidgetDesignTokens.darkTextSecondary
+        : WidgetDesignTokens.lightTextSecondary;
+    final textDimmed = isDarkMode
+        ? WidgetDesignTokens.darkTextDimmed
+        : WidgetDesignTokens.lightTextDimmed;
+
+    // Màu thanh chỉ báo 3x14dp
+    final Color barColor;
+    // Màu chữ tên môn và phòng
+    final Color rowTextColor;
+    final Color timeColor;
+
+    if (item.isToday && item.isPast) {
+      // Môn đã qua của hôm nay: thanh màu chuyển màu xám, toàn hàng chuyển màu mờ #888780
+      barColor = isDarkMode ? const Color(0xFF444441) : const Color(0xFFD3D1C7);
+      rowTextColor = textDimmed;
+      timeColor = textDimmed;
+    } else if (item.isExam) {
+      // Môn thi: Vạch màu đỏ, tên môn in vừa kèm tiền tố "Thi "
+      barColor = const Color(0xFFE24B4A);
+      rowTextColor = isDarkMode ? const Color(0xFFF7C1C1) : const Color(0xFF791F1F);
+      timeColor = textSecondary;
+    } else {
+      // Môn học thường: Bảng 8 màu theo colorIndex
+      final colorTokens = isDarkMode
+          ? WidgetDesignTokens.darkSubjectColors
+          : WidgetDesignTokens.lightSubjectColors;
+      final safeColorIdx = item.colorIndex.clamp(0, colorTokens.length - 1);
+      barColor = colorTokens[safeColorIdx].text;
+      rowTextColor = textPrimary;
+      timeColor = textSecondary;
+    }
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => onSessionTap?.call(item),
+      child: Container(
+        height: 19,
+        padding: const EdgeInsets.symmetric(vertical: 1),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Thanh màu 3x14dp bo 2dp
+            Container(
+              width: 3,
+              height: 14,
+              decoration: BoxDecoration(
+                color: barColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 6),
+
+            // Giờ bắt đầu "HH:mm" (rộng 34dp, màu phụ)
+            SizedBox(
+              width: 34,
+              child: Text(
+                item.timeStr,
+                style: TextStyle(
+                  color: timeColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                  fontFamily: 'sans-serif-medium',
+                ),
+              ),
+            ),
+            const SizedBox(width: 4),
+
+            // Tên môn (cắt "…")
+            Expanded(
+              child: Text(
+                item.displayTitle,
+                style: TextStyle(
+                  color: rowTextColor,
+                  fontSize: 11,
+                  fontWeight: item.isExam ? FontWeight.w600 : FontWeight.w400,
+                  fontFamily: 'sans-serif-medium',
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 6),
+
+            // Phòng căn phải (cỡ 11, phụ)
+            if (item.roomStr.isNotEmpty)
+              Text(
+                item.roomStr,
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                  color: (item.isToday && item.isPast) ? textDimmed : textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400,
+                  fontFamily: 'sans-serif-medium',
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Dòng gộp các ngày trống liên tiếp (Ví dụ "T7 – CN: không có lịch")
+  Widget _buildMergedEmptyDaysRow(BuildContext context, WeeklyMergedEmptyDays item) {
+    final textDimmed = isDarkMode
+        ? WidgetDesignTokens.darkTextDimmed
+        : WidgetDesignTokens.lightTextDimmed;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 2),
+      child: Text(
+        item.displayTitle,
+        style: TextStyle(
+          color: textDimmed,
+          fontSize: 11,
+          fontWeight: FontWeight.w400,
+          fontFamily: 'sans-serif-medium',
+          fontStyle: FontStyle.italic,
+        ),
+      ),
+    );
+  }
+
+  /// Footer tràn chỗ "+N môn nữa" (iOS / Overflow)
+  Widget _buildFooter(BuildContext context) {
+    final textSecondary = isDarkMode
+        ? WidgetDesignTokens.darkTextSecondary
+        : WidgetDesignTokens.lightTextSecondary;
+
+    return Center(
+      child: Text(
+        data.footerText!,
+        style: TextStyle(
+          color: textSecondary,
+          fontSize: 11,
+          fontWeight: FontWeight.w500,
+          fontFamily: 'sans-serif-medium',
+        ),
+      ),
+    );
+  }
+}

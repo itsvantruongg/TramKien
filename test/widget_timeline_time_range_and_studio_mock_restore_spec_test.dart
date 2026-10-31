@@ -160,7 +160,7 @@ void main() {
 
         expect(find.text('Môn học 1'), findsOneWidget);
 
-        final applyBtn = find.text('ÁP DỤNG CẤU HÌNH VÀO WIDGET');
+        final applyBtn = find.text('ÁP DỤNG CẤU HÌNH');
         expect(applyBtn, findsOneWidget);
         await tester.tap(applyBtn, warnIfMissed: false);
         await tester.pumpAndSettle();

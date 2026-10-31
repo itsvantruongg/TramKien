@@ -43,6 +43,12 @@ import WidgetKit
           } else {
             result(false)
           }
+        case "getAppGroupDirectory":
+          if let containerUrl = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "group.vn.edu.hau.tramkien") {
+            result(containerUrl.path)
+          } else {
+            result(nil)
+          }
         default:
           result(FlutterMethodNotImplemented)
         }

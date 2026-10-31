@@ -1,0 +1,1242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:background="@drawable/widget_card_rounded_20dp"
+    android:padding="12dp">
+
+    <!-- Nửa trái: Lưới tháng -->
+    <LinearLayout
+        android:id="@+id/month_left_container"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Hàng tiêu đề tháng: ‹ Tháng M/YYYY › -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/month_btn_prev"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="2dp"
+                android:text="‹"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@+id/month_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:fontFamily="sans-serif-medium"
+                android:gravity="center"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="12sp" />
+            <TextView
+                android:id="@+id/month_btn_next"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="2dp"
+                android:text="›"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <!-- Hàng thứ: T2 T3 T4 T5 T6 T7 CN -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:layout_marginBottom="2dp"
+            android:orientation="horizontal">
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="T2"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9.5sp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="T3"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9.5sp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="T4"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9.5sp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="T5"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9.5sp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="T6"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9.5sp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="T7"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9.5sp" />
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="CN"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="9.5sp" />
+        </LinearLayout>
+
+        <!-- Lưới ngày: 6 hàng x 7 cột -->
+        <LinearLayout
+            android:id="@+id/month_row_0"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <LinearLayout
+                android:id="@+id/cell_0_0"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_0_0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_0_0"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_0_1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_0_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_0_1"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_0_2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_0_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_0_2"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_0_3"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_0_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_0_3"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_0_4"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_0_4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_0_4"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_0_5"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_0_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_0_5"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_0_6"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_0_6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_0_6"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/month_row_1"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <LinearLayout
+                android:id="@+id/cell_1_0"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_1_0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_1_0"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_1_1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_1_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_1_1"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_1_2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_1_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_1_2"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_1_3"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_1_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_1_3"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_1_4"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_1_4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_1_4"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_1_5"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_1_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_1_5"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_1_6"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_1_6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_1_6"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/month_row_2"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <LinearLayout
+                android:id="@+id/cell_2_0"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_2_0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_2_0"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_2_1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_2_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_2_1"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_2_2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_2_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_2_2"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_2_3"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_2_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_2_3"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_2_4"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_2_4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_2_4"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_2_5"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_2_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_2_5"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_2_6"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_2_6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_2_6"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/month_row_3"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <LinearLayout
+                android:id="@+id/cell_3_0"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_3_0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_3_0"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_3_1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_3_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_3_1"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_3_2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_3_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_3_2"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_3_3"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_3_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_3_3"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_3_4"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_3_4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_3_4"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_3_5"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_3_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_3_5"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_3_6"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_3_6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_3_6"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/month_row_4"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <LinearLayout
+                android:id="@+id/cell_4_0"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_4_0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_4_0"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_4_1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_4_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_4_1"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_4_2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_4_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_4_2"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_4_3"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_4_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_4_3"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_4_4"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_4_4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_4_4"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_4_5"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_4_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_4_5"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_4_6"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_4_6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_4_6"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+        <LinearLayout
+            android:id="@+id/month_row_5"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <LinearLayout
+                android:id="@+id/cell_5_0"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_5_0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_5_0"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_5_1"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_5_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_5_1"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_5_2"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_5_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_5_2"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_5_3"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_5_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_5_3"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_5_4"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_5_4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_5_4"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_5_5"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_5_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_5_5"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+            <LinearLayout
+                android:id="@+id/cell_5_6"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:orientation="vertical">
+                <TextView
+                    android:id="@+id/cell_text_5_6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:includeFontPadding="false"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="10sp" />
+                <ImageView
+                    android:id="@+id/cell_dot_5_6"
+                    android:layout_width="3dp"
+                    android:layout_height="3dp"
+                    android:layout_marginTop="1dp"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Khoảng cách 10dp giữa 2 nửa -->
+    <View
+        android:layout_width="10dp"
+        android:layout_height="match_parent" />
+
+    <!-- Nửa phải: Lịch hôm nay -->
+    <LinearLayout
+        android:id="@+id/today_right_container"
+        android:layout_width="0dp"
+        android:layout_weight="1"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Header: Thứ, dd/MM và N môn -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+            <TextView
+                android:id="@+id/today_header_date"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="12sp" />
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+            <TextView
+                android:id="@+id/today_header_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Khung trạng thái trống -->
+        <LinearLayout
+            android:id="@+id/today_empty_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:gravity="center_vertical"
+            android:orientation="vertical"
+            android:visibility="gone">
+            <TextView
+                android:id="@+id/today_empty_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="12sp" />
+            <TextView
+                android:id="@+id/today_empty_subtitle"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:ellipsize="end"
+                android:maxLines="2"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <!-- Khung chứa tối đa 2 thẻ môn -->
+        <LinearLayout
+            android:id="@+id/today_cards_container"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:layout_marginTop="6dp"
+            android:orientation="vertical">
+
+            <!-- Thẻ môn 1 -->
+            <LinearLayout
+                android:id="@+id/today_card_1"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingLeft="6dp"
+                android:paddingRight="6dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
+                <TextView
+                    android:id="@+id/card_1_time_room"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:textSize="11sp" />
+                <TextView
+                    android:id="@+id/card_1_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <!-- Thẻ môn 2 -->
+            <LinearLayout
+                android:id="@+id/today_card_2"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:orientation="vertical"
+                android:paddingLeft="6dp"
+                android:paddingRight="6dp"
+                android:paddingTop="4dp"
+                android:paddingBottom="4dp">
+                <TextView
+                    android:id="@+id/card_2_time_room"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:fontFamily="sans-serif-medium"
+                    android:maxLines="1"
+                    android:textSize="11sp" />
+                <TextView
+                    android:id="@+id/card_2_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:ellipsize="end"
+                    android:maxLines="1"
+                    android:textSize="11sp" />
+            </LinearLayout>
+
+            <!-- Spacer đẩy footer xuống đáy -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <!-- Footer: +N môn nữa -->
+            <TextView
+                android:id="@+id/today_overflow_footer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="11sp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

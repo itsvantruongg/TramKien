@@ -198,7 +198,6 @@ open class ScheduleWidgetProvider : AppWidgetProvider() {
                 val scheduleWeeklyPendingIntent = PendingIntent.getActivity(context, 104, scheduleIntent, pendingIntentFlags)
 
                 if (layoutType == "seven_days") {
-                    views.setOnClickPendingIntent(R.id.widget_weekly_content_container, scheduleWeeklyPendingIntent)
                     views.setOnClickPendingIntent(R.id.widget_root, scheduleWeeklyPendingIntent)
                     try { views.setOnClickPendingIntent(android.R.id.background, scheduleWeeklyPendingIntent) } catch (_: Exception) {}
                 } else {
@@ -332,15 +331,7 @@ open class ScheduleWidgetProvider : AppWidgetProvider() {
                     val hairlineColor = if (isLightBg && bgStyle != "transparent") Color.parseColor("#E2E8F0") else Color.parseColor("#33FFFFFF")
 
                     if (layoutType == "seven_days") {
-                        views.setViewVisibility(R.id.widget_weekly_accent_bar, View.GONE)
                         views.setTextColor(R.id.widget_weekly_title, textColor)
-                        views.setTextColor(R.id.widget_weekly_subtitle, textSecColor)
-                        if (bgStyle == "transparent") {
-                            views.setViewVisibility(R.id.widget_weekly_hairline, View.GONE)
-                        } else {
-                            views.setViewVisibility(R.id.widget_weekly_hairline, View.VISIBLE)
-                            views.setInt(R.id.widget_weekly_hairline, "setBackgroundColor", hairlineColor)
-                        }
                     } else {
                         views.setViewVisibility(R.id.widget_accent_bar, View.GONE)
                         views.setTextColor(R.id.widget_title, textColor)
@@ -368,71 +359,6 @@ open class ScheduleWidgetProvider : AppWidgetProvider() {
                     when (layoutType) {
                         "seven_days" -> {
                             views.setTextViewText(R.id.widget_weekly_title, "Trạm Kiến")
-                            views.setViewVisibility(R.id.widget_weekly_subtitle, View.GONE)
-                            val cellIds = intArrayOf(
-                                R.id.grid_cell_1, R.id.grid_cell_2, R.id.grid_cell_3, R.id.grid_cell_4,
-                                R.id.grid_cell_5, R.id.grid_cell_6, R.id.grid_cell_7
-                            )
-                            val badgeIds = intArrayOf(
-                                R.id.grid_cell_badge_1, R.id.grid_cell_badge_2, R.id.grid_cell_badge_3, R.id.grid_cell_badge_4,
-                                R.id.grid_cell_badge_5, R.id.grid_cell_badge_6, R.id.grid_cell_badge_7
-                            )
-                            val nameIds = intArrayOf(
-                                R.id.grid_cell_name_1, R.id.grid_cell_name_2, R.id.grid_cell_name_3, R.id.grid_cell_name_4,
-                                R.id.grid_cell_name_5, R.id.grid_cell_name_6, R.id.grid_cell_name_7
-                            )
-                            val hybridIds = intArrayOf(
-                                R.id.grid_cell_hybrid_1, R.id.grid_cell_hybrid_2, R.id.grid_cell_hybrid_3, R.id.grid_cell_hybrid_4,
-                                R.id.grid_cell_hybrid_5, R.id.grid_cell_hybrid_6, R.id.grid_cell_hybrid_7
-                            )
-                            val class2NameIds = intArrayOf(
-                                R.id.grid_cell_class2_name_1, R.id.grid_cell_class2_name_2, R.id.grid_cell_class2_name_3, R.id.grid_cell_class2_name_4,
-                                R.id.grid_cell_class2_name_5, R.id.grid_cell_class2_name_6, R.id.grid_cell_class2_name_7
-                            )
-                            val class2HybridIds = intArrayOf(
-                                R.id.grid_cell_class2_hybrid_1, R.id.grid_cell_class2_hybrid_2, R.id.grid_cell_class2_hybrid_3, R.id.grid_cell_class2_hybrid_4,
-                                R.id.grid_cell_class2_hybrid_5, R.id.grid_cell_class2_hybrid_6, R.id.grid_cell_class2_hybrid_7
-                            )
-                            val subIds = intArrayOf(
-                                R.id.grid_cell_sub_1, R.id.grid_cell_sub_2, R.id.grid_cell_sub_3, R.id.grid_cell_sub_4,
-                                R.id.grid_cell_sub_5, R.id.grid_cell_sub_6, R.id.grid_cell_sub_7
-                            )
-                            for (i in 0..6) {
-                                views.setViewVisibility(badgeIds[i], View.GONE)
-                                views.setInt(cellIds[i], "setBackgroundResource", R.drawable.widget_grid_cell_bg)
-                                views.setTextViewText(nameIds[i], if (i == 0) "Trạm Kiến • Vui lòng đăng nhập" else "")
-                                views.setTextViewText(hybridIds[i], "")
-                                views.setViewVisibility(class2NameIds[i], View.GONE)
-                                views.setViewVisibility(class2HybridIds[i], View.GONE)
-                                views.setViewVisibility(subIds[i], View.GONE)
-                                views.setTextColor(nameIds[i], textSecColor)
-                            }
-                            views.setTextViewText(R.id.grid_cell_summary_classes, "0 buổi học • 0 buổi thi")
-                            views.setTextViewText(R.id.grid_cell_summary_empty_days, "Trạm Kiến • Vui lòng đăng nhập")
-                        }
-                        "three_days" -> {
-                            views.setTextViewText(R.id.widget_title, "Trạm Kiến")
-                            views.setViewVisibility(R.id.widget_subtitle, View.GONE)
-                            views.setViewVisibility(R.id.day_indicator_1, View.GONE)
-                            views.setViewVisibility(R.id.day_indicator_2, View.GONE)
-                            views.setViewVisibility(R.id.day_indicator_3, View.GONE)
-                            views.setTextViewText(R.id.day_1_date_prefix, "")
-                            views.setTextViewText(R.id.day_1_class_name, "Trạm Kiến • Vui lòng đăng nhập")
-                            views.setTextColor(R.id.day_1_class_name, textSecColor)
-                            views.setViewVisibility(R.id.day_1_class_hybrid, View.GONE)
-                            views.setTextViewText(R.id.day_2_date_prefix, "")
-                            views.setTextViewText(R.id.day_2_class_name, "")
-                            views.setViewVisibility(R.id.day_2_class_hybrid, View.GONE)
-                            views.setTextViewText(R.id.day_3_date_prefix, "")
-                            views.setTextViewText(R.id.day_3_class_name, "")
-                            views.setViewVisibility(R.id.day_3_class_hybrid, View.GONE)
-                        }
-                        "single_day_2x2" -> {
-                            views.setTextViewText(R.id.widget_title, "Trạm Kiến")
-                            views.setViewVisibility(R.id.single_2x2_content, View.GONE)
-                            views.setViewVisibility(R.id.single_2x2_empty, View.VISIBLE)
-                            views.setTextViewText(R.id.single_2x2_empty_tag, "CHƯA ĐĂNG NHẬP")
-                            views.setTextViewText(R.id.single_2x2_empty_text, "Trạm Kiến • Vui lòng đăng nhập")
                         }
                         "single_day" -> {
                             views.setTextViewText(R.id.widget_title, "Trạm Kiến")
@@ -447,10 +373,12 @@ open class ScheduleWidgetProvider : AppWidgetProvider() {
                         else -> {
                             views.setTextViewText(R.id.widget_title, "Trạm Kiến")
                             views.setViewVisibility(R.id.widget_subtitle, View.GONE)
-                            views.setViewVisibility(R.id.single_day_content, View.GONE)
-                            views.setTextViewText(R.id.class_empty_message, "Trạm Kiến • Vui lòng đăng nhập")
-                            views.setTextColor(R.id.class_empty_message, textSecColor)
-                            views.setViewVisibility(R.id.class_empty_message, View.VISIBLE)
+                            try {
+                                views.setViewVisibility(R.id.single_day_content, View.GONE)
+                                views.setTextViewText(R.id.class_empty_message, "Trạm Kiến • Vui lòng đăng nhập")
+                                views.setTextColor(R.id.class_empty_message, textSecColor)
+                                views.setViewVisibility(R.id.class_empty_message, View.VISIBLE)
+                            } catch (_: Exception) {}
                         }
                     }
                 } else {
@@ -494,12 +422,6 @@ open class ScheduleWidgetProvider : AppWidgetProvider() {
 
                     if (layoutType == "seven_days") {
                         views.setTextViewText(R.id.widget_weekly_title, title)
-                        if (subtitle.isEmpty()) {
-                            views.setViewVisibility(R.id.widget_weekly_subtitle, View.GONE)
-                        } else {
-                            views.setViewVisibility(R.id.widget_weekly_subtitle, View.VISIBLE)
-                            views.setTextViewText(R.id.widget_weekly_subtitle, subtitle)
-                        }
                     } else {
                         views.setTextViewText(R.id.widget_title, title)
                         if (layoutType == "single_day_2x2") {
@@ -762,453 +684,9 @@ open class ScheduleWidgetProvider : AppWidgetProvider() {
                             }
                         }
 
-                        "single_day_2x2" -> {
-                            views.setTextColor(R.id.single_2x2_class_1_name, textColor)
-                            views.setTextColor(R.id.single_2x2_class_1_hybrid, textSecColor)
-                            views.setTextColor(R.id.single_2x2_class_2_name, textColor)
-                            views.setTextColor(R.id.single_2x2_class_2_hybrid, textSecColor)
-                            views.setTextColor(R.id.single_2x2_class_3_name, textColor)
-                            views.setTextColor(R.id.single_2x2_class_3_hybrid, textSecColor)
-                            views.setTextColor(R.id.single_2x2_class_4_name, textColor)
-                            views.setTextColor(R.id.single_2x2_class_4_hybrid, textSecColor)
-                            views.setTextColor(R.id.single_2x2_badge, accentColor)
-                            views.setTextColor(R.id.single_2x2_empty_tag, accentColor)
-                            views.setTextColor(R.id.single_2x2_empty_text, textSecColor)
-
-                            views.setInt(R.id.single_2x2_class_1_hybrid, "setMaxLines", 1)
-                            views.setInt(R.id.single_2x2_class_2_hybrid, "setMaxLines", 1)
-                            views.setInt(R.id.single_2x2_class_3_hybrid, "setMaxLines", 1)
-                            views.setInt(R.id.single_2x2_class_4_hybrid, "setMaxLines", 1)
-
-                            var hasClasses = false
-                            if (daysArray != null && daysArray.length() > 0) {
-                                val firstDay = daysArray.getJSONObject(0)
-                                val rawClasses = firstDay.optJSONArray("classes")
-                                val activeClasses = mutableListOf<JSONObject>()
-                                val allDayClasses = mutableListOf<JSONObject>()
-                                if (rawClasses != null) {
-                                    for (idx in 0 until rawClasses.length()) {
-                                        val item = rawClasses.getJSONObject(idx)
-                                        allDayClasses.add(item)
-                                        if (!item.optBoolean("is_finished", false)) {
-                                            activeClasses.add(item)
-                                        }
-                                    }
-                                }
-
-                                val allFinished = activeClasses.isEmpty() && allDayClasses.isNotEmpty()
-                                val displayClasses = if (activeClasses.isNotEmpty()) activeClasses else if (allFinished) allDayClasses else emptyList()
-
-                                if (displayClasses.isNotEmpty()) {
-                                    hasClasses = true
-                                    val c1 = displayClasses[0]
-                                    val c1Name = formatCourseTitle(c1)
-                                    val isExam1 = isCourseExam(c1)
-                                    val c1Finished = c1.optBoolean("is_finished", false)
-                                    val c1Hybrid = formatCourseTimeRoom(c1, isWideLauncher)
-
-                                    views.setTextViewText(R.id.single_2x2_class_1_name, c1Name)
-                                    views.setTextViewText(R.id.single_2x2_class_1_hybrid, c1Hybrid)
-                                    val c1Color = if (isExam1) Color.parseColor("#EF4444") else (if (c1Finished) textSecColor else textColor)
-                                    views.setTextColor(R.id.single_2x2_class_1_name, c1Color)
-
-                                    if (displayClasses.size > 1) {
-                                        val c2 = displayClasses[1]
-                                        val c2Name = formatCourseTitle(c2)
-                                        val isExam2 = isCourseExam(c2)
-                                        val c2Finished = c2.optBoolean("is_finished", false)
-                                        val c2Hybrid = formatCourseTimeRoom(c2, isWideLauncher)
-
-                                        views.setTextViewText(R.id.single_2x2_class_2_name, c2Name)
-                                        views.setTextViewText(R.id.single_2x2_class_2_hybrid, c2Hybrid)
-                                        val c2Color = if (isExam2) Color.parseColor("#EF4444") else (if (c2Finished) textSecColor else textColor)
-                                        views.setTextColor(R.id.single_2x2_class_2_name, c2Color)
-                                        views.setViewVisibility(R.id.single_2x2_class_2_container, View.VISIBLE)
-                                    } else {
-                                        views.setViewVisibility(R.id.single_2x2_class_2_container, View.GONE)
-                                    }
-
-                                    if (allFinished) {
-                                        views.setTextViewText(R.id.single_2x2_badge, "[ĐÃ XONG]")
-                                        views.setTextColor(R.id.single_2x2_badge, textSecColor)
-                                        views.setViewVisibility(R.id.single_2x2_badge, View.VISIBLE)
-                                        views.setViewVisibility(R.id.single_2x2_class_3_container, View.GONE)
-                                        views.setViewVisibility(R.id.single_2x2_class_4_container, View.GONE)
-                                    } else if (isTallLauncher) {
-                                        // minHeightDp >= 200dp: Bung thêm môn thứ 3, thứ 4
-                                        if (displayClasses.size > 2) {
-                                            val c3 = displayClasses[2]
-                                            val c3Name = formatCourseTitle(c3)
-                                            val isExam3 = isCourseExam(c3)
-                                            val c3Finished = c3.optBoolean("is_finished", false)
-                                            val c3Hybrid = formatCourseTimeRoom(c3, isWideLauncher)
-
-                                            views.setTextViewText(R.id.single_2x2_class_3_name, c3Name)
-                                            views.setTextViewText(R.id.single_2x2_class_3_hybrid, c3Hybrid)
-                                            val c3Color = if (isExam3) Color.parseColor("#EF4444") else (if (c3Finished) textSecColor else textColor)
-                                            views.setTextColor(R.id.single_2x2_class_3_name, c3Color)
-                                            views.setViewVisibility(R.id.single_2x2_class_3_container, View.VISIBLE)
-                                        } else {
-                                            views.setViewVisibility(R.id.single_2x2_class_3_container, View.GONE)
-                                        }
-
-                                        if (displayClasses.size > 3) {
-                                            val c4 = displayClasses[3]
-                                            val c4Name = formatCourseTitle(c4)
-                                            val isExam4 = isCourseExam(c4)
-                                            val c4Finished = c4.optBoolean("is_finished", false)
-                                            val c4Hybrid = formatCourseTimeRoom(c4, isWideLauncher)
-
-                                            views.setTextViewText(R.id.single_2x2_class_4_name, c4Name)
-                                            views.setTextViewText(R.id.single_2x2_class_4_hybrid, c4Hybrid)
-                                            val c4Color = if (isExam4) Color.parseColor("#EF4444") else (if (c4Finished) textSecColor else textColor)
-                                            views.setTextColor(R.id.single_2x2_class_4_name, c4Color)
-                                            views.setViewVisibility(R.id.single_2x2_class_4_container, View.VISIBLE)
-                                        } else {
-                                            views.setViewVisibility(R.id.single_2x2_class_4_container, View.GONE)
-                                        }
-
-                                        if (displayClasses.size > 4) {
-                                            val remaining = displayClasses.size - 4
-                                            val footer = "+$remaining môn nữa"
-                                            views.setTextViewText(R.id.single_2x2_badge, footer)
-                                            views.setTextColor(R.id.single_2x2_badge, accentColor)
-                                            views.setViewVisibility(R.id.single_2x2_badge, View.VISIBLE)
-                                        } else {
-                                            views.setViewVisibility(R.id.single_2x2_badge, View.GONE)
-                                        }
-                                    } else {
-                                        views.setViewVisibility(R.id.single_2x2_class_3_container, View.GONE)
-                                        views.setViewVisibility(R.id.single_2x2_class_4_container, View.GONE)
-                                        if (displayClasses.size > 2) {
-                                            val remaining = displayClasses.size - 2
-                                            val footer = "+$remaining môn nữa"
-                                            views.setTextViewText(R.id.single_2x2_badge, footer)
-                                            views.setTextColor(R.id.single_2x2_badge, accentColor)
-                                            views.setViewVisibility(R.id.single_2x2_badge, View.VISIBLE)
-                                        } else {
-                                            views.setViewVisibility(R.id.single_2x2_badge, View.GONE)
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (hasClasses) {
-                                views.setViewVisibility(R.id.single_2x2_content, View.VISIBLE)
-                                views.setViewVisibility(R.id.single_2x2_empty, View.GONE)
-                            } else {
-                                views.setViewVisibility(R.id.single_2x2_content, View.GONE)
-                                views.setTextViewText(R.id.single_2x2_empty_tag, "SẮP TỚI")
-                                views.setTextViewText(R.id.single_2x2_empty_text, "Hôm nay nghỉ")
-                                views.setViewVisibility(R.id.single_2x2_empty, View.VISIBLE)
-                            }
-                        }
-
-                        "three_days" -> {
-                            val rowIds = intArrayOf(R.id.day_row_1, R.id.day_row_2, R.id.day_row_3)
-                            val prefixIds = intArrayOf(R.id.day_1_date_prefix, R.id.day_2_date_prefix, R.id.day_3_date_prefix)
-                            val nameIds = intArrayOf(R.id.day_1_class_name, R.id.day_2_class_name, R.id.day_3_class_name)
-                            val hybridIds = intArrayOf(R.id.day_1_class_hybrid, R.id.day_2_class_hybrid, R.id.day_3_class_hybrid)
-                            val extraIds = intArrayOf(R.id.day_1_class_extra, R.id.day_2_class_extra, R.id.day_3_class_extra)
-                            val indIds = intArrayOf(R.id.day_indicator_1, R.id.day_indicator_2, R.id.day_indicator_3)
-
-                            for (i in 0..2) {
-                                val hasDayData = daysArray != null && i < daysArray.length()
-                                if (hasDayData) {
-                                    val dayObj = daysArray.getJSONObject(i)
-                                    val isToday = dayObj.optBoolean("is_today", i == 0)
-                                    val isDimmed = dayObj.optBoolean("is_dimmed", false)
-                                    val weekdayStr = dayObj.optString("weekday_str", "")
-                                    val dateStr = dayObj.optString("date_str", "")
-
-                                    if (isToday) {
-                                        if (accentDrawables.todayHighlightRes != R.drawable.widget_today_highlight_bg) {
-                                            views.setInt(rowIds[i], "setBackgroundResource", accentDrawables.todayHighlightRes)
-                                        } else {
-                                            views.setInt(rowIds[i], "setBackgroundResource", R.drawable.widget_today_highlight_bg)
-                                        }
-                                    } else {
-                                        views.setInt(rowIds[i], "setBackgroundResource", 0)
-                                    }
-
-                                    views.setTextViewText(prefixIds[i], "$weekdayStr $dateStr")
-                                    views.setTextColor(prefixIds[i], if (isToday) accentColor else if (isDimmed) textSecColor else textColor)
-                                    views.setTextColor(extraIds[i], accentColor)
-                                    views.setViewVisibility(indIds[i], View.GONE)
-
-                                    val classesArray = dayObj.optJSONArray("classes")
-                                    val count = classesArray?.length() ?: 0
-
-                                    if (count == 0) {
-                                        views.setTextViewText(nameIds[i], "Không có lịch")
-                                        views.setTextColor(nameIds[i], if (isToday) textColor else textSecColor)
-                                        views.setViewVisibility(hybridIds[i], View.GONE)
-                                        views.setViewVisibility(extraIds[i], View.GONE)
-                                    } else if (count == 1) {
-                                        val c1 = classesArray!!.getJSONObject(0)
-                                        val isExam1 = isCourseExam(c1)
-                                        val isFinished1 = c1.optBoolean("is_finished", false)
-                                        val c1Title = formatCourseTitle(c1)
-                                        val c1TimeRoom = formatCourseTimeRoom(c1, isWideLauncher)
-
-                                        views.setTextViewText(nameIds[i], c1Title)
-                                        val c1Color = if (isExam1) Color.parseColor("#EF4444") else (if (isFinished1) textSecColor else (if (isToday) textColor else if (isDimmed) textSecColor else textColor))
-                                        views.setTextColor(nameIds[i], c1Color)
-
-                                        if (c1TimeRoom.isNotEmpty()) {
-                                            views.setTextViewText(hybridIds[i], c1TimeRoom)
-                                            views.setTextColor(hybridIds[i], textSecColor)
-                                            views.setViewVisibility(hybridIds[i], View.VISIBLE)
-                                        } else {
-                                            views.setViewVisibility(hybridIds[i], View.GONE)
-                                        }
-                                        views.setViewVisibility(extraIds[i], View.GONE)
-                                    } else if (count == 2) {
-                                        val c1 = classesArray!!.getJSONObject(0)
-                                        val c2 = classesArray.getJSONObject(1)
-                                        val isExam1 = isCourseExam(c1)
-                                        val isExam2 = isCourseExam(c2)
-                                        val isFinished1 = c1.optBoolean("is_finished", false)
-                                        val isFinished2 = c2.optBoolean("is_finished", false)
-
-                                        views.setTextViewText(nameIds[i], formatCourseSummary(c1, isWideLauncher))
-                                        val c1Color = if (isExam1) Color.parseColor("#EF4444") else (if (isFinished1) textSecColor else (if (isToday) textColor else if (isDimmed) textSecColor else textColor))
-                                        views.setTextColor(nameIds[i], c1Color)
-
-                                        views.setTextViewText(hybridIds[i], formatCourseSummary(c2, isWideLauncher))
-                                        val c2Color = if (isExam2) Color.parseColor("#EF4444") else (if (isFinished2) textSecColor else textSecColor)
-                                        views.setTextColor(hybridIds[i], c2Color)
-                                        views.setViewVisibility(hybridIds[i], View.VISIBLE)
-                                        views.setViewVisibility(extraIds[i], View.GONE)
-                                    } else {
-                                        val c1 = classesArray!!.getJSONObject(0)
-                                        val isExam1 = isCourseExam(c1)
-                                        val isFinished1 = c1.optBoolean("is_finished", false)
-
-                                        if (isTallLauncher) {
-                                            // minHeightDp >= 200dp: Hiển thị cả Môn 1 và Môn 2 chi tiết cho mỗi ngày
-                                            val c2 = classesArray.getJSONObject(1)
-                                            val isExam2 = isCourseExam(c2)
-                                            val isFinished2 = c2.optBoolean("is_finished", false)
-
-                                            views.setTextViewText(nameIds[i], formatCourseSummary(c1, isWideLauncher))
-                                            val c1Color = if (isExam1) Color.parseColor("#EF4444") else (if (isFinished1) textSecColor else (if (isToday) textColor else if (isDimmed) textSecColor else textColor))
-                                            views.setTextColor(nameIds[i], c1Color)
-
-                                            views.setTextViewText(hybridIds[i], formatCourseSummary(c2, isWideLauncher))
-                                            val c2Color = if (isExam2) Color.parseColor("#EF4444") else (if (isFinished2) textSecColor else textSecColor)
-                                            views.setTextColor(hybridIds[i], c2Color)
-                                            views.setViewVisibility(hybridIds[i], View.VISIBLE)
-
-                                            val remaining = count - 2
-                                            views.setTextViewText(extraIds[i], "(+$remaining môn nữa)")
-                                            views.setViewVisibility(extraIds[i], View.VISIBLE)
-                                        } else {
-                                            val remaining = count - 1
-                                            views.setTextViewText(nameIds[i], formatCourseSummary(c1, isWideLauncher))
-                                            val c1Color = if (isExam1) Color.parseColor("#EF4444") else (if (isFinished1) textSecColor else (if (isToday) textColor else if (isDimmed) textSecColor else textColor))
-                                            views.setTextColor(nameIds[i], c1Color)
-
-                                            views.setTextViewText(hybridIds[i], "(+$remaining môn nữa)")
-                                            views.setTextColor(hybridIds[i], textSecColor)
-                                            views.setViewVisibility(hybridIds[i], View.VISIBLE)
-                                            views.setViewVisibility(extraIds[i], View.GONE)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        "seven_days" -> {
-                            val cellIds = intArrayOf(
-                                R.id.grid_cell_1, R.id.grid_cell_2, R.id.grid_cell_3,
-                                R.id.grid_cell_4, R.id.grid_cell_5, R.id.grid_cell_6,
-                                R.id.grid_cell_7
-                            )
-                            val badgeIds = intArrayOf(
-                                R.id.grid_cell_badge_1, R.id.grid_cell_badge_2, R.id.grid_cell_badge_3,
-                                R.id.grid_cell_badge_4, R.id.grid_cell_badge_5, R.id.grid_cell_badge_6,
-                                R.id.grid_cell_badge_7
-                            )
-                            val headerIds = intArrayOf(
-                                R.id.grid_cell_header_1, R.id.grid_cell_header_2, R.id.grid_cell_header_3,
-                                R.id.grid_cell_header_4, R.id.grid_cell_header_5, R.id.grid_cell_header_6,
-                                R.id.grid_cell_header_7
-                            )
-                            val nameIds = intArrayOf(
-                                R.id.grid_cell_name_1, R.id.grid_cell_name_2, R.id.grid_cell_name_3,
-                                R.id.grid_cell_name_4, R.id.grid_cell_name_5, R.id.grid_cell_name_6,
-                                R.id.grid_cell_name_7
-                            )
-                            val hybridIds = intArrayOf(
-                                R.id.grid_cell_hybrid_1, R.id.grid_cell_hybrid_2, R.id.grid_cell_hybrid_3,
-                                R.id.grid_cell_hybrid_4, R.id.grid_cell_hybrid_5, R.id.grid_cell_hybrid_6,
-                                R.id.grid_cell_hybrid_7
-                            )
-                            val class2NameIds = intArrayOf(
-                                R.id.grid_cell_class2_name_1, R.id.grid_cell_class2_name_2, R.id.grid_cell_class2_name_3,
-                                R.id.grid_cell_class2_name_4, R.id.grid_cell_class2_name_5, R.id.grid_cell_class2_name_6,
-                                R.id.grid_cell_class2_name_7
-                            )
-                            val class2HybridIds = intArrayOf(
-                                R.id.grid_cell_class2_hybrid_1, R.id.grid_cell_class2_hybrid_2, R.id.grid_cell_class2_hybrid_3,
-                                R.id.grid_cell_class2_hybrid_4, R.id.grid_cell_class2_hybrid_5, R.id.grid_cell_class2_hybrid_6,
-                                R.id.grid_cell_class2_hybrid_7
-                            )
-                            val subIds = intArrayOf(
-                                R.id.grid_cell_sub_1, R.id.grid_cell_sub_2, R.id.grid_cell_sub_3,
-                                R.id.grid_cell_sub_4, R.id.grid_cell_sub_5, R.id.grid_cell_sub_6,
-                                R.id.grid_cell_sub_7
-                            )
-
-                            var totalClasses = 0
-                            var totalExams = 0
-                            var emptyDays = 0
-
-                            val isExpandedWeekly = minWidthDp >= 260 || minHeightDp >= 260 || (widthPx > 0 && widthPx >= 600) || (heightPx > 0 && heightPx >= 600)
-                            val weeklyNameMaxLines = 1 // Khóa cứng 1 dòng duy nhất, text dài cắt bằng dấu ba chấm "..."
-
-                            for (i in 0..6) {
-                                views.setInt(nameIds[i], "setMaxLines", weeklyNameMaxLines)
-                                views.setInt(class2NameIds[i], "setMaxLines", weeklyNameMaxLines)
-                                val hasDayData = daysArray != null && i < daysArray.length()
-                                if (hasDayData) {
-                                    val dayObj = daysArray.getJSONObject(i)
-                                    val isToday = dayObj.optBoolean("is_today", false)
-                                    val weekdayStr = dayObj.optString("weekday_str", "")
-                                    val dateStr = dayObj.optString("date_str", "")
-
-                                    views.setTextViewText(headerIds[i], "$weekdayStr $dateStr")
-
-                                    if (isToday) {
-                                        views.setViewVisibility(badgeIds[i], View.VISIBLE)
-                                        val r = Color.red(accentColor) / 255.0
-                                        val g = Color.green(accentColor) / 255.0
-                                        val b = Color.blue(accentColor) / 255.0
-                                        val accentLuminance = 0.299 * r + 0.587 * g + 0.114 * b
-                                        val badgeTextColor = if (accentLuminance > 0.6) Color.parseColor("#0F172A") else Color.WHITE
-                                        views.setTextColor(badgeIds[i], badgeTextColor)
-                                        views.setInt(badgeIds[i], "setBackgroundResource", accentDrawables.badgeBgRes)
-                                        if (accentDrawables.todayHighlightRes != R.drawable.widget_today_highlight_bg) {
-                                            views.setInt(cellIds[i], "setBackgroundResource", accentDrawables.todayHighlightRes)
-                                        } else {
-                                            views.setInt(cellIds[i], "setBackgroundResource", R.drawable.widget_today_highlight_bg)
-                                        }
-                                        views.setTextColor(headerIds[i], accentColor)
-                                    } else {
-                                        views.setViewVisibility(badgeIds[i], View.GONE)
-                                        if (bgStyle == "transparent") {
-                                            views.setInt(cellIds[i], "setBackgroundColor", Color.TRANSPARENT)
-                                        } else {
-                                            views.setInt(cellIds[i], "setBackgroundResource", R.drawable.widget_grid_cell_bg)
-                                        }
-                                        views.setTextColor(headerIds[i], textSecColor)
-                                    }
-
-                                    val classesArray = dayObj.optJSONArray("classes")
-                                    val count = classesArray?.length() ?: 0
-
-                                    if (count == 0) {
-                                        emptyDays++
-                                        views.setTextViewText(nameIds[i], "Không có lịch")
-                                        views.setTextColor(nameIds[i], textSecColor)
-                                        views.setViewVisibility(hybridIds[i], View.GONE)
-                                        views.setViewVisibility(class2NameIds[i], View.GONE)
-                                        views.setViewVisibility(class2HybridIds[i], View.GONE)
-                                        views.setViewVisibility(subIds[i], View.GONE)
-                                    } else {
-                                        for (k in 0 until count) {
-                                            val ck = classesArray!!.getJSONObject(k)
-                                            if (isCourseExam(ck)) {
-                                                totalExams++
-                                            } else {
-                                                totalClasses++
-                                            }
-                                        }
-
-                                        val c1 = classesArray!!.getJSONObject(0)
-                                        val isExam1 = isCourseExam(c1)
-                                        val isFinished1 = c1.optBoolean("is_finished", false)
-                                        val c1Title = formatCourseTitle(c1)
-                                        val c1TimeRoom = formatCourseTimeRoom(c1, isWideLauncher)
-
-                                        // Hàng 2: Tên môn 1 (Bold 10.5sp, maxLines="1", ellipsis)
-                                        views.setTextViewText(nameIds[i], c1Title)
-                                        val c1Color = if (isExam1) Color.parseColor("#EF4444") else (if (isFinished1) textSecColor else textColor)
-                                        views.setTextColor(nameIds[i], c1Color)
-
-                                        // Hàng 3: Giờ • Phòng môn 1 (9sp)
-                                        if (c1TimeRoom.isNotEmpty()) {
-                                            views.setTextViewText(hybridIds[i], c1TimeRoom)
-                                            views.setTextColor(hybridIds[i], textSecColor)
-                                            views.setViewVisibility(hybridIds[i], View.VISIBLE)
-                                        } else {
-                                            views.setViewVisibility(hybridIds[i], View.GONE)
-                                        }
-
-                                        if (count == 1) {
-                                            views.setViewVisibility(class2NameIds[i], View.GONE)
-                                            views.setViewVisibility(class2HybridIds[i], View.GONE)
-                                            views.setViewVisibility(subIds[i], View.GONE)
-                                        } else if (count == 2) {
-                                            // Hàng 4 & 5: Môn 2 (Tên và Giờ • Phòng riêng biệt)
-                                            val c2 = classesArray.getJSONObject(1)
-                                            val isExam2 = isCourseExam(c2)
-                                            val isFinished2 = c2.optBoolean("is_finished", false)
-                                            val c2Title = formatCourseTitle(c2)
-                                            val c2TimeRoom = formatCourseTimeRoom(c2, isWideLauncher)
-
-                                            views.setTextViewText(class2NameIds[i], c2Title)
-                                            val c2Color = if (isExam2) Color.parseColor("#EF4444") else (if (isFinished2) textSecColor else textColor)
-                                            views.setTextColor(class2NameIds[i], c2Color)
-                                            views.setViewVisibility(class2NameIds[i], View.VISIBLE)
-
-                                            if (c2TimeRoom.isNotEmpty()) {
-                                                views.setTextViewText(class2HybridIds[i], c2TimeRoom)
-                                                views.setTextColor(class2HybridIds[i], textSecColor)
-                                                views.setViewVisibility(class2HybridIds[i], View.VISIBLE)
-                                            } else {
-                                                views.setViewVisibility(class2HybridIds[i], View.GONE)
-                                            }
-
-                                            views.setViewVisibility(subIds[i], View.GONE)
-                                        } else {
-                                            // count >= 3: Môn 1 + Môn 2 + Dòng cuối cùng (+... môn nữa)
-                                            val c2 = classesArray.getJSONObject(1)
-                                            val isExam2 = isCourseExam(c2)
-                                            val isFinished2 = c2.optBoolean("is_finished", false)
-                                            val c2Title = formatCourseTitle(c2)
-                                            val c2TimeRoom = formatCourseTimeRoom(c2, isWideLauncher)
-
-                                            views.setTextViewText(class2NameIds[i], c2Title)
-                                            val c2Color = if (isExam2) Color.parseColor("#EF4444") else (if (isFinished2) textSecColor else textColor)
-                                            views.setTextColor(class2NameIds[i], c2Color)
-                                            views.setViewVisibility(class2NameIds[i], View.VISIBLE)
-
-                                            if (c2TimeRoom.isNotEmpty()) {
-                                                views.setTextViewText(class2HybridIds[i], c2TimeRoom)
-                                                views.setTextColor(class2HybridIds[i], textSecColor)
-                                                views.setViewVisibility(class2HybridIds[i], View.VISIBLE)
-                                            } else {
-                                                views.setViewVisibility(class2HybridIds[i], View.GONE)
-                                            }
-
-                                            val remaining = count - 2
-                                            views.setTextViewText(subIds[i], "(+$remaining môn nữa)")
-                                            views.setTextColor(subIds[i], accentColor)
-                                            views.setViewVisibility(subIds[i], View.VISIBLE)
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Ô 8: Ô Tổng kết tuần: X buổi học • Y buổi thi
-                            views.setInt(R.id.grid_cell_8, "setBackgroundResource", accentDrawables.summaryBgRes)
-                            views.setTextColor(R.id.grid_cell_summary_title, accentColor)
-                            views.setTextColor(R.id.grid_cell_summary_classes, textColor)
-                            views.setTextColor(R.id.grid_cell_summary_empty_days, textSecColor)
-                            views.setTextViewText(R.id.grid_cell_summary_classes, "$totalClasses buổi học • $totalExams buổi thi")
-                            views.setTextViewText(R.id.grid_cell_summary_empty_days, "$emptyDays ngày trống")
+                        "single_day_2x2", "three_days", "seven_days" -> {
+                            // Handled by standalone providers
+                            views.setTextViewText(R.id.widget_title, title)
                         }
                     }
                 }
@@ -1444,26 +922,6 @@ class SingleDayScheduleWidgetProvider : ScheduleWidgetProvider() {
 }
 
 /**
- * Option 2: 2x2 Single Day Square Widget Provider
- */
-class SingleDay2x2ScheduleWidgetProvider : ScheduleWidgetProvider() {
-    override val layoutResId: Int
-        get() = R.layout.widget_schedule_single_day_2x2
-    override val layoutType: String
-        get() = "single_day_2x2"
-}
-
-/**
- * Option 3: 4x2 Three Days Widget Provider
- */
-class ThreeDaysScheduleWidgetProvider : ScheduleWidgetProvider() {
-    override val layoutResId: Int
-        get() = R.layout.widget_schedule_three_days
-    override val layoutType: String
-        get() = "three_days"
-}
-
-/**
  * Option 4: 4x2 Weekly Strip Calendar Widget Provider (Legacy)
  */
 class WeeklyStripScheduleWidgetProvider : ScheduleWidgetProvider() {
@@ -1471,16 +929,6 @@ class WeeklyStripScheduleWidgetProvider : ScheduleWidgetProvider() {
         get() = R.layout.widget_schedule_weekly_strip
     override val layoutType: String
         get() = "weekly_strip"
-}
-
-/**
- * Option 5: 4x4 Weekly Grid 8-Cell Widget Provider
- */
-class WeeklyScheduleWidgetProvider : ScheduleWidgetProvider() {
-    override val layoutResId: Int
-        get() = R.layout.widget_schedule_weekly
-    override val layoutType: String
-        get() = "seven_days"
 }
 
 /**

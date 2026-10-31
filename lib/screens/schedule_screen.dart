@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:scrollable_positioned_list/scrollable_positioned_list.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../models/models.dart';
 import '../widgets/shared_widgets.dart';
+import 'widget_studio_screen.dart';
 
 class ScheduleScreen extends StatefulWidget {
   final void Function(int, {DateTime? focusDate})? onNavigate;
@@ -18,11 +20,44 @@ class ScheduleScreen extends StatefulWidget {
 class _ScheduleScreenState extends State<ScheduleScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabCtrl;
+  bool _showWidgetBanner = false;
 
   @override
   void initState() {
     super.initState();
     _tabCtrl = TabController(length: 2, vsync: this, initialIndex: 1);
+    _checkWidgetBannerVisibility();
+  }
+
+  Future<void> _checkWidgetBannerVisibility() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final dismissed =
+          prefs.getBool('has_dismissed_schedule_widget_banner') ?? false;
+      if (!dismissed && mounted) {
+        setState(() {
+          _showWidgetBanner = true;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _dismissWidgetBanner() async {
+    setState(() {
+      _showWidgetBanner = false;
+    });
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('has_dismissed_schedule_widget_banner', true);
+    } catch (_) {}
+  }
+
+  void _openWidgetStudio() {
+    _dismissWidgetBanner();
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const WidgetStudioScreen()),
+    );
   }
 
   @override
@@ -63,6 +98,102 @@ class _ScheduleScreenState extends State<ScheduleScreen>
               tooltip: 'Đồng bộ lịch',
             ),
           ],
+        ),
+
+        // Thông báo tiện ích Widget (SPEC: hiển thị 1 lần duy nhất, tắt vĩnh viễn chu kỳ)
+        AnimatedSize(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeInOut,
+          child: _showWidgetBanner
+              ? Container(
+                  margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryFixed.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: AppTheme.primary.withOpacity(0.2),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: _openWidgetStudio,
+                        child: Container(
+                          padding: const EdgeInsets.all(7),
+                          decoration: BoxDecoration(
+                            color: AppTheme.primary.withOpacity(0.12),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.widgets_rounded,
+                            size: 18,
+                            color: AppTheme.primary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: _openWidgetStudio,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  Flexible(
+                                    child: Text(
+                                      'Đưa lịch học ra màn hình chính',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontFamily: 'Manrope',
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppTheme.onSurface,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(
+                                    Icons.arrow_forward_ios_rounded,
+                                    size: 10,
+                                    color: AppTheme.primary,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Cài đặt Tiện ích màn hình để theo dõi ca học tức thì',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 11,
+                                  color: AppTheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, size: 18),
+                        color: AppTheme.outline,
+                        splashRadius: 16,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: _dismissWidgetBanner,
+                        tooltip: 'Đóng thông báo',
+                      ),
+                    ],
+                  ),
+                )
+              : const SizedBox.shrink(),
         ),
 
         // Tab bar: Tháng | Tuần

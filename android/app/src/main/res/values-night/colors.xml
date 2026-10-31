@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SPEC-DYNAMIC-SQLITE-WIDGET-SYSTEM-01 Design Tokens (Dark Mode) -->
+    <color name="widget_bg">#262624</color>
+    <color name="widget_border">#3D3D3A</color>
+    <color name="widget_text_primary">#F1EFE8</color>
+    <color name="widget_text_secondary">#B4B2A9</color>
+    <color name="widget_text_dimmed">#888780</color>
+    <color name="widget_accent">#85B7EB</color>
+    <color name="widget_accent_border">#85B7EB</color>
+    <color name="widget_accent_on">#042C53</color>
+    <color name="widget_exam_bg">#791F1F</color>
+    <color name="widget_exam_text">#F7C1C1</color>
+
+    <!-- 8 Subject Colors (Dark) -->
+    <color name="widget_subject_0_bg">#0C447C</color>
+    <color name="widget_subject_0_text">#B5D4F4</color>
+    <color name="widget_subject_1_bg">#27500A</color>
+    <color name="widget_subject_1_text">#C0DD97</color>
+    <color name="widget_subject_2_bg">#3C3489</color>
+    <color name="widget_subject_2_text">#CECBF6</color>
+    <color name="widget_subject_3_bg">#633806</color>
+    <color name="widget_subject_3_text">#FAC775</color>
+    <color name="widget_subject_4_bg">#085041</color>
+    <color name="widget_subject_4_text">#9FE1CB</color>
+    <color name="widget_subject_5_bg">#72243E</color>
+    <color name="widget_subject_5_text">#F4C0D1</color>
+    <color name="widget_subject_6_bg">#712B13</color>
+    <color name="widget_subject_6_text">#F5C4B3</color>
+    <color name="widget_subject_7_bg">#444441</color>
+    <color name="widget_subject_7_text">#D3D1C7</color>
+</resources>

@@ -103,7 +103,7 @@ class ProfileScreen extends StatelessWidget {
                                               const FeedbackScreen()));
                                 }),
                                 _Item(Icons.widgets_outlined,
-                                    'Xưởng tùy biến Widget', () {
+                                    'Tiện ích màn hình', () {
                                   Navigator.push(
                                       context,
                                       MaterialPageRoute(

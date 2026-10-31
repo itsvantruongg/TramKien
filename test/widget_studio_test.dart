@@ -110,7 +110,7 @@ void main() {
       expect(appBar.leading, isNotNull);
 
       // Verify title text exists and has dark color
-      final titleText = tester.widget<Text>(find.text('WIDGET STUDIO'));
+      final titleText = tester.widget<Text>(find.text('TIỆN ÍCH MÀN HÌNH'));
       expect(titleText.style?.color, equals(AppTheme.primary));
 
       // Verify controls render on white surface cards
@@ -249,18 +249,18 @@ void main() {
       expect(find.text('Thêm vào Màn hình chính'), findsNothing);
 
       await tester.scrollUntilVisible(
-        find.text('Để đưa widget ra màn hình: Nhấn giữ màn hình chính ➔ Widget ➔ Chọn Trạm Kiến'),
+        find.text('Mẹo: Để đưa tiện ích ra màn hình: Nhấn giữ màn hình chính ➔ Tiện ích ➔ Chọn Trạm Kiến'),
         300,
         scrollable: find.byType(Scrollable).first,
       );
       expect(
-        find.text('Để đưa widget ra màn hình: Nhấn giữ màn hình chính ➔ Widget ➔ Chọn Trạm Kiến'),
+        find.text('Mẹo: Để đưa tiện ích ra màn hình: Nhấn giữ màn hình chính ➔ Tiện ích ➔ Chọn Trạm Kiến'),
         findsOneWidget,
       );
-      expect(find.byIcon(Icons.lightbulb_outline_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.lightbulb_rounded), findsOneWidget);
 
-      // Bấm nút chính ÁP DỤNG CẤU HÌNH VÀO WIDGET
-      await tester.tap(find.text('ÁP DỤNG CẤU HÌNH VÀO WIDGET'));
+      // Bấm nút chính ÁP DỤNG CẤU HÌNH
+      await tester.tap(find.text('ÁP DỤNG CẤU HÌNH'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pump(const Duration(milliseconds: 500));
@@ -726,7 +726,8 @@ void main() {
       expect(find.text('LIVE PREVIEW (1 NGÀY)'), findsOneWidget);
       expect(find.text('Môn học 1'), findsOneWidget);
       expect(find.text('Môn học 2'), findsOneWidget);
-      expect(find.text('(+2 môn nữa)'), findsOneWidget);
+      expect(find.text('Môn học 3'), findsOneWidget);
+      expect(find.text('(+1 môn nữa)'), findsOneWidget);
       expect(find.textContaining('P.I801'), findsOneWidget);
 
       // 2. Biến thể 2 (3 Ngày · 4x2):
@@ -800,10 +801,11 @@ void main() {
       expect(find.text('[ 1 Ca ]'), findsNothing);
       expect(find.text('[ 4 Ca (học dồn) ]'), findsNothing);
 
-      // Mặc định luôn kín lịch 4 ca học từ sáng đến tối (4x2 Timeline hiển thị môn 1, môn 2, footer (+2 môn nữa))
+      // Mặc định luôn kín lịch 4 ca học từ sáng đến tối (4x2 Timeline hiển thị môn 1, môn 2, môn 3, footer (+1 môn nữa))
       expect(find.text('Môn học 1'), findsOneWidget);
       expect(find.text('Môn học 2'), findsOneWidget);
-      expect(find.text('(+2 môn nữa)'), findsOneWidget);
+      expect(find.text('Môn học 3'), findsOneWidget);
+      expect(find.text('(+1 môn nữa)'), findsOneWidget);
     });
   });
 }

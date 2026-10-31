@@ -21,10 +21,9 @@ class WidgetPinSuccessReceiver : BroadcastReceiver() {
             val appWidgetManager = AppWidgetManager.getInstance(context)
             val providerClasses = listOf(
                 SingleDay2x2ScheduleWidgetProvider::class.java,
+                MonthToday4x2ScheduleWidgetProvider::class.java,
                 ThreeDaysScheduleWidgetProvider::class.java,
-                WeeklyScheduleWidgetProvider::class.java,
-                ScheduleWidgetProvider::class.java,
-                SingleDayScheduleWidgetProvider::class.java
+                WeeklyScheduleWidgetProvider::class.java
             )
             for (cls in providerClasses) {
                 try {

@@ -66,22 +66,42 @@
             android:exported="false"
             android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"/>
 
-        <!-- AppWidget Option 1: 4x2 Lịch Hôm Nay (Timeline) -->
+        <!-- ==================== 4 WIDGET CHUẨN SPEC MỚI ==================== -->
+        <!-- AppWidget 1: Hôm nay (2x2) -->
         <receiver
-            android:name=".SingleDayScheduleWidgetProvider"
+            android:name=".SingleDay2x2ScheduleWidgetProvider"
             android:exported="true"
-            android:enabled="true"
-            android:label="Lịch hôm nay (4x2 Timeline)">
+            android:label="Lịch hôm nay">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.tramkien.hau.ACTION_UPDATE_WIDGET" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/widget_schedule_single_day_info" />
+                android:resource="@xml/widget_schedule_single_day_2x2_info" />
         </receiver>
 
-        <!-- AppWidget 2: Lịch 3 Ngày Tới (4x2) -->
+        <!-- AppWidget 2: Tháng + Hôm nay (4x2) -->
+        <receiver
+            android:name=".MonthToday4x2ScheduleWidgetProvider"
+            android:exported="true"
+            android:label="Lịch tháng">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.tramkien.hau.ACTION_UPDATE_WIDGET" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_schedule_month_today_4x2_info" />
+        </receiver>
+
+        <!-- AppWidget 3: Lịch 3 Ngày Tới (4x2) -->
         <receiver
             android:name=".ThreeDaysScheduleWidgetProvider"
             android:exported="true"
@@ -89,10 +109,52 @@
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.tramkien.hau.ACTION_UPDATE_WIDGET" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_schedule_three_days_info" />
+        </receiver>
+
+        <!-- AppWidget 4: Lịch Tuần Toàn Cảnh 8 Ô (4x4) -->
+        <receiver
+            android:name=".WeeklyScheduleWidgetProvider"
+            android:exported="true"
+            android:label="Lịch tuần">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.tramkien.hau.ACTION_UPDATE_WIDGET" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_schedule_weekly_info" />
+        </receiver>
+
+        <!-- Service RemoteViews cho ListView Widget Tuần 4x4 -->
+        <service
+            android:name=".WeeklyRemoteViewsService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+
+        <!-- ==================== RECEIVERS LEGACY (DISABLED) ==================== -->
+        <!-- AppWidget Option 1: 4x2 Lịch Hôm Nay (Timeline Legacy) -->
+        <receiver
+            android:name=".SingleDayScheduleWidgetProvider"
+            android:exported="true"
+            android:enabled="false"
+            android:label="Lịch hôm nay">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.tramkien.hau.ACTION_UPDATE_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_schedule_single_day_info" />
         </receiver>
 
         <!-- AppWidget Option 4: 4x2 Weekly Strip Calendar (Legacy) -->
@@ -108,20 +170,6 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_schedule_weekly_strip_info" />
-        </receiver>
-
-        <!-- AppWidget 3: Lịch Tuần Toàn Cảnh 8 Ô (4x4) -->
-        <receiver
-            android:name=".WeeklyScheduleWidgetProvider"
-            android:exported="true"
-            android:label="Lịch tuần">
-            <intent-filter>
-                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
-                <action android:name="com.tramkien.hau.ACTION_UPDATE_WIDGET" />
-            </intent-filter>
-            <meta-data
-                android:name="android.appwidget.provider"
-                android:resource="@xml/widget_schedule_weekly_info" />
         </receiver>
 
         <!-- AppWidget Option 6: 4x2 Lịch Ngày Mai (Legacy) -->

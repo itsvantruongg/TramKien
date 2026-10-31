@@ -77,10 +77,9 @@ class MainActivity: FlutterActivity() {
                         val appWidgetManager = AppWidgetManager.getInstance(context)
                         val providerClasses = listOf(
                             SingleDay2x2ScheduleWidgetProvider::class.java,
+                            MonthToday4x2ScheduleWidgetProvider::class.java,
                             ThreeDaysScheduleWidgetProvider::class.java,
-                            WeeklyScheduleWidgetProvider::class.java,
-                            ScheduleWidgetProvider::class.java,
-                            SingleDayScheduleWidgetProvider::class.java
+                            WeeklyScheduleWidgetProvider::class.java
                         )
                         for (cls in providerClasses) {
                             try {
@@ -108,16 +107,20 @@ class MainActivity: FlutterActivity() {
                             val variant = call.argument<String>("variant") ?: ""
 
                             val providerClass = when {
+                                layoutMode == "today_2x2" || layoutMode == "single_day_2x2" ->
+                                    SingleDay2x2ScheduleWidgetProvider::class.java
+                                layoutMode == "month_today_4x2" || layoutMode == "month_today" ->
+                                    MonthToday4x2ScheduleWidgetProvider::class.java
+                                layoutMode == "three_days_4x2" || layoutMode == "three_days" ->
+                                    ThreeDaysScheduleWidgetProvider::class.java
+                                layoutMode == "weekly_4x4" || layoutMode == "seven_days" || layoutMode == "weekly" ->
+                                    WeeklyScheduleWidgetProvider::class.java
                                 layoutMode == "single_day" ->
                                     SingleDayScheduleWidgetProvider::class.java
                                 layoutMode == "tomorrow" ->
                                     TomorrowScheduleWidgetProvider::class.java
-                                layoutMode == "three_days" ->
-                                    ThreeDaysScheduleWidgetProvider::class.java
                                 layoutMode == "weekly_strip" || (layoutMode == "seven_days" && variant == "strip") ->
                                     WeeklyStripScheduleWidgetProvider::class.java
-                                layoutMode == "seven_days" ->
-                                    WeeklyScheduleWidgetProvider::class.java
                                 else ->
                                     SingleDay2x2ScheduleWidgetProvider::class.java
                             }

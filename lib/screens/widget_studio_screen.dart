@@ -4,12 +4,17 @@ import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import '../models/models.dart';
 import '../models/widget_models.dart';
 import '../services/db/schedule_db.dart';
 import '../services/widget_data_sync_service.dart';
+import '../services/widget/widget_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/shared_widgets.dart';
+import '../widgets/widget_today_2x2_card.dart';
+import '../widgets/widget_month_today_4x2_card.dart';
+import '../widgets/widget_three_days_4x2_card.dart';
+import '../widgets/widget_weekly_4x4_card.dart';
+import '../widgets/widget_lock_screen_cards.dart';
 
 /// Màn hình Xưởng tùy biến Widget (SPEC-WIDGET-STUDIO-02)
 /// Thiết kế chuẩn Thụy Sĩ (Swiss Typography), Light Theme đồng bộ toàn hệ thống.
@@ -30,6 +35,10 @@ class WidgetStudioScreen extends StatefulWidget {
 class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
   late WidgetThemeConfig _config;
   WidgetScheduleData? _scheduleData;
+  WidgetScheduleSnapshot? _snapshotData;
+  int _monthOffset = 0;
+  int _weekOffset = 0;
+  DateTime? _previewMockNow;
   bool _isLoading = true;
   bool _isSaving = false;
   bool _isUsingSampleData = false;
@@ -196,6 +205,9 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
         _isUsingSampleData = true;
         _scheduleData = _buildFallbackPreviewData(_config.layoutMode);
       }
+
+      // Nạp snapshot từ Test Harness mock (hoặc file nếu có) (SPEC-DYNAMIC-SQLITE-WIDGET-SYSTEM-01)
+      _snapshotData = WidgetTestHarness.createSpecSampleSnapshot();
     } catch (_) {
       // Fallback preview data mẫu nếu có lỗi
       _isUsingSampleData = true;
@@ -535,7 +547,7 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'WIDGET STUDIO',
+              'TIỆN ÍCH MÀN HÌNH',
               style: TextStyle(
                 fontFamily: 'Manrope',
                 fontSize: 16,
@@ -545,7 +557,7 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
               ),
             ),
             Text(
-              'XƯỞNG TÙY BIẾN THỜI KHÓA BIỂU THỤY SĨ',
+              'TÙY BIẾN THỜI KHÓA BIỂU RA MÀN HÌNH CHÍNH',
               style: TextStyle(
                 fontFamily: 'Inter',
                 fontSize: 10,
@@ -645,8 +657,8 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
                             ),
                             child: Text(
                               _isSaving
-                                  ? 'ĐANG LƯU DỮ LIỆU...'
-                                  : 'ÁP DỤNG CẤU HÌNH VÀO WIDGET',
+                                  ? 'ĐANG LƯU CẤU HÌNH...'
+                                  : 'ÁP DỤNG CẤU HÌNH',
                               style: const TextStyle(
                                 fontFamily: 'Manrope',
                                 fontSize: 14,
@@ -662,12 +674,12 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.lightbulb_outline_rounded,
-                                  size: 16, color: AppTheme.primary),
+                              Icon(Icons.lightbulb_rounded,
+                                  size: 16, color: Color(0xFFF59E0B)),
                               SizedBox(width: 6),
                               Flexible(
                                 child: Text(
-                                  'Để đưa widget ra màn hình: Nhấn giữ màn hình chính ➔ Widget ➔ Chọn Trạm Kiến',
+                                  'Mẹo: Để đưa tiện ích ra màn hình: Nhấn giữ màn hình chính ➔ Tiện ích ➔ Chọn Trạm Kiến',
                                   style: TextStyle(
                                     fontFamily: 'Inter',
                                     fontSize: 12,
@@ -967,31 +979,83 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
   }
 
   /// Render Widget Card theo đúng chuẩn Thụy Sĩ (Swiss typography, không emoji)
-  /// Single Source of Truth Live Preview: Luôn dùng _buildFlutterWidgetCard() loại bỏ hoàn toàn hiện tượng co giật chớp nạp 2 lần
+  /// Kết nối trực tiếp các widget card mới (WidgetToday2x2Card, WidgetMonthToday4x2Card, WidgetThreeDays4x2Card, WidgetWeekly4x4Card, WidgetLockScreenPreviewSet)
   Widget _buildSimulatedWidgetCard() {
-    final Widget card = KeyedSubtree(
-      key: const ValueKey('flutter_fallback_card'),
-      child: _buildFlutterWidgetCard(),
-    );
+    final snap = _snapshotData ?? WidgetTestHarness.createSpecSampleSnapshot();
+    final now = _previewMockNow ?? DateTime(2026, 10, 28, 10, 5);
+    final isDark = _selectedWallpaperIndex < 4;
 
-    final is2x2 = _config.layoutMode == 'single_day' && (_singleDayVariant == '2x2' || _singleDayVariant == 'square_2x2');
-    final isWeeklyGrid = _config.layoutMode == 'seven_days' && (_weeklyVariant == 'grid' || _weeklyVariant == 'grid_8cell');
-    final targetWidth = is2x2 ? 170.0 : 330.0;
-    final targetHeight = is2x2 ? 170.0 : (isWeeklyGrid ? 350.0 : 206.0);
+    Widget dynamicCard;
+    double dynWidth = 330.0;
+    double dynHeight = 160.0;
+
+    if (_config.layoutMode == 'today_2x2') {
+      final todayData = WidgetToday2x2Selector.select(snapshot: snap, now: now);
+      dynWidth = 160.0;
+      dynHeight = 160.0;
+      dynamicCard = WidgetToday2x2Card(data: todayData, isDarkMode: isDark);
+    } else if (_config.layoutMode == 'month_today_4x2') {
+      final monthData = WidgetMonthTodaySelector.select(
+        snapshot: snap,
+        now: now,
+        monthOffset: _monthOffset,
+      );
+      dynWidth = 330.0;
+      dynHeight = 180.0;
+      dynamicCard = WidgetMonthToday4x2Card(
+        data: monthData,
+        isDarkMode: isDark,
+        onPrevMonth: () => setState(() => _monthOffset--),
+        onNextMonth: () => setState(() => _monthOffset++),
+      );
+    } else if (_config.layoutMode == 'three_days_4x2') {
+      final threeDaysData = WidgetThreeDaysSelector.select(snapshot: snap, now: now);
+      dynWidth = 330.0;
+      dynHeight = 180.0;
+      dynamicCard = WidgetThreeDays4x2Card(data: threeDaysData, isDarkMode: isDark);
+    } else if (_config.layoutMode == 'weekly_4x4') {
+      final weeklyData = WidgetWeeklySelector.select(
+        snapshot: snap,
+        now: now,
+        weekOffset: _weekOffset,
+      );
+      dynWidth = 330.0;
+      dynHeight = 350.0;
+      dynamicCard = WidgetWeekly4x4Card(
+        data: weeklyData,
+        isDarkMode: isDark,
+        onPrevWeek: () => setState(() => _weekOffset--),
+        onNextWeek: () => setState(() => _weekOffset++),
+      );
+    } else if (_config.layoutMode == 'lock_screen') {
+      final lockData = WidgetLockScreenSelector.select(snapshot: snap, now: now);
+      dynWidth = 330.0;
+      dynHeight = 280.0;
+      dynamicCard = WidgetLockScreenPreviewSet(data: lockData, isLightWallpaper: !isDark);
+    } else {
+      final is2x2 = _config.layoutMode == 'single_day' && (_singleDayVariant == '2x2' || _singleDayVariant == 'square_2x2');
+      final isWeeklyGrid = _config.layoutMode == 'seven_days' && (_weeklyVariant == 'grid' || _weeklyVariant == 'grid_8cell');
+      dynWidth = is2x2 ? 170.0 : 330.0;
+      dynHeight = is2x2 ? 170.0 : (isWeeklyGrid ? 350.0 : 206.0);
+      dynamicCard = KeyedSubtree(
+        key: const ValueKey('flutter_fallback_card'),
+        child: _buildFlutterWidgetCard(),
+      );
+    }
 
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.topCenter,
       child: SizedBox(
-        width: targetWidth,
-        height: targetHeight,
+        width: dynWidth,
+        height: dynHeight,
         child: AnimatedSwitcher(
           duration: const Duration(milliseconds: 150),
           transitionBuilder: (child, animation) => FadeTransition(
             opacity: animation,
             child: child,
           ),
-          child: card,
+          child: dynamicCard,
         ),
       ),
     );
@@ -1236,34 +1300,46 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
       );
     }
 
-    final displayClasses = classes.take(2).toList();
+    final displayClasses = classes.take(3).toList();
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (int i = 0; i < displayClasses.length; i++) ...[
-          if (i > 0) const SizedBox(height: 8),
-          _buildTimelineRow(
-            displayClasses[i],
-            primaryColor,
-            secondaryColor,
-            accent,
-          ),
-        ],
-        if (classes.length > 2) ...[
-          const Spacer(),
-          Text(
-            '(+${classes.length - 2} môn nữa)',
-            style: TextStyle(
-              fontFamily: 'Manrope',
-              fontSize: 9.5,
-              fontWeight: FontWeight.w700,
-              color: accent,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.topLeft,
+          child: SizedBox(
+            width: constraints.maxWidth,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                for (int i = 0; i < displayClasses.length; i++) ...[
+                  if (i > 0) SizedBox(height: displayClasses.length > 2 ? 6 : 8),
+                  _buildTimelineRow(
+                    displayClasses[i],
+                    primaryColor,
+                    secondaryColor,
+                    accent,
+                  ),
+                ],
+                if (classes.length > 3) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    '(+${classes.length - 3} môn nữa)',
+                    style: TextStyle(
+                      fontFamily: 'Manrope',
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.w700,
+                      color: accent,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-        ],
-      ],
+        );
+      },
     );
   }
 
@@ -1619,7 +1695,7 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
                       '${day.weekdayStr} ${day.dateStr}',
                       style: TextStyle(
                         fontFamily: 'Manrope',
-                        fontSize: 10,
+                        fontSize: 11,
                         fontWeight: isToday ? FontWeight.w800 : FontWeight.w700,
                         color: isToday ? accent : primaryColor,
                       ),
@@ -1655,7 +1731,7 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontFamily: 'Inter',
-                                  fontSize: 11,
+                                  fontSize: 12.5,
                                   fontWeight:
                                       isToday ? FontWeight.w700 : FontWeight.w600,
                                   color: textColor,
@@ -1671,9 +1747,24 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   fontFamily: 'Inter',
-                                  fontSize: 9,
+                                  fontSize: 10,
                                   fontWeight: FontWeight.w500,
                                   color: secondaryColor,
+                                ),
+                              ),
+                            ],
+                            if (hasClass && day.classes.length > 1) ...[
+                              const SizedBox(height: 1),
+                              // Hàng 3: Badge (+N môn nữa)
+                              Text(
+                                '(+${day.classes.length - 1} môn nữa)',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontFamily: 'Inter',
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: accent,
                                 ),
                               ),
                             ],
@@ -1863,7 +1954,7 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: 'Inter',
-                        fontSize: 10.5,
+                        fontSize: 11,
                         fontWeight: FontWeight.w700,
                         color: textColor,
                       ),
@@ -1886,7 +1977,7 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: 'Inter',
-                        fontSize: 9,
+                        fontSize: 9.5,
                         color: secondaryColor,
                       ),
                     );
@@ -1908,7 +1999,7 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 10.5,
+                          fontSize: 11,
                           fontWeight: FontWeight.w700,
                           color: textColor2,
                         ),
@@ -1933,7 +2024,7 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           fontFamily: 'Inter',
-                          fontSize: 9,
+                          fontSize: 9.5,
                           color: secondaryColor,
                         ),
                       );
@@ -1947,7 +2038,7 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontFamily: 'Inter',
-                        fontSize: 8,
+                        fontSize: 9,
                         fontWeight: FontWeight.w700,
                         color: accent,
                       ),
@@ -2211,6 +2302,58 @@ class _WidgetStudioScreenState extends State<WidgetStudioScreen> {
                             isSelected ? Colors.white : const Color(0xFF475569),
                       ),
                       textAlign: TextAlign.center,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            ('today_2x2', 'Hôm nay 2x2'),
+            ('month_today_4x2', 'Tháng 4x2'),
+            ('three_days_4x2', '3 Ngày 4x2'),
+            ('weekly_4x4', 'Tuần 4x4'),
+            ('lock_screen', 'Khóa Lock'),
+          ].map((m) {
+            final isSelected = _config.layoutMode == m.$1;
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: InkWell(
+                  key: Key('mode_${m.$1}'),
+                  onTap: () => _onLayoutModeChanged(m.$1),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF1D64F2)
+                          : const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isSelected
+                            ? const Color(0xFF1D64F2)
+                            : const Color(0xFFE2E8F0),
+                        width: 1,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      m.$2,
+                      style: TextStyle(
+                        fontFamily: 'Inter',
+                        fontSize: 9.5,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w500,
+                        color:
+                            isSelected ? Colors.white : const Color(0xFF475569),
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),

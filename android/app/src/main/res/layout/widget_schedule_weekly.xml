@@ -1,968 +1,305 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- SPEC-WIDGET-STUDIO-01: 4x4 Weekly Android AppWidget Layout with ListView -->
+<!-- SPEC-DYNAMIC-SQLITE-WIDGET-SYSTEM-01: Widget Tuần (4x4, ~320x318 dp) -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:padding="10dp"
     android:background="@android:color/transparent">
-
-    <FrameLayout
-        android:id="@android:id/background"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@android:color/transparent">
-
-    <ImageView
-        android:id="@+id/widget_bg_image"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:scaleType="fitXY"
-        android:visibility="gone" />
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
+        android:background="@drawable/widget_card_rounded_20dp"
         android:padding="12dp">
 
-    <!-- Header: Accent Bar + Title + Subtitle -->
-    <LinearLayout
-        android:id="@+id/widget_weekly_header_container"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:gravity="center_vertical">
-
-        <!-- 3dp Accent Bar (Hidden) -->
-        <ImageView
-            android:id="@+id/widget_weekly_accent_bar"
-            android:layout_width="0dp"
-            android:layout_height="0dp"
-            android:visibility="gone" />
-
-        <TextView
-            android:id="@+id/widget_weekly_title"
-            android:layout_width="0dp"
+        <!-- 1. Dòng tiêu đề: "Tuần dd/MM – dd/MM" (cỡ 12, vừa) kèm nút ‹ › chuyển tuần -->
+        <LinearLayout
+            android:id="@+id/widget_weekly_header_container"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:layout_marginStart="0dp"
-            android:text="Lịch tuần"
-            android:textColor="#FFFFFF"
-            android:textSize="15.5sp"
-            android:fontFamily="sans-serif-medium"
-            android:letterSpacing="-0.02"
-            android:includeFontPadding="false"
-            android:maxLines="1"
-            android:ellipsize="end" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
-        <TextView
-            android:id="@+id/widget_weekly_subtitle"
-            android:layout_width="wrap_content"
+            <TextView
+                android:id="@+id/widget_weekly_btn_prev"
+                android:layout_width="28dp"
+                android:layout_height="24dp"
+                android:gravity="center"
+                android:text="‹"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-medium"
+                android:includeFontPadding="false" />
+
+            <TextView
+                android:id="@+id/widget_weekly_title"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="Tuần"
+                android:textColor="@color/widget_text_primary"
+                android:textSize="12sp"
+                android:fontFamily="sans-serif-medium"
+                android:singleLine="true"
+                android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/widget_weekly_btn_next"
+                android:layout_width="28dp"
+                android:layout_height="24dp"
+                android:gravity="center"
+                android:text="›"
+                android:textColor="@color/widget_text_secondary"
+                android:textSize="16sp"
+                android:fontFamily="sans-serif-medium"
+                android:includeFontPadding="false" />
+        </LinearLayout>
+
+        <!-- 2. Dải 7 ngày: Hàng nhãn T2..CN (cỡ 11, phụ), Hàng số môn (hoặc ·), Hôm nay viên thuốc accent -->
+        <LinearLayout
+            android:id="@+id/widget_weekly_strip_container"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginEnd="2dp"
-            android:text="21/10 – 27/10"
-            android:textColor="#98989D"
-            android:textSize="11.5sp"
-            android:fontFamily="sans-serif-medium"
-            android:letterSpacing="-0.02"
-            android:includeFontPadding="false" />
-    </LinearLayout>
-
-    <!-- Hairline Divider 0.5dp -->
-    <ImageView
-        android:id="@+id/widget_weekly_hairline"
-        android:layout_width="match_parent"
-        android:layout_height="1dp"
-        android:layout_marginTop="8dp"
-        android:layout_marginBottom="6dp"
-        android:background="#33FFFFFF" />
-
-    <!-- 8-Cell Grid Container (2 cols x 4 rows) -->
-    <LinearLayout
-        android:id="@+id/widget_weekly_content_container"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
-
-        <!-- Row 1: Ô 1 (T2) & Ô 2 (T3) -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
             android:orientation="horizontal"
-            android:layout_marginBottom="6dp">
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp">
 
-            <!-- Ô 1 (T2) -->
+            <!-- Col 0: T2 -->
             <LinearLayout
-                android:id="@+id/grid_cell_1"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:gravity="top"
-                android:padding="5dp"
-                android:layout_marginEnd="4dp"
-                android:background="@drawable/widget_grid_cell_bg">
-
-                <LinearLayout
-                    android:id="@+id/grid_cell_header_container_1"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:id="@+id/grid_cell_header_1"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="T2 17/08"
-                        android:textColor="#FFFFFF"
-                        android:textSize="10sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false" />
-                    <TextView
-                        android:id="@+id/grid_cell_badge_1"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:paddingStart="3dp"
-                        android:paddingEnd="3dp"
-                        android:paddingTop="1dp"
-                        android:paddingBottom="1dp"
-                        android:background="@drawable/widget_today_badge_bg"
-                        android:text="HÔM NAY"
-                        android:textColor="#FFFFFF"
-                        android:textSize="7sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false"
-                        android:visibility="gone" />
-                </LinearLayout>
-
+                android:gravity="center">
                 <TextView
-                    android:id="@+id/grid_cell_name_1"
-                    android:layout_width="match_parent"
+                    android:id="@+id/col_day_label_0"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Đồ họa và hiện thực ảo"
-                    android:textColor="#FFFFFF"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:text="T2"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
                 <TextView
-                    android:id="@+id/grid_cell_hybrid_1"
-                    android:layout_width="match_parent"
+                    android:id="@+id/col_day_count_0"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="12:45 (T8–12) • P.M-M5.03"
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-
-                <TextView
-                    android:id="@+id/grid_cell_class2_name_1"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#FFFFFF"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/grid_cell_class2_hybrid_1"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/grid_cell_sub_1"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#1D64F2"
-                    android:textSize="8.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="7dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
             </LinearLayout>
 
-            <!-- Ô 2 (T3) -->
+            <!-- Col 1: T3 -->
             <LinearLayout
-                android:id="@+id/grid_cell_2"
                 android:layout_width="0dp"
-                android:layout_height="match_parent"
+                android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:orientation="vertical"
-                android:gravity="top"
-                android:padding="5dp"
-                android:layout_marginStart="4dp"
-                android:background="@drawable/widget_grid_cell_bg">
+                android:gravity="center">
+                <TextView
+                    android:id="@+id/col_day_label_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="T3"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
+                    android:id="@+id/col_day_count_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="7dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
+            </LinearLayout>
 
-                <LinearLayout
-                    android:id="@+id/grid_cell_header_container_2"
-                    android:layout_width="match_parent"
+            <!-- Col 2: T4 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+                <TextView
+                    android:id="@+id/col_day_label_2"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:id="@+id/grid_cell_header_2"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="T3 18/08"
-                        android:textColor="#FFFFFF"
-                        android:textSize="10sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false" />
-                    <TextView
-                        android:id="@+id/grid_cell_badge_2"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:paddingStart="3dp"
-                        android:paddingEnd="3dp"
-                        android:paddingTop="1dp"
-                        android:paddingBottom="1dp"
-                        android:background="@drawable/widget_today_badge_bg"
-                        android:text="HÔM NAY"
-                        android:textColor="#FFFFFF"
-                        android:textSize="7sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false"
-                        android:visibility="gone" />
-                </LinearLayout>
+                    android:text="T4"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
+                    android:id="@+id/col_day_count_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="7dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
+            </LinearLayout>
 
+            <!-- Col 3: T5 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
                 <TextView
-                    android:id="@+id/grid_cell_name_2"
-                    android:layout_width="match_parent"
+                    android:id="@+id/col_day_label_3"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Kiến trúc máy tính"
-                    android:textColor="#FFFFFF"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:text="T5"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
                 <TextView
-                    android:id="@+id/grid_cell_hybrid_2"
-                    android:layout_width="match_parent"
+                    android:id="@+id/col_day_count_3"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="07:00 (T1–3) • P.I801"
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="7dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
+            </LinearLayout>
 
+            <!-- Col 4: T6 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
                 <TextView
-                    android:id="@+id/grid_cell_class2_name_2"
-                    android:layout_width="match_parent"
+                    android:id="@+id/col_day_label_4"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#FFFFFF"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
+                    android:text="T6"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
                 <TextView
-                    android:id="@+id/grid_cell_class2_hybrid_2"
-                    android:layout_width="match_parent"
+                    android:id="@+id/col_day_count_4"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="7dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
+            </LinearLayout>
 
+            <!-- Col 5: T7 -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
                 <TextView
-                    android:id="@+id/grid_cell_sub_2"
-                    android:layout_width="match_parent"
+                    android:id="@+id/col_day_label_5"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#1D64F2"
-                    android:textSize="8.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
+                    android:text="T7"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
+                    android:id="@+id/col_day_count_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="7dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
+            </LinearLayout>
+
+            <!-- Col 6: CN -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:gravity="center">
+                <TextView
+                    android:id="@+id/col_day_label_6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CN"
+                    android:textColor="@color/widget_text_secondary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
+                    android:id="@+id/col_day_count_6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="7dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:textColor="@color/widget_text_primary"
+                    android:textSize="11sp"
+                    android:fontFamily="sans-serif-medium" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Row 2: Ô 3 (T4) & Ô 4 (T5) -->
-        <LinearLayout
+        <!-- Đường kẻ phân cách 0.5dp -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/widget_border" />
+
+        <!-- 3. Danh sách chi tiết cuộn được (ListView) hoặc Empty State -->
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:orientation="horizontal"
-            android:layout_marginBottom="6dp">
+            android:layout_marginTop="4dp">
 
-            <!-- Ô 3 (T4) -->
-            <LinearLayout
-                android:id="@+id/grid_cell_3"
-                android:layout_width="0dp"
+            <ListView
+                android:id="@+id/widget_weekly_list"
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="top"
-                android:padding="5dp"
-                android:layout_marginEnd="4dp"
-                android:background="@drawable/widget_grid_cell_bg">
+                android:divider="@null"
+                android:dividerHeight="0dp"
+                android:scrollbars="vertical" />
 
-                <LinearLayout
-                    android:id="@+id/grid_cell_header_container_3"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:id="@+id/grid_cell_header_3"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="T4 19/08"
-                        android:textColor="#98989D"
-                        android:textSize="10sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false" />
-                    <TextView
-                        android:id="@+id/grid_cell_badge_3"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:paddingStart="3dp"
-                        android:paddingEnd="3dp"
-                        android:paddingTop="1dp"
-                        android:paddingBottom="1dp"
-                        android:background="@drawable/widget_today_badge_bg"
-                        android:text="HÔM NAY"
-                        android:textColor="#FFFFFF"
-                        android:textSize="7sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false"
-                        android:visibility="gone" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/grid_cell_name_3"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Không có lịch"
-                    android:textColor="#98989D"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-                <TextView
-                    android:id="@+id/grid_cell_hybrid_3"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-
-                <TextView
-                    android:id="@+id/grid_cell_class2_name_3"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#FFFFFF"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/grid_cell_class2_hybrid_3"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/grid_cell_sub_3"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#1D64F2"
-                    android:textSize="8.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-            </LinearLayout>
-
-            <!-- Ô 4 (T5) -->
-            <LinearLayout
-                android:id="@+id/grid_cell_4"
-                android:layout_width="0dp"
+            <FrameLayout
+                android:id="@+id/widget_weekly_empty_container"
+                android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="top"
-                android:padding="5dp"
-                android:layout_marginStart="4dp"
-                android:background="@drawable/widget_grid_cell_bg">
-
-                <LinearLayout
-                    android:id="@+id/grid_cell_header_container_4"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:id="@+id/grid_cell_header_4"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="T5 20/08"
-                        android:textColor="#FFFFFF"
-                        android:textSize="10sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false" />
-                    <TextView
-                        android:id="@+id/grid_cell_badge_4"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:paddingStart="3dp"
-                        android:paddingEnd="3dp"
-                        android:paddingTop="1dp"
-                        android:paddingBottom="1dp"
-                        android:background="@drawable/widget_today_badge_bg"
-                        android:text="HÔM NAY"
-                        android:textColor="#FFFFFF"
-                        android:textSize="7sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false"
-                        android:visibility="gone" />
-                </LinearLayout>
+                android:visibility="gone">
 
                 <TextView
-                    android:id="@+id/grid_cell_name_4"
-                    android:layout_width="match_parent"
+                    android:id="@+id/widget_weekly_empty_text"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Giải tích 2"
-                    android:textColor="#FFFFFF"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-                <TextView
-                    android:id="@+id/grid_cell_hybrid_4"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="07:00 (T1–3) • P.U203"
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-
-                <TextView
-                    android:id="@+id/grid_cell_class2_name_4"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#FFFFFF"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/grid_cell_class2_hybrid_4"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-
-                <TextView
-                    android:id="@+id/grid_cell_sub_4"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#1D64F2"
-                    android:textSize="8.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Row 3: Ô 5 (T6) & Ô 6 (T7) -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="horizontal"
-            android:layout_marginBottom="6dp">
-
-            <!-- Ô 5 (T6) -->
-            <LinearLayout
-                android:id="@+id/grid_cell_5"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="top"
-                android:padding="5dp"
-                android:layout_marginEnd="4dp"
-                android:background="@drawable/widget_grid_cell_bg">
-
-                <LinearLayout
-                    android:id="@+id/grid_cell_header_container_5"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:id="@+id/grid_cell_header_5"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="T6 21/08"
-                        android:textColor="#FFFFFF"
-                        android:textSize="10sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false" />
-                    <TextView
-                        android:id="@+id/grid_cell_badge_5"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:paddingStart="3dp"
-                        android:paddingEnd="3dp"
-                        android:paddingTop="1dp"
-                        android:paddingBottom="1dp"
-                        android:background="@drawable/widget_today_badge_bg"
-                        android:text="HÔM NAY"
-                        android:textColor="#FFFFFF"
-                        android:textSize="7sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false"
-                        android:visibility="gone" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/grid_cell_name_5"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Triết học Mác - Lênin"
-                    android:textColor="#FFFFFF"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-                <TextView
-                    android:id="@+id/grid_cell_hybrid_5"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="09:35 (T4–6) • P.H101"
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-
-                <TextView
-                    android:id="@+id/grid_cell_class2_name_5"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#FFFFFF"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/grid_cell_class2_hybrid_5"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-
-                <TextView
-                    android:id="@+id/grid_cell_sub_5"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#1D64F2"
-                    android:textSize="8.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-            </LinearLayout>
-
-            <!-- Ô 6 (T7) -->
-            <LinearLayout
-                android:id="@+id/grid_cell_6"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="top"
-                android:padding="5dp"
-                android:layout_marginStart="4dp"
-                android:background="@drawable/widget_grid_cell_bg">
-
-                <LinearLayout
-                    android:id="@+id/grid_cell_header_container_6"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:id="@+id/grid_cell_header_6"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="T7 22/08"
-                        android:textColor="#98989D"
-                        android:textSize="10sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false" />
-                    <TextView
-                        android:id="@+id/grid_cell_badge_6"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:paddingStart="3dp"
-                        android:paddingEnd="3dp"
-                        android:paddingTop="1dp"
-                        android:paddingBottom="1dp"
-                        android:background="@drawable/widget_today_badge_bg"
-                        android:text="HÔM NAY"
-                        android:textColor="#FFFFFF"
-                        android:textSize="7sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false"
-                        android:visibility="gone" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/grid_cell_name_6"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Không có lịch"
-                    android:textColor="#98989D"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-                <TextView
-                    android:id="@+id/grid_cell_hybrid_6"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-
-                <TextView
-                    android:id="@+id/grid_cell_class2_name_6"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#FFFFFF"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/grid_cell_class2_hybrid_6"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-
-                <TextView
-                    android:id="@+id/grid_cell_sub_6"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#1D64F2"
-                    android:textSize="8.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-            </LinearLayout>
-        </LinearLayout>
-
-        <!-- Row 4: Ô 7 (CN) & Ô 8 (TỔNG KẾT TUẦN) -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="0dp"
-            android:layout_weight="1"
-            android:orientation="horizontal">
-
-            <!-- Ô 7 (CN) -->
-            <LinearLayout
-                android:id="@+id/grid_cell_7"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="top"
-                android:padding="5dp"
-                android:layout_marginEnd="4dp"
-                android:background="@drawable/widget_grid_cell_bg">
-
-                <LinearLayout
-                    android:id="@+id/grid_cell_header_container_7"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:id="@+id/grid_cell_header_7"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="CN 23/08"
-                        android:textColor="#98989D"
-                        android:textSize="10sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false" />
-                    <TextView
-                        android:id="@+id/grid_cell_badge_7"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="4dp"
-                        android:paddingStart="3dp"
-                        android:paddingEnd="3dp"
-                        android:paddingTop="1dp"
-                        android:paddingBottom="1dp"
-                        android:background="@drawable/widget_today_badge_bg"
-                        android:text="HÔM NAY"
-                        android:textColor="#FFFFFF"
-                        android:textSize="7sp"
-                        android:fontFamily="sans-serif-medium"
-                        android:letterSpacing="-0.02"
-                        android:includeFontPadding="false"
-                        android:visibility="gone" />
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/grid_cell_name_7"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Không có lịch"
-                    android:textColor="#98989D"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-                <TextView
-                    android:id="@+id/grid_cell_hybrid_7"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-
-                <TextView
-                    android:id="@+id/grid_cell_class2_name_7"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#FFFFFF"
-                    android:textSize="10.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-                <TextView
-                    android:id="@+id/grid_cell_class2_hybrid_7"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#98989D"
-                    android:textSize="9sp"
-                    android:fontFamily="sans-serif"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-
-                <TextView
-                    android:id="@+id/grid_cell_sub_7"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text=""
-                    android:textColor="#1D64F2"
-                    android:textSize="8.5sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end"
-                    android:visibility="gone" />
-            </LinearLayout>
-
-            <!-- Ô 8: Ô TỔNG KẾT TUẦN ("X BUỔI HỌC", "Y ngày trống") -->
-            <LinearLayout
-                android:id="@+id/grid_cell_8"
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="top"
-                android:padding="5dp"
-                android:layout_marginStart="4dp"
-                android:background="@drawable/widget_grid_summary_cell_bg">
-                <TextView
-                    android:id="@+id/grid_cell_summary_title"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="TỔNG KẾT TUẦN"
-                    android:textColor="#1D64F2"
-                    android:textSize="10sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false" />
-                <TextView
-                    android:id="@+id/grid_cell_summary_classes"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="5 BUỔI HỌC"
-                    android:textColor="#FFFFFF"
+                    android:layout_gravity="center"
+                    android:text="Đăng nhập để xem lịch"
+                    android:textColor="@color/widget_text_secondary"
                     android:textSize="12sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-                <TextView
-                    android:id="@+id/grid_cell_summary_empty_days"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="3 ngày trống"
-                    android:textColor="#98989D"
-                    android:textSize="10sp"
-                    android:fontFamily="sans-serif-medium"
-                    android:letterSpacing="-0.02"
-                    android:includeFontPadding="false"
-                    android:maxLines="1"
-                    android:ellipsize="end" />
-            </LinearLayout>
-        </LinearLayout>
+                    android:fontFamily="sans-serif-medium" />
+            </FrameLayout>
+        </FrameLayout>
     </LinearLayout>
-    </LinearLayout>
-    </FrameLayout>
 </FrameLayout>

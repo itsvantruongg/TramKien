@@ -6,7 +6,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import '../models/models.dart';
 import '../models/widget_models.dart';
+import '../models/widget_schedule_snapshot.dart';
 import 'db/schedule_db.dart';
+import 'widget/widget_snapshot_generator.dart';
+import 'widget/widget_snapshot_storage.dart';
 
 /// Dịch vụ đồng bộ dữ liệu và tính toán cửa sổ thời gian cho Widget (SPEC-WIDGET-STUDIO-01)
 class WidgetDataSyncService {
@@ -32,7 +35,10 @@ class WidgetDataSyncService {
   }
 
   /// Xóa sạch toàn bộ dữ liệu Widget khi đăng xuất và thông báo cho Native widget
-  static Future<void> clearAllWidgetData({SharedPreferences? prefs}) async {
+  static Future<void> clearAllWidgetData({
+    SharedPreferences? prefs,
+    WidgetSnapshotStorage? snapshotStorage,
+  }) async {
     try {
       final p = prefs ?? await SharedPreferences.getInstance();
       final hasData = p.containsKey(keyWidgetScheduleData) ||
@@ -45,7 +51,12 @@ class WidgetDataSyncService {
       await p.remove(keyWidgetScheduleDataThreeDays);
       await p.remove(keyWidgetScheduleDataSevenDays);
       await p.remove(keyWidgetScheduleDataTomorrow);
-      if (!hasData) return;
+      bool hadSnapshot = false;
+      try {
+        final storage = snapshotStorage ?? const WidgetSnapshotStorage();
+        hadSnapshot = await storage.deleteSnapshot();
+      } catch (_) {}
+      if (!hasData && !hadSnapshot) return;
       try {
         final fln = FlutterLocalNotificationsPlugin();
         await fln
@@ -240,6 +251,7 @@ class WidgetDataSyncService {
     FlutterLocalNotificationsPlugin? notificationsPlugin,
     bool updateNotification = true,
     WidgetThemeConfig? themeConfig,
+    WidgetSnapshotStorage? snapshotStorage,
   }) async {
     final now = currentTime ?? DateTime.now();
     final currentConfig = themeConfig ?? await getThemeConfig(prefs: prefs);
@@ -306,6 +318,21 @@ class WidgetDataSyncService {
     // Đồng thời vẫn lưu keyWidgetScheduleData để tương thích ngược
     await p.setString(keyWidgetScheduleData, scheduleData.toJsonString());
 
+    // SPEC-DYNAMIC-SQLITE-WIDGET-SYSTEM-01: Tự động trích xuất bản chụp Snapshot và lưu ra file chia sẻ
+    if (schedules.isNotEmpty || exams.isNotEmpty) {
+      try {
+        final snapshot = WidgetSnapshotGenerator.generateSnapshot(
+          lichHocList: schedules,
+          lichThiList: exams,
+          generatedAt: now,
+        );
+        final storage = snapshotStorage ?? const WidgetSnapshotStorage();
+        await storage.saveSnapshot(snapshot);
+      } catch (e) {
+        debugPrint('⚠️ [WidgetDataSyncService] Lỗi sinh snapshot trong loadAndSyncFromDb: $e');
+      }
+    }
+
     if (updateNotification) {
       if (currentConfig.enableLockscreenNotification) {
         try {
@@ -330,6 +357,30 @@ class WidgetDataSyncService {
     }
 
     return scheduleData;
+  }
+
+  /// Đồng bộ trực tiếp bản chụp SQLite Snapshot và kích hoạt native widget (SPEC-DYNAMIC-SQLITE-WIDGET-SYSTEM-01)
+  static Future<WidgetScheduleSnapshot?> syncSnapshotFromDb({
+    DatabaseExecutor? db,
+    WidgetSnapshotStorage? snapshotStorage,
+    DateTime? currentTime,
+    bool triggerUpdate = true,
+  }) async {
+    try {
+      final snapshot = await WidgetSnapshotGenerator.generateSnapshotFromDb(
+        db: db,
+        generatedAt: currentTime,
+      );
+      final storage = snapshotStorage ?? const WidgetSnapshotStorage();
+      await storage.saveSnapshot(snapshot);
+      if (triggerUpdate) {
+        await triggerNativeWidgetUpdate();
+      }
+      return snapshot;
+    } catch (e) {
+      debugPrint('⚠️ [WidgetDataSyncService] syncSnapshotFromDb error: $e');
+      return null;
+    }
   }
 
   // ── 2. SMART TIME-WINDOW ENGINE (TÍNH TOÁN CỬA SỔ HIỂN THỊ) ─────────────

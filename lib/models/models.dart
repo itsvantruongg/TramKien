@@ -177,6 +177,7 @@ class LichHoc {
   }
 
   // Map tiết → giờ học
+  static const Map<int, (String, String)> tietMap = _tietMap;
   static const _tietMap = {
     1: ('06:55', '07:40'),
     2: ('07:45', '08:30'),
