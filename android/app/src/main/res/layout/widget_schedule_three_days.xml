@@ -171,7 +171,7 @@
         </LinearLayout>
 
         <!-- Khoảng cách 8dp giữa Cột 1 và Cột 2 -->
-        <View
+        <FrameLayout
             android:layout_width="8dp"
             android:layout_height="match_parent" />
 
@@ -308,7 +308,7 @@
         </LinearLayout>
 
         <!-- Khoảng cách 8dp giữa Cột 2 và Cột 3 -->
-        <View
+        <FrameLayout
             android:layout_width="8dp"
             android:layout_height="match_parent" />
 

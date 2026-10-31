@@ -1,64 +1,134 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- SPEC-DYNAMIC-SQLITE-WIDGET-SYSTEM-01: Vector Preview cho Widget 3 Ngày 4x2 (3 Cột) -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="250dp"
     android:height="110dp"
     android:viewportWidth="250"
     android:viewportHeight="110">
-    <!-- Card Background -->
+    <!-- Card Background (Rounded 20dp) -->
     <path
         android:fillColor="#18181B"
         android:strokeColor="#33FFFFFF"
         android:strokeWidth="0.5"
         android:pathData="M 14,0 H 236 Q 250,0 250,14 V 96 Q 250,110 236,110 H 14 Q 0,110 0,96 V 14 Q 0,0 14,0 Z" />
 
-    <!-- Accent Bar -->
+    <!-- ==================== CỘT 1: HÔM NAY (x: 10 to 84) ==================== -->
+    <!-- Header ("Hôm nay") -->
     <path
         android:fillColor="#1D64F2"
-        android:pathData="M 15.5,10 A 1.5,1.5 0 0,1 17,11.5 V 20.5 A 1.5,1.5 0 0,1 15.5,22 A 1.5,1.5 0 0,1 14,20.5 V 11.5 A 1.5,1.5 0 0,1 15.5,10 Z" />
-
-    <!-- Header Title Bar ("3 ngày tới | 20–22/10") -->
+        android:pathData="M 12,10 H 52 Q 53.5,10 53.5,11.5 V 15.5 Q 53.5,17 52,17 H 12 Q 10.5,17 10.5,15.5 V 11.5 Q 10.5,10 12,10 Z" />
+    <!-- Thẻ ca 1 cột 1 (Đang học / Ca 1) -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M 24,12 H 85 Q 87,12 87,14 V 18 Q 87,20 85,20 H 24 Q 22,20 22,18 V 14 Q 22,12 24,12 Z" />
-    <path
-        android:fillColor="#64748B"
-        android:pathData="M 93,13.5 H 140 Q 141.5,13.5 141.5,15 V 17 Q 141.5,18.5 140,18.5 H 93 Q 91.5,18.5 91.5,17 V 15 Q 91.5,13.5 93,13.5 Z" />
-
-    <!-- Hairline Divider -->
-    <path
-        android:fillColor="#26FFFFFF"
-        android:pathData="M 14,26 H 236 V 26.5 H 14 Z" />
-
-    <!-- Row 1: Hôm nay -->
+        android:fillColor="#1E293B"
+        android:strokeColor="#331D64F2"
+        android:strokeWidth="0.5"
+        android:pathData="M 12,22 H 82 Q 85,22 85,25 V 53 Q 85,56 82,56 H 12 Q 9,56 9,53 V 25 Q 9,22 12,22 Z" />
     <path
         android:fillColor="#1D64F2"
-        android:pathData="M 14,35 H 48 Q 50,35 50,37 V 43 Q 50,45 48,45 H 14 Q 12,45 12,43 V 37 Q 12,35 14,35 Z" />
+        android:pathData="M 10,25 H 12.5 V 53 H 10 Z" />
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M 58,34 H 135 Q 136.5,34 136.5,35.5 V 38.5 Q 136.5,40 135,40 H 58 Q 56.5,40 56.5,38.5 V 35.5 Q 56.5,34 58,34 Z" />
+        android:pathData="M 16,27 H 76 Q 77.5,27 77.5,28.5 V 31.5 Q 77.5,33 76,33 H 16 Q 14.5,33 14.5,31.5 V 28.5 Q 14.5,27 16,27 Z" />
     <path
         android:fillColor="#94A3B8"
-        android:pathData="M 58,42 H 180 Q 181.5,42 181.5,43 V 45 Q 181.5,46 180,46 H 58 Q 56.5,46 56.5,45 V 43 Q 56.5,42 58,42 Z" />
+        android:pathData="M 16,39 H 68 Q 69.5,39 69.5,40.5 V 43.5 Q 69.5,45 68,45 H 16 Q 14.5,45 14.5,43.5 V 40.5 Q 14.5,39 16,39 Z" />
 
-    <!-- Row 2: Ngày mai -->
+    <!-- Thẻ ca 2 cột 1 -->
     <path
-        android:fillColor="#475569"
-        android:pathData="M 14,60 H 48 Q 50,60 50,62 V 68 Q 50,70 48,70 H 14 Q 12,70 12,68 V 62 Q 12,60 14,60 Z" />
+        android:fillColor="#141720"
+        android:strokeColor="#1FFFFFFF"
+        android:strokeWidth="0.5"
+        android:pathData="M 12,61 H 82 Q 85,61 85,64 V 92 Q 85,95 82,95 H 12 Q 9,95 9,92 V 64 Q 9,61 12,61 Z" />
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M 10,64 H 12.5 V 92 H 10 Z" />
     <path
         android:fillColor="#E2E8F0"
-        android:pathData="M 58,59 H 130 Q 131.5,59 131.5,60.5 V 63.5 Q 131.5,65 130,65 H 58 Q 56.5,65 56.5,63.5 V 60.5 Q 56.5,59 58,59 Z" />
+        android:pathData="M 16,66 H 72 Q 73.5,66 73.5,67.5 V 70.5 Q 73.5,72 72,72 H 16 Q 14.5,72 14.5,70.5 V 67.5 Q 14.5,66 16,66 Z" />
     <path
         android:fillColor="#94A3B8"
-        android:pathData="M 58,67 H 185 Q 186.5,67 186.5,68 V 70 Q 186.5,71 185,71 H 58 Q 56.5,71 56.5,70 V 68 Q 56.5,67 58,67 Z" />
+        android:pathData="M 16,78 H 64 Q 65.5,78 65.5,79.5 V 82.5 Q 65.5,84 64,84 H 16 Q 14.5,84 14.5,82.5 V 79.5 Q 14.5,78 16,78 Z" />
 
-    <!-- Row 3: Ngày kia -->
+    <!-- Footer cột 1 ("+1 môn") -->
     <path
-        android:fillColor="#334155"
-        android:pathData="M 14,85 H 48 Q 50,85 50,87 V 93 Q 50,95 48,95 H 14 Q 12,95 12,93 V 87 Q 12,85 14,85 Z" />
+        android:fillColor="#64748B"
+        android:pathData="M 12,99 H 46 Q 47,99 47,100 V 102 Q 47,103 46,103 H 12 Q 11,103 11,102 V 100 Q 11,99 12,99 Z" />
+
+    <!-- Vạch phân cách giữa Cột 1 và Cột 2 -->
     <path
-        android:fillColor="#CBD5E1"
-        android:pathData="M 58,84 H 130 Q 131.5,84 131.5,85.5 V 88.5 Q 131.5,90 130,90 H 58 Q 56.5,90 56.5,88.5 V 85.5 Q 56.5,84 58,84 Z" />
+        android:fillColor="#1AFFFFFF"
+        android:pathData="M 89,12 H 89.5 V 100 H 89 Z" />
+
+    <!-- ==================== CỘT 2: NGÀY MAI (x: 94 to 164) ==================== -->
+    <!-- Header ("Ngày mai") -->
     <path
         android:fillColor="#94A3B8"
-        android:pathData="M 58,92 H 185 Q 186.5,92 186.5,93 V 95 Q 186.5,96 185,96 H 58 Q 56.5,96 56.5,95 V 93 Q 56.5,92 58,92 Z" />
+        android:pathData="M 94,10 H 136 Q 137.5,10 137.5,11.5 V 15.5 Q 137.5,17 136,17 H 94 Q 92.5,17 92.5,15.5 V 11.5 Q 92.5,10 94,10 Z" />
+    <!-- Thẻ ca 1 cột 2 (Thi) -->
+    <path
+        android:fillColor="#221518"
+        android:strokeColor="#33EF4444"
+        android:strokeWidth="0.5"
+        android:pathData="M 94,22 H 164 Q 167,22 167,25 V 53 Q 167,56 164,56 H 94 Q 91,56 91,53 V 25 Q 91,22 94,22 Z" />
+    <path
+        android:fillColor="#EF4444"
+        android:pathData="M 92,25 H 94.5 V 53 H 92 Z" />
+    <path
+        android:fillColor="#FCA5A5"
+        android:pathData="M 98,27 H 156 Q 157.5,27 157.5,28.5 V 31.5 Q 157.5,33 156,33 H 98 Q 96.5,33 96.5,31.5 V 28.5 Q 96.5,27 98,27 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 98,39 H 148 Q 149.5,39 149.5,40.5 V 43.5 Q 149.5,45 148,45 H 98 Q 96.5,45 96.5,43.5 V 40.5 Q 96.5,39 98,39 Z" />
+
+    <!-- Thẻ ca 2 cột 2 -->
+    <path
+        android:fillColor="#141720"
+        android:strokeColor="#1FFFFFFF"
+        android:strokeWidth="0.5"
+        android:pathData="M 94,61 H 164 Q 167,61 167,64 V 92 Q 167,95 164,95 H 94 Q 91,95 91,92 V 64 Q 91,61 94,61 Z" />
+    <path
+        android:fillColor="#F59E0B"
+        android:pathData="M 92,64 H 94.5 V 92 H 92 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 98,66 H 152 Q 153.5,66 153.5,67.5 V 70.5 Q 153.5,72 152,72 H 98 Q 96.5,72 96.5,70.5 V 67.5 Q 96.5,66 98,66 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 98,78 H 142 Q 143.5,78 143.5,79.5 V 82.5 Q 143.5,84 142,84 H 98 Q 96.5,84 96.5,82.5 V 79.5 Q 96.5,78 98,78 Z" />
+
+    <!-- Vạch phân cách giữa Cột 2 và Cột 3 -->
+    <path
+        android:fillColor="#1AFFFFFF"
+        android:pathData="M 171,12 H 171.5 V 100 H 171 Z" />
+
+    <!-- ==================== CỘT 3: NGÀY KIA (x: 176 to 244) ==================== -->
+    <!-- Header ("T4 28/10") -->
+    <path
+        android:fillColor="#64748B"
+        android:pathData="M 176,10 H 222 Q 223.5,10 223.5,11.5 V 15.5 Q 223.5,17 222,17 H 176 Q 174.5,17 174.5,15.5 V 11.5 Q 174.5,10 176,10 Z" />
+    <!-- Thẻ ca 1 cột 3 -->
+    <path
+        android:fillColor="#141720"
+        android:strokeColor="#1FFFFFFF"
+        android:strokeWidth="0.5"
+        android:pathData="M 176,22 H 244 Q 247,22 247,25 V 53 Q 247,56 244,56 H 176 Q 173,56 173,53 V 25 Q 173,22 176,22 Z" />
+    <path
+        android:fillColor="#8B5CF6"
+        android:pathData="M 174,25 H 176.5 V 53 H 174 Z" />
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 180,27 H 236 Q 237.5,27 237.5,28.5 V 31.5 Q 237.5,33 236,33 H 180 Q 178.5,33 178.5,31.5 V 28.5 Q 178.5,27 180,27 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 180,39 H 226 Q 227.5,39 227.5,40.5 V 43.5 Q 227.5,45 226,45 H 180 Q 178.5,45 178.5,43.5 V 40.5 Q 178.5,39 180,39 Z" />
+
+    <!-- Thẻ trống cột 3 (Không còn môn) -->
+    <path
+        android:fillColor="#0D1117"
+        android:strokeColor="#0DFFFFFF"
+        android:strokeWidth="0.5"
+        android:pathData="M 176,61 H 244 Q 247,61 247,64 V 92 Q 247,95 244,95 H 176 Q 173,95 173,92 V 64 Q 173,61 176,61 Z" />
+    <path
+        android:fillColor="#475569"
+        android:pathData="M 184,74 H 230 Q 231,74 231,75 V 78 Q 231,79 230,79 H 184 Q 183,79 183,78 V 75 Q 183,74 184,74 Z" />
 </vector>

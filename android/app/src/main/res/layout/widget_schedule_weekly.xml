@@ -264,7 +264,7 @@
         </LinearLayout>
 
         <!-- Đường kẻ phân cách 0.5dp -->
-        <View
+        <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="1dp"
             android:background="@color/widget_border" />
