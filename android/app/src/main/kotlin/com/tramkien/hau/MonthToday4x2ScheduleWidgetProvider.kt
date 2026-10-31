@@ -36,6 +36,8 @@ import java.util.TimeZone
  * 4. Nút ‹ ›: Lưu monthOffset trong shared storage, tự động reset về tháng hiện tại lúc 00:00.
  * 5. Tuân thủ AC-08 (không hardcode mốc giờ dạng \\b\\d{1,2}:\\d{2}\\b).
  */
+typealias MonthWidgetProvider = MonthToday4x2ScheduleWidgetProvider
+
 class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(

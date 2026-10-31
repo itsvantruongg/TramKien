@@ -8,9 +8,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   // Mốc chuẩn Spec: 28/10/2026 (Thứ Tư)
-  final testYear = 2026;
-  final testMonth = 10;
-  final testDay = 28;
+  const testYear = 2026;
+  const testMonth = 10;
+  const testDay = 28;
 
   // Phiên mẫu 1: Lập trình Web (06:55 - 09:20 VN) -> past tại 10:05
   final sessionWeb = Session(

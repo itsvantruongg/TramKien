@@ -141,6 +141,18 @@
             android:permission="android.permission.BIND_REMOTEVIEWS"
             android:exported="false" />
 
+        <!-- Receiver thời gian và boot dùng chung cho toàn bộ Widget (SPEC-DYNAMIC-SQLITE-WIDGET-SYSTEM-01) -->
+        <receiver
+            android:name=".WidgetTimeReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.DATE_CHANGED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
+
         <!-- ==================== RECEIVERS LEGACY (DISABLED) ==================== -->
         <!-- AppWidget Option 1: 4x2 Lịch Hôm Nay (Timeline Legacy) -->
         <receiver

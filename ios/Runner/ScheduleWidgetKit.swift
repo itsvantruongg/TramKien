@@ -2818,3 +2818,87 @@ struct ScheduleWidget: Widget {
         ])
     }
 }
+
+// MARK: - Dedicated Widgets & TramKienWidgetBundle (SPEC-DYNAMIC-SQLITE-WIDGET-SYSTEM-01)
+
+struct TramKienTodayWidget: Widget {
+    let kind: String = "TramKienTodayWidget"
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: ScheduleTimelineProvider()) { entry in
+            ScheduleWidgetView(entry: entry)
+        }
+        .disableContentMarginsIfNeeded()
+        .configurationDisplayName("Hôm nay (2x2)")
+        .description("Xem ca học, ca thi hôm nay và tiến độ hiện tại.")
+        .supportedFamilies([.systemSmall])
+    }
+}
+
+struct TramKienMonthWidget: Widget {
+    let kind: String = "TramKienMonthWidget"
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: ScheduleTimelineProvider()) { entry in
+            ScheduleWidgetView(entry: entry)
+        }
+        .disableContentMarginsIfNeeded()
+        .configurationDisplayName("Tháng + Hôm nay (4x2)")
+        .description("Lưới tháng trực quan kết hợp chi tiết hôm nay.")
+        .supportedFamilies([.systemMedium])
+    }
+}
+
+struct TramKienThreeDayWidget: Widget {
+    let kind: String = "TramKienThreeDayWidget"
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: ScheduleTimelineProvider()) { entry in
+            ScheduleWidgetView(entry: entry)
+        }
+        .disableContentMarginsIfNeeded()
+        .configurationDisplayName("3 Ngày (4x2)")
+        .description("Lịch học 3 ngày tới: hôm nay, mai và ngày kia.")
+        .supportedFamilies([.systemMedium])
+    }
+}
+
+struct TramKienWeekWidget: Widget {
+    let kind: String = "TramKienWeekWidget"
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: ScheduleTimelineProvider()) { entry in
+            ScheduleWidgetView(entry: entry)
+        }
+        .disableContentMarginsIfNeeded()
+        .configurationDisplayName("Tuần (4x4)")
+        .description("Toàn cảnh lịch học cả tuần với danh sách chi tiết.")
+        .supportedFamilies([.systemLarge])
+    }
+}
+
+struct TramKienLockWidget: Widget {
+    let kind: String = "TramKienLockWidget"
+    var body: some WidgetConfiguration {
+        StaticConfiguration(kind: kind, provider: ScheduleTimelineProvider()) { entry in
+            ScheduleWidgetView(entry: entry)
+        }
+        .disableContentMarginsIfNeeded()
+        .configurationDisplayName("Màn hình khóa")
+        .description("Xem nhanh môn học trên màn hình khóa (iOS 16+).")
+        .supportedFamilies([
+            .accessoryRectangular,
+            .accessoryCircular,
+            .accessoryInline
+        ])
+    }
+}
+
+@main
+struct TramKienWidgetBundle: WidgetBundle {
+    var body: some Widget {
+        TramKienTodayWidget()
+        TramKienMonthWidget()
+        TramKienThreeDayWidget()
+        TramKienWeekWidget()
+        TramKienLockWidget()
+        ScheduleWidget()
+    }
+}
+

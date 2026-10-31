@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:Tram_Kien/services/widget/widget_service.dart';
 import 'package:Tram_Kien/widgets/widget_weekly_4x4_card.dart';
-import 'package:Tram_Kien/widgets/widget_today_2x2_card.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

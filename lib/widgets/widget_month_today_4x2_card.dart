@@ -385,7 +385,7 @@ class WidgetMonthToday4x2Card extends StatelessWidget {
       final token = colorTokens[safeColorIdx];
       cardBg = token.bg;
       titleColor = token.text;
-      subColor = token.text.withOpacity(0.9);
+      subColor = token.text.withValues(alpha: 0.9);
     }
 
     final accentBorder = isDarkMode

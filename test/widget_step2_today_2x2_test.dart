@@ -9,9 +9,9 @@ void main() {
 
   // Mốc chuẩn Spec: 28/10/2026 (Thứ Tư)
   // Các mốc giờ kiểm thử (dùng các biến số động, không hardcode)
-  final testYear = 2026;
-  final testMonth = 10;
-  final testDay = 28;
+  const testYear = 2026;
+  const testMonth = 10;
+  const testDay = 28;
 
   // Phiên mẫu 1: Lập trình Web (06:55 - 09:20 VN)
   final sessionWeb = Session(
@@ -207,7 +207,7 @@ void main() {
       expect(nullData.stateType, Today2x2StateType.noSnapshot);
       expect(nullData.displayTitle, 'Đăng nhập để xem lịch');
 
-      final invalidSnapshot = WidgetScheduleSnapshot(
+      const invalidSnapshot = WidgetScheduleSnapshot(
         version: 99, // Sai version
         generatedAt: 0,
         sessions: [],

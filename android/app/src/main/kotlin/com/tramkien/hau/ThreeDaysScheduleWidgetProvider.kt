@@ -36,6 +36,8 @@ import java.util.TimeZone
  * 8. Cột trống: Hiển thị chữ "Trống".
  * 9. Không vi phạm AC-08 (không hardcode mốc giờ dạng \b\d{1,2}:\d{2}\b).
  */
+typealias ThreeDayWidgetProvider = ThreeDaysScheduleWidgetProvider
+
 class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(

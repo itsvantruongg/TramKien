@@ -133,7 +133,6 @@ class WidgetLockScreenSelector {
     }
 
     final todaySessions = snapshot.getTodaySessions(now);
-    final nowMs = now.millisecondsSinceEpoch;
 
     // 1. Môn đang diễn ra (current)
     final activeSessions = todaySessions

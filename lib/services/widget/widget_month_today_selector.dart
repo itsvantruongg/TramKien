@@ -256,7 +256,6 @@ class WidgetMonthTodaySelector {
     required WidgetScheduleSnapshot? snapshot,
     required DateTime now,
   }) {
-    final nowVn = WidgetTimeUtils.toVnDateTime(now);
     final nowIso = WidgetTimeUtils.formatVnDateIso(now);
     final headerLeft =
         '${WidgetTimeUtils.formatWeekdayAbbr(now)}, ${WidgetTimeUtils.formatVnDateDdMm(now)}';

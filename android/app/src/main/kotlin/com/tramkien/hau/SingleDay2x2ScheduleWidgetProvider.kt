@@ -36,6 +36,8 @@ import java.util.TimeZone
  * 8. Deep link tramkien://schedule?date=yyyy-MM-dd&sessionId=...
  * 9. Tuyệt đối không vi phạm AC-08 (không hardcode mốc giờ dạng \\b\\d{1,2}:\\d{2}\\b).
  */
+typealias TodayWidgetProvider = SingleDay2x2ScheduleWidgetProvider
+
 class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(

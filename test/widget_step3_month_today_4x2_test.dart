@@ -8,9 +8,9 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
   // Mốc chuẩn Spec: 28/10/2026 (Thứ Tư)
-  final testYear = 2026;
-  final testMonth = 10;
-  final testDay = 28;
+  const testYear = 2026;
+  const testMonth = 10;
+  const testDay = 28;
 
   // Phiên 1: 26/10/2026 (Thứ Hai) - 3 môn
   final sessionT2_1 = Session(
@@ -420,7 +420,7 @@ void main() {
 
   group('5. Quy tắc cắt tên dài bảo tồn hậu tố (AC-09)', () {
     test('Bảo tồn hậu tố số 2 khi cắt giữa tên môn dài', () {
-      final longTitle = 'Cấu trúc dữ liệu và giải thuật nâng cao chuyên ngành 2';
+      const longTitle = 'Cấu trúc dữ liệu và giải thuật nâng cao chuyên ngành 2';
       final formatted = WidgetMonthTodaySelector.formatWithEllipsisPreservation(longTitle, maxLength: 36);
 
       expect(formatted.endsWith('2'), isTrue);
@@ -429,7 +429,7 @@ void main() {
     });
 
     test('Bảo tồn hậu tố chữ số La Mã khi cắt giữa', () {
-      final longTitle = 'Phương pháp tính toán và giải tích toán học III';
+      const longTitle = 'Phương pháp tính toán và giải tích toán học III';
       final formatted = WidgetMonthTodaySelector.formatWithEllipsisPreservation(longTitle, maxLength: 36);
 
       expect(formatted.endsWith('III'), isTrue);
@@ -438,7 +438,7 @@ void main() {
     });
 
     test('Tên ngắn giữ nguyên không bị chèn dấu ba chấm', () {
-      final shortTitle = 'Mạng máy tính';
+      const shortTitle = 'Mạng máy tính';
       final formatted = WidgetMonthTodaySelector.formatWithEllipsisPreservation(shortTitle, maxLength: 36);
 
       expect(formatted, shortTitle);

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_today_label">Lịch hôm nay (2x2)</string>
+    <string name="widget_month_label">Lịch tháng + Hôm nay (4x2)</string>
+    <string name="widget_three_day_label">Lịch 3 ngày (4x2)</string>
+    <string name="widget_week_label">Lịch tuần (4x4)</string>
+</resources>

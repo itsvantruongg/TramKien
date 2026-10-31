@@ -44,6 +44,9 @@ import java.util.TimeZone
  *      * Các ngày trống liên tiếp gộp thành một dòng: Ví dụ "T7 – CN: không có lịch".
  * 5. Tuân thủ AC-08 (không hardcode mốc giờ dạng \\b\\d{1,2}:\\d{2}\\b).
  */
+typealias WeekWidgetProvider = WeeklyScheduleWidgetProvider
+typealias WeekWidgetService = WeeklyRemoteViewsService
+
 class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
 
     override fun onUpdate(
