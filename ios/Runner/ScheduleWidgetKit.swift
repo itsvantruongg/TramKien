@@ -1486,7 +1486,16 @@ struct ScheduleTimelineProvider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (ScheduleWidgetEntry) -> Void) {
-        completion(ScheduleTimelineProvider.loadData(for: context.family))
+        if context.isPreview {
+            completion(ScheduleTimelineProvider.mockEntry())
+        } else {
+            let entry = ScheduleTimelineProvider.loadData(for: context.family)
+            if entry.isLoggedIn || readSnapshotFromAppGroup() != nil {
+                completion(entry)
+            } else {
+                completion(ScheduleTimelineProvider.mockEntry())
+            }
+        }
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<ScheduleWidgetEntry>) -> Void) {

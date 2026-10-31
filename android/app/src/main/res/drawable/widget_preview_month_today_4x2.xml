@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="250dp"
+    android:height="110dp"
+    android:viewportWidth="250"
+    android:viewportHeight="110">
+    <!-- Card Background -->
+    <path
+        android:fillColor="#18181B"
+        android:strokeColor="#33FFFFFF"
+        android:strokeWidth="0.5"
+        android:pathData="M 14,0 H 236 Q 250,0 250,14 V 96 Q 250,110 236,110 H 14 Q 0,110 0,96 V 14 Q 0,0 14,0 Z" />
+
+    <!-- NỬA TRÁI: LƯỚI THÁNG (x: 10 to 118) -->
+    <!-- Month Header Title ("‹ Tháng 10/2026 ›") -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 14,12 H 20 Q 21,12 21,13 V 17 Q 21,18 20,18 H 14 Q 13,18 13,17 V 13 Q 13,12 14,12 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 32,12 H 96 Q 98,12 98,14 V 16 Q 98,18 96,18 H 32 Q 30,18 30,16 V 14 Q 30,12 32,12 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 108,12 H 114 Q 115,12 115,13 V 17 Q 115,18 114,18 H 108 Q 107,18 107,17 V 13 Q 107,12 108,12 Z" />
+
+    <!-- Weekday Headers Row (T2 T3 T4 T5 T6 T7 CN) -->
+    <path
+        android:fillColor="#64748B"
+        android:pathData="M 14,24 H 114 Q 115,24 115,25 V 27 Q 115,28 114,28 H 14 Q 13,28 13,27 V 25 Q 13,24 14,24 Z" />
+
+    <!-- Calendar Grid Dots / Days -->
+    <!-- Row 1 -->
+    <path
+        android:fillColor="#334155"
+        android:pathData="M 16,34 H 26 V 40 H 16 Z M 32,34 H 42 V 40 H 32 Z M 48,34 H 58 V 40 H 48 Z M 64,34 H 74 V 40 H 64 Z M 80,34 H 90 V 40 H 80 Z M 96,34 H 106 V 40 H 96 Z" />
+    <!-- Row 2 -->
+    <path
+        android:fillColor="#475569"
+        android:pathData="M 16,46 H 26 V 52 H 16 Z M 32,46 H 42 V 52 H 32 Z M 48,46 H 58 V 52 H 48 Z M 64,46 H 74 V 52 H 64 Z M 80,46 H 90 V 52 H 80 Z M 96,46 H 106 V 52 H 96 Z" />
+    <!-- Row 3: Active Today Highlight on day 4 (circle + dot) -->
+    <path
+        android:fillColor="#475569"
+        android:pathData="M 16,58 H 26 V 64 H 16 Z M 32,58 H 42 V 64 H 32 Z M 48,58 H 58 V 64 H 48 Z" />
+    <path
+        android:fillColor="#1D64F2"
+        android:pathData="M 64,56 H 74 Q 77,56 77,59 V 63 Q 77,66 74,66 H 64 Q 61,66 61,63 V 59 Q 61,56 64,56 Z" />
+    <path
+        android:fillColor="#475569"
+        android:pathData="M 80,58 H 90 V 64 H 80 Z M 96,58 H 106 V 64 H 96 Z" />
+    <!-- Row 4 -->
+    <path
+        android:fillColor="#334155"
+        android:pathData="M 16,70 H 26 V 76 H 16 Z M 32,70 H 42 V 76 H 32 Z M 48,70 H 58 V 76 H 48 Z M 64,70 H 74 V 76 H 64 Z M 80,70 H 90 V 76 H 80 Z M 96,70 H 106 V 76 H 96 Z" />
+    <!-- Row 5 -->
+    <path
+        android:fillColor="#1E293B"
+        android:pathData="M 16,82 H 26 V 88 H 16 Z M 32,82 H 42 V 88 H 32 Z M 48,82 H 58 V 88 H 48 Z M 64,82 H 74 V 88 H 64 Z M 80,82 H 90 V 88 H 80 Z M 96,82 H 106 V 88 H 96 Z" />
+
+    <!-- Dải phân cách dọc giữa 2 nửa -->
+    <path
+        android:fillColor="#26FFFFFF"
+        android:pathData="M 122,10 H 122.5 V 100 H 122 Z" />
+
+    <!-- NỬA PHẢI: CHI TIẾT HÔM NAY (x: 130 to 240) -->
+    <!-- Header ("Hôm nay | 2 môn") -->
+    <path
+        android:fillColor="#1D64F2"
+        android:pathData="M 130,12 H 132.5 V 19 H 130 Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 136,12 H 178 Q 179.5,12 179.5,13.5 V 17.5 Q 179.5,19 178,19 H 136 Q 134.5,19 134.5,17.5 V 13.5 Q 134.5,12 136,12 Z" />
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 205,12 H 236 Q 237.5,12 237.5,13.5 V 17.5 Q 237.5,19 236,19 H 205 Q 203.5,19 203.5,17.5 V 13.5 Q 203.5,12 205,12 Z" />
+
+    <!-- Thẻ môn học 1 (Đang học / Tiêu biểu) -->
+    <path
+        android:fillColor="#1E293B"
+        android:strokeColor="#331D64F2"
+        android:strokeWidth="0.5"
+        android:pathData="M 132,25 H 236 Q 240,25 240,29 V 58 Q 240,62 236,62 H 132 Q 128,62 128,58 V 29 Q 128,25 132,25 Z" />
+    <!-- Vạch màu bên trái thẻ 1 -->
+    <path
+        android:fillColor="#1D64F2"
+        android:pathData="M 129,29 H 131.5 V 58 H 129 Z" />
+    <!-- Tên môn học 1 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M 136,31 H 218 Q 220,31 220,32.5 V 36.5 Q 220,38 218,38 H 136 Q 134,38 134,36.5 V 32.5 Q 134,31 136,31 Z" />
+    <!-- Mốc giờ và phòng môn 1 -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 136,44 H 195 Q 196.5,44 196.5,45.5 V 49.5 Q 196.5,51 195,51 H 136 Q 134.5,51 134.5,49.5 V 45.5 Q 134.5,44 136,44 Z" />
+    <!-- Badge chip -->
+    <path
+        android:fillColor="#261D64F2"
+        android:pathData="M 205,43 H 234 Q 236,43 236,45 V 50 Q 236,52 234,52 H 205 Q 203,52 203,50 V 45 Q 203,43 205,43 Z" />
+
+    <!-- Thẻ môn học 2 -->
+    <path
+        android:fillColor="#141720"
+        android:strokeColor="#1FFFFFFF"
+        android:strokeWidth="0.5"
+        android:pathData="M 132,67 H 236 Q 240,67 240,71 V 98 Q 240,102 236,102 H 132 Q 128,102 128,98 V 71 Q 128,67 132,67 Z" />
+    <!-- Vạch màu bên trái thẻ 2 -->
+    <path
+        android:fillColor="#10B981"
+        android:pathData="M 129,71 H 131.5 V 98 H 129 Z" />
+    <!-- Tên môn học 2 -->
+    <path
+        android:fillColor="#E2E8F0"
+        android:pathData="M 136,73 H 200 Q 201.5,73 201.5,74.5 V 78.5 Q 201.5,80 200,80 H 136 Q 134.5,80 134.5,78.5 V 74.5 Q 134.5,73 136,73 Z" />
+    <!-- Mốc giờ và phòng môn 2 -->
+    <path
+        android:fillColor="#94A3B8"
+        android:pathData="M 136,86 H 188 Q 189.5,86 189.5,87.5 V 91.5 Q 189.5,93 188,93 H 136 Q 134.5,93 134.5,91.5 V 87.5 Q 134.5,86 136,86 Z" />
+</vector>
