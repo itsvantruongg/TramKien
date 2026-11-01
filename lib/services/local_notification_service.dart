@@ -217,23 +217,28 @@ class LocalNotificationService {
       return;
     }
 
+    final now = DateTime.now();
+    final todayStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final prefs = await SharedPreferences.getInstance();
+    final fingerprint = '$mssv|${lichHoc.length}|${lichThi.length}|'
+        '${lichHoc.map((l) => '${l.tenLopTinChi}_${l.thu}_${l.gioHoc}').join(',')}';
+
+    final lastDate = prefs.getString('last_scheduled_date_$mssv');
+    final lastFp = prefs.getString('last_scheduled_fp_$mssv');
+
+    if (lastDate == todayStr && lastFp == fingerprint) {
+      debugPrint('🔔 [LocalNotificationService] Đã lên lịch cho hôm nay ($todayStr), bỏ qua re-schedule.');
+      return;
+    }
+
     // Thay vì cancelAll() xóa nhầm cả thông báo test (ID 9999),
     // ta chỉ xóa các ID từ 1 đến 200 (là ID của lịch học)
     for (int j = 1; j <= 200; j++) {
       await _plugin.cancel(j);
     }
 
-    final now = DateTime.now();
     int scheduledCount = 0;
-    print('🔔 Bắt đầu lên lịch thông báo từ ngày: $now');
-    print('🔔 Tổng lichHoc: ${lichHoc.length}, lichThi: ${lichThi.length}');
-
-    // DEBUG: In format dữ liệu thực tế
-    for (var l in lichHoc.take(5)) {
-      print(
-          '🔔 LichHoc: thu="${l.thu}" | thoiGian="${l.thoiGian}" | gioHoc="${l.gioHoc}"');
-    }
-
     final location = tz.getLocation('Asia/Ho_Chi_Minh');
 
     for (int i = 0; i <= 14; i++) {
@@ -244,10 +249,6 @@ class LocalNotificationService {
 
       final classes =
           lichHoc.where((l) => _lichHocMatchesDate(l, dateOnly)).toList();
-
-      // DEBUG: In kết quả match
-      print(
-          '🔔 Ngày ${dateOnly.toString().substring(0, 10)} weekday=${dateOnly.weekday}: ${classes.length} lớp');
 
       final exams = lichThi.where((l) {
         final ed = _parseDate(l.ngayThi);
@@ -323,10 +324,9 @@ class LocalNotificationService {
                   UILocalNotificationDateInterpretation.absoluteTime,
             );
 
-            print('🔔 Lên lịch TỔNG HỢP lúc $scheduleTime cho ngày $dateOnly');
             scheduledCount++;
           } catch (e) {
-            print('⚠️ Lỗi khi zonedSchedule (Tổng hợp ngày mai): $e');
+            debugPrint('⚠️ Lỗi khi zonedSchedule (Tổng hợp ngày mai): $e');
           }
         }
       }
@@ -367,11 +367,9 @@ class LocalNotificationService {
                 uiLocalNotificationDateInterpretation:
                     UILocalNotificationDateInterpretation.absoluteTime,
               );
-              print(
-                  '🔔 Lên lịch TRƯỚC 1 TIẾNG môn ${c.tenHocPhan} lúc $reminderTime');
               scheduledCount++;
             } catch (e) {
-              print('⚠️ Lỗi khi zonedSchedule (Ca học): $e');
+              debugPrint('⚠️ Lỗi khi zonedSchedule (Ca học): $e');
             }
           }
         }
@@ -414,17 +412,18 @@ class LocalNotificationService {
                 uiLocalNotificationDateInterpretation:
                     UILocalNotificationDateInterpretation.absoluteTime,
               );
-              print(
-                  '🔔 Lên lịch TRƯỚC 1 TIẾNG thi ${e.tenMonHoc} lúc $reminderTime');
               scheduledCount++;
             } catch (e) {
-              print('⚠️ Lỗi khi zonedSchedule (Ca thi): $e');
+              debugPrint('⚠️ Lỗi khi zonedSchedule (Ca thi): $e');
             }
           }
         }
       }
     }
-    print('🔔 Hoàn tất lên lịch. Tổng cộng $scheduledCount thông báo.');
+
+    await prefs.setString('last_scheduled_date_$mssv', todayStr);
+    await prefs.setString('last_scheduled_fp_$mssv', fingerprint);
+    debugPrint('🔔 [LocalNotificationService] Hoàn tất lên lịch $scheduledCount thông báo.');
     // Lên lịch thông báo xong thì lên lịch tạo thẻ
     await generateScheduleCards(mssv, lichHoc, lichThi);
   }
@@ -437,6 +436,14 @@ class LocalNotificationService {
     final now = DateTime.now();
     final prefs = await SharedPreferences.getInstance();
     await prefs.reload();
+
+    final lastGenKey = 'last_gen_cards_ms_$mssv';
+    final lastGenMs = prefs.getInt(lastGenKey) ?? 0;
+    final nowMs = now.millisecondsSinceEpoch;
+    // Debounce: bỏ qua nếu vừa sinh thẻ trong vòng 5 phút
+    if (nowMs - lastGenMs < 5 * 60 * 1000) {
+      return;
+    }
 
     // ── 1. Xác định điểm bắt đầu catch-up ──
     final catchupKey = 'last_catchup_time_$mssv';
@@ -460,7 +467,7 @@ class LocalNotificationService {
     final endDay =
         DateTime(now.year, now.month, now.day).add(const Duration(days: 14));
 
-    print(
+    debugPrint(
         '[Schedule Cards] Quét và sinh thẻ từ $startDay → $endDay (now=$now)');
 
     final dismissed = await NotificationService.getDismissedIds();
@@ -627,8 +634,9 @@ class LocalNotificationService {
       }
     }
 
-    // Cập nhật mốc catch-up
+    // Cập nhật mốc catch-up và debounce timestamp
+    await prefs.setInt(lastGenKey, nowMs);
     await prefs.setInt(catchupKey, now.millisecondsSinceEpoch);
-    print('[Schedule Cards] ✅ Hoàn tất sinh thẻ.');
+    debugPrint('[Schedule Cards] ✅ Hoàn tất sinh thẻ.');
   }
 }

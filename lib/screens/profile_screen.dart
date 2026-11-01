@@ -274,7 +274,14 @@ class _NotificationToggleState extends State<_NotificationToggle> {
         ));
         await LocalNotificationService.showTestNotification();
         if (!mounted) return;
-        p.syncSchedule(forceRefresh: false).then((_) {
+
+        final lichHoc = p.scheduleProvider.lichHoc;
+        final lichThi = p.scheduleProvider.lichThi;
+        final scheduleFuture = (lichHoc.isNotEmpty || lichThi.isNotEmpty)
+            ? LocalNotificationService.scheduleClasses(widget.mssv, lichHoc, lichThi)
+            : p.syncSchedule(forceRefresh: false);
+
+        scheduleFuture.then((_) {
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
               content: Text('Đã lên lịch xong các thông báo.'),
@@ -283,10 +290,13 @@ class _NotificationToggleState extends State<_NotificationToggle> {
           }
         });
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Đã tắt thông báo lịch học.'),
-          duration: Duration(seconds: 2),
-        ));
+        await LocalNotificationService.cancelAll();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text('Đã tắt thông báo lịch học.'),
+            duration: Duration(seconds: 2),
+          ));
+        }
       }
     } catch (e) {
       if (!mounted) return;

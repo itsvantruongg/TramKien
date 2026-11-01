@@ -709,23 +709,21 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
       // Load danh sách thông báo vào state (reactive)
       await refreshNotifications();
 
-      // Cold start: Tự động kiểm tra bản chụp snapshot, nếu chưa có thì sinh lại
-      unawaited(() async {
-        try {
-          const snapshotStorage = WidgetSnapshotStorage();
-          final existing = await snapshotStorage.readSnapshot(enforceNotStale: true);
-          if (existing == null || existing.sessions.isEmpty) {
-            final snapshot = WidgetSnapshotGenerator.generateSnapshot(
-              lichHocList: scheduleProvider.lichHoc,
-              lichThiList: scheduleProvider.lichThi,
-            );
-            await snapshotStorage.saveSnapshot(snapshot);
-            await WidgetDataSyncService.triggerNativeWidgetUpdate();
-          }
-        } catch (e) {
-          debugPrint('⚠️ [AppProvider] Lỗi cold start snapshot check: $e');
+      // Tự động kiểm tra bản chụp snapshot, nếu chưa có hoặc rỗng thì lập tức sinh lại
+      try {
+        const snapshotStorage = WidgetSnapshotStorage();
+        final existing = await snapshotStorage.readSnapshot(enforceNotStale: true);
+        if (existing == null || existing.sessions.isEmpty) {
+          final snapshot = WidgetSnapshotGenerator.generateSnapshot(
+            lichHocList: scheduleProvider.lichHoc,
+            lichThiList: scheduleProvider.lichThi,
+          );
+          await snapshotStorage.saveSnapshot(snapshot);
+          await WidgetDataSyncService.triggerNativeWidgetUpdate();
         }
-      }());
+      } catch (e) {
+        debugPrint('⚠️ [AppProvider] Lỗi snapshot check: $e');
+      }
     } catch (e) {
       debugPrint('Lỗi tải cache: $e');
     }

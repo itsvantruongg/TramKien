@@ -6,7 +6,6 @@
     android:targetCellHeight="4"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_schedule_weekly"
-    android:previewLayout="@layout/widget_schedule_weekly"
     android:previewImage="@drawable/widget_preview_weekly"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />

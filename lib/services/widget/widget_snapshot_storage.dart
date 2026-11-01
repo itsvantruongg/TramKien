@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -9,6 +10,9 @@ class WidgetSnapshotStorage {
   static const String snapshotFileName = 'widget_schedule_snapshot.json';
   static const MethodChannel _widgetChannel =
       MethodChannel('com.tramkien.hau/widget');
+
+  /// Hàng đợi tuần tự đảm bảo các lần ghi không bị tranh chấp tài nguyên (mutex)
+  static Future<void> _sequentialLock = Future.value();
 
   /// Thư mục cơ sở tùy chỉnh dùng cho testing / mock
   final Directory? customBaseDir;
@@ -74,8 +78,24 @@ class WidgetSnapshotStorage {
     return File('${dir.path}$separator$snapshotFileName');
   }
 
-  /// Ghi bản chụp lịch ra file JSON
+  /// Ghi bản chụp lịch ra file JSON tuần tự và an toàn tuyệt đối (Atomic Write)
   Future<File> saveSnapshot(
+    WidgetScheduleSnapshot snapshot, {
+    String? customPath,
+  }) async {
+    final prevLock = _sequentialLock;
+    final completer = Completer<void>();
+    _sequentialLock = completer.future;
+
+    try {
+      await prevLock;
+      return await _saveSnapshotInternal(snapshot, customPath: customPath);
+    } finally {
+      completer.complete();
+    }
+  }
+
+  Future<File> _saveSnapshotInternal(
     WidgetScheduleSnapshot snapshot, {
     String? customPath,
   }) async {
@@ -88,13 +108,24 @@ class WidgetSnapshotStorage {
       await parentDir.create(recursive: true);
     }
 
-    // Ghi an toàn qua file tạm rồi đổi tên (atomic write) nếu có thể
-    final tempFile = File('${file.path}.tmp');
-    await tempFile.writeAsString(jsonStr, flush: true);
-    if (await file.exists()) {
-      await file.delete();
+    // Ghi an toàn qua file tạm duy nhất theo microsecond để không bị xung đột
+    final tempFile = File('${file.path}.${DateTime.now().microsecondsSinceEpoch}.tmp');
+    try {
+      await tempFile.writeAsString(jsonStr, flush: true);
+      if (!kIsWeb && Platform.isWindows) {
+        if (await file.exists()) {
+          await file.delete();
+        }
+      }
+      await tempFile.rename(file.path);
+    } catch (e) {
+      if (await tempFile.exists()) {
+        try {
+          await tempFile.delete();
+        } catch (_) {}
+      }
+      rethrow;
     }
-    await tempFile.rename(file.path);
 
     debugPrint('💾 [WidgetSnapshotStorage] Saved snapshot with ${snapshot.sessions.length} sessions to ${file.path}');
     return file;
