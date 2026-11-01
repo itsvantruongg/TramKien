@@ -155,6 +155,34 @@ class WidgetDataSyncService {
     }
   }
 
+  /// Xóa initial route/target tab sau khi Flutter đã xử lý xong
+  static Future<void> clearInitialIntent() async {
+    try {
+      await _nativeChannel
+          .invokeMethod('clearInitialIntent')
+          .timeout(const Duration(milliseconds: 300));
+    } catch (_) {}
+  }
+
+  /// Lắng nghe sự kiện điều hướng từ Widget khi app đang chạy (onNewIntent)
+  static void registerNavigationHandler(
+      void Function(int tab, String? route) handler) {
+    _nativeChannel.setMethodCallHandler((call) async {
+      if (call.method == 'onNavigate') {
+        final map = call.arguments as Map?;
+        final tab = map?['tab'] as int? ?? 1;
+        final route = map?['route'] as String?;
+        handler(tab, route);
+      } else if (call.method == 'onNavigateTab') {
+        final tab = call.arguments as int?;
+        if (tab != null) handler(tab, null);
+      } else if (call.method == 'onNavigateRoute') {
+        final route = call.arguments as String?;
+        if (route != null) handler(1, route);
+      }
+    });
+  }
+
   // ── 1. ĐỒNG BỘ DỮ LIỆU & LƯU TRỮ OFFLINE-FIRST ──────────────────────────
 
   /// Lưu cấu hình giao diện Widget

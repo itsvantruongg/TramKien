@@ -72,14 +72,32 @@ class _MainShellState extends State<MainShell>
       ),
     ];
     _checkInitialTargetTab();
+    WidgetDataSyncService.registerNavigationHandler((tab, route) {
+      if (!mounted) return;
+      DateTime? focusDate;
+      if (route != null && route.contains('date=')) {
+        final dateStr = route.split('date=').last.split('&').first;
+        focusDate = DateTime.tryParse(dateStr);
+      }
+      _navigate(tab, focusDate: focusDate);
+    });
   }
 
   Future<void> _checkInitialTargetTab() async {
     try {
       final tab = await WidgetDataSyncService.getInitialTargetTab();
-      if (tab != null && tab >= 0 && tab <= 4 && mounted) {
-        _navigate(tab);
+      final route = await WidgetDataSyncService.getInitialRoute();
+      DateTime? focusDate;
+      if (route != null && route.contains('date=')) {
+        final dateStr = route.split('date=').last.split('&').first;
+        focusDate = DateTime.tryParse(dateStr);
       }
+      if (tab != null && tab >= 0 && tab <= 4 && mounted) {
+        _navigate(tab, focusDate: focusDate);
+      } else if (focusDate != null && mounted) {
+        _navigate(1, focusDate: focusDate);
+      }
+      await WidgetDataSyncService.clearInitialIntent();
     } catch (_) {}
   }
 

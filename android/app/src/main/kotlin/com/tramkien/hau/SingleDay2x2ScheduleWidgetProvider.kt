@@ -322,6 +322,7 @@ class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
             appWidgetId: Int
         ) {
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(deepLinkUri)).apply {
+                setClass(context, MainActivity::class.java)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             val pendingIntent = PendingIntent.getActivity(

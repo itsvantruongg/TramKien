@@ -185,6 +185,24 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
             )
             views.setOnClickPendingIntent(R.id.month_btn_next, pendingNext)
 
+            // Deep link chung khi tap vào widget
+            val rootIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tramkien://schedule")).apply {
+                setClass(context, MainActivity::class.java)
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+            }
+            val rootPending = PendingIntent.getActivity(
+                context,
+                appWidgetId,
+                rootIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            )
+            views.setOnClickPendingIntent(R.id.widget_root, rootPending)
+            views.setOnClickPendingIntent(R.id.today_empty_container, rootPending)
+            views.setOnClickPendingIntent(R.id.today_empty_title, rootPending)
+            views.setOnClickPendingIntent(R.id.today_empty_subtitle, rootPending)
+            views.setOnClickPendingIntent(R.id.today_header_date, rootPending)
+            views.setOnClickPendingIntent(R.id.today_header_count, rootPending)
+
             // Đọc snapshot
             val snapshotObj = readSnapshotJson(context)
             val allSessions = if (snapshotObj != null && snapshotObj.optInt("version", 0) == 1) {
@@ -291,6 +309,7 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
                     // Deep Link mở ngày đó: tramkien://schedule?date=yyyy-MM-dd
                     val dateIsoStr = String.format(Locale.US, "%04d-%02d-%02d", targetYear, targetMonth, d)
                     val dayIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tramkien://schedule?date=$dateIsoStr")).apply {
+                        setClass(context, MainActivity::class.java)
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     }
                     val dayPending = PendingIntent.getActivity(
@@ -463,6 +482,7 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
             val dateIso = isoFormat.format(Date(session.startMs))
             val deepLinkUri = Uri.parse("tramkien://schedule?date=$dateIso&sessionId=${session.id}")
             val clickIntent = Intent(Intent.ACTION_VIEW, deepLinkUri).apply {
+                setClass(context, MainActivity::class.java)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             val pending = PendingIntent.getActivity(

@@ -124,6 +124,7 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
 
             // Deep link chung
             val rootIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tramkien://schedule")).apply {
+                setClass(context, MainActivity::class.java)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             val rootPending = PendingIntent.getActivity(
@@ -181,6 +182,7 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
                     // Deep link cho cột: tramkien://schedule?date=yyyy-MM-dd
                     val dateIsoStr = String.format(Locale.US, "%04d-%02d-%02d", targetYear, targetMonth, targetDay)
                     val colIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tramkien://schedule?date=$dateIsoStr")).apply {
+                        setClass(context, MainActivity::class.java)
                         flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                     }
                     val colPending = PendingIntent.getActivity(
@@ -190,6 +192,8 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
                         PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                     )
                     views.setOnClickPendingIntent(colContainers[colIdx], colPending)
+                    views.setOnClickPendingIntent(colTitles[colIdx], colPending)
+                    views.setOnClickPendingIntent(colEmpties[colIdx], colPending)
 
                     // Lọc các ca trong ngày
                     val calSession = Calendar.getInstance(vnTz)
@@ -359,6 +363,7 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
                 sessionCal.get(Calendar.DAY_OF_MONTH)
             )
             val cardIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tramkien://schedule?date=$dateIsoStr&sessionId=${session.id}")).apply {
+                setClass(context, MainActivity::class.java)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             val cardPending = PendingIntent.getActivity(

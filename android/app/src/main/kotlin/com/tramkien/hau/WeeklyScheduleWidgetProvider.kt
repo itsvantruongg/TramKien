@@ -289,6 +289,7 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
                 views.setTextViewText(R.id.widget_weekly_empty_text, "Đăng nhập để xem lịch")
 
                 val openAppIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tramkien://schedule")).apply {
+                    setClass(context, MainActivity::class.java)
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
                 }
                 val openAppPending = PendingIntent.getActivity(
@@ -362,6 +363,7 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
 
             // PendingIntent Template cho các hàng trong ListView
             val listClickIntent = Intent(Intent.ACTION_VIEW).apply {
+                setClass(context, MainActivity::class.java)
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
             }
             val listClickPending = PendingIntent.getActivity(

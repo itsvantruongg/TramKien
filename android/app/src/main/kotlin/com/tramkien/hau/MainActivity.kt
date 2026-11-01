@@ -31,6 +31,17 @@ class MainActivity: FlutterActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         handleIntent(intent)
+        flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+            val channel = MethodChannel(messenger, WIDGET_CHANNEL)
+            val tab = initialTargetTab ?: 1
+            val route = initialRoute
+            channel.invokeMethod("onNavigate", mapOf(
+                "tab" to tab,
+                "route" to route
+            ))
+            channel.invokeMethod("onNavigateTab", tab)
+            route?.let { channel.invokeMethod("onNavigateRoute", it) }
+        }
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -59,12 +70,26 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
+        val dataUri = intent?.data
+        android.util.Log.i("MainActivity", "handleIntent: action=${intent?.action}, data=$dataUri")
         intent?.getStringExtra("open_route")?.let {
             initialRoute = it
         }
         if (intent != null && intent.hasExtra("target_tab")) {
             initialTargetTab = intent.getIntExtra("target_tab", -1)
         }
+        dataUri?.let { uri ->
+            if (uri.scheme == "tramkien" && uri.host == "schedule") {
+                initialTargetTab = 1
+                val dateStr = uri.getQueryParameter("date")
+                if (!dateStr.isNullOrEmpty()) {
+                    initialRoute = "/schedule?date=$dateStr"
+                } else if (initialRoute.isNullOrEmpty()) {
+                    initialRoute = "/schedule"
+                }
+            }
+        }
+        android.util.Log.i("MainActivity", "handleIntent resolved: tab=$initialTargetTab, route=$initialRoute")
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -229,14 +254,15 @@ class MainActivity: FlutterActivity() {
                     }
                 }
                 "getInitialRoute" -> {
-                    val r = initialRoute
-                    initialRoute = null
-                    result.success(r)
+                    result.success(initialRoute)
                 }
                 "getInitialTargetTab" -> {
-                    val t = initialTargetTab
+                    result.success(initialTargetTab)
+                }
+                "clearInitialIntent" -> {
+                    initialRoute = null
                     initialTargetTab = null
-                    result.success(t)
+                    result.success(true)
                 }
                 "pickImage" -> {
                     try {
