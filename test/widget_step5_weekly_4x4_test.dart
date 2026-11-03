@@ -495,11 +495,14 @@ void main() {
       expect(find.text('T7'), findsWidgets);
       expect(find.text('CN'), findsWidgets);
 
-      // 3. Kiểm tra số môn trong dải 7 ngày: T2(3), T3(1), T4(4), T5(2), T6(1), T7 và CN (·)
-      expect(find.text('3'), findsOneWidget);
-      expect(find.text('4'), findsOneWidget);
-      expect(find.text('2'), findsOneWidget);
-      expect(find.text('\u00B7'), findsWidgets); // T7 và CN
+      // 3. Kiểm tra ngày tháng trong dải 7 ngày: 26/10 đến 01/11
+      expect(find.text('26/10'), findsOneWidget);
+      expect(find.text('27/10'), findsOneWidget);
+      expect(find.text('28/10'), findsOneWidget);
+      expect(find.text('29/10'), findsOneWidget);
+      expect(find.text('30/10'), findsOneWidget);
+      expect(find.text('31/10'), findsOneWidget);
+      expect(find.text('01/11'), findsOneWidget);
 
       // 4. Kiểm tra tiêu đề nhóm ngày
       expect(find.text('Hôm nay \u00B7 T4 28/10'), findsOneWidget);

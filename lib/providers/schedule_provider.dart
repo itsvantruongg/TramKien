@@ -136,6 +136,14 @@ class ScheduleProvider extends ChangeNotifier {
       );
       const storage = WidgetSnapshotStorage();
       await storage.saveSnapshot(snapshot);
+      try {
+        await WidgetDataSyncService.loadAndSyncFromDb(
+          sourceSchedules: _lichHoc,
+          updateNotification: true,
+        );
+      } catch (e) {
+        debugPrint('⚠️ [ScheduleProvider] loadAndSyncFromDb error: $e');
+      }
       await WidgetDataSyncService.triggerNativeWidgetUpdate();
     } catch (e) {
       debugPrint('⚠️ [ScheduleProvider] Error generating widget snapshot: $e');
@@ -437,11 +445,13 @@ class ScheduleProvider extends ChangeNotifier {
   Future<void> addManualLichHoc(LichHoc item) async {
     await ScheduleDb.insertManualLichHoc(item);
     await refreshFromCache();
+    await _updateWidgetSnapshot();
   }
 
   Future<void> addManualLichThi(LichThi item) async {
     await ScheduleDb.insertManualLichThi(item);
     await refreshFromCache();
+    await _updateWidgetSnapshot();
   }
 
   Future<void> updateNoteLichHoc(int id, String note) async {
@@ -452,6 +462,7 @@ class ScheduleProvider extends ChangeNotifier {
       _lichHoc[idx] = _lichHoc[idx].copyWith(note: note);
       notifyListeners();
     }
+    await _updateWidgetSnapshot();
   }
 
   Future<void> updateNoteLichThi(int id, String note) async {
@@ -462,15 +473,18 @@ class ScheduleProvider extends ChangeNotifier {
       _lichThi[idx] = _lichThi[idx].copyWith(note: note);
       notifyListeners();
     }
+    await _updateWidgetSnapshot();
   }
 
   Future<void> deleteManualLichHoc(int id) async {
     await ScheduleDb.deleteManualLichHoc(id);
     await refreshFromCache();
+    await _updateWidgetSnapshot();
   }
 
   Future<void> deleteManualLichThi(int id) async {
     await ScheduleDb.deleteManualLichThi(id);
     await refreshFromCache();
+    await _updateWidgetSnapshot();
   }
 }

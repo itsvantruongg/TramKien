@@ -2,6 +2,7 @@ package com.tramkien.hau
 
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.app.UiModeManager
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
@@ -9,6 +10,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -67,21 +69,8 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
         val thisWidget = ComponentName(context, MonthToday4x2ScheduleWidgetProvider::class.java)
 
         when (action) {
-            ACTION_MONTH_PREV -> {
-                val appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
-                if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                    val currentOffset = getMonthOffset(context, appWidgetId)
-                    setMonthOffset(context, appWidgetId, currentOffset - 1)
-                    updateAppWidget(context, appWidgetManager, appWidgetId)
-                }
-            }
-            ACTION_MONTH_NEXT -> {
-                val appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
-                if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                    val currentOffset = getMonthOffset(context, appWidgetId)
-                    setMonthOffset(context, appWidgetId, currentOffset + 1)
-                    updateAppWidget(context, appWidgetManager, appWidgetId)
-                }
+            ACTION_MONTH_PREV, ACTION_MONTH_NEXT -> {
+                // Đã lược bỏ tính năng chuyển tháng theo yêu cầu người dùng
             }
             Intent.ACTION_DATE_CHANGED, Intent.ACTION_TIMEZONE_CHANGED -> {
                 // Tự động reset monthOffset về 0 khi sang ngày mới lúc 00:00
@@ -93,6 +82,7 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
             }
             AppWidgetManager.ACTION_APPWIDGET_UPDATE,
             ACTION_UPDATE_WIDGET,
+            ACTION_UPDATE_WIDGET_COMMON,
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_BOOT_COMPLETED -> {
                 val appWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
@@ -105,6 +95,7 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
 
     companion object {
         const val ACTION_UPDATE_WIDGET = "com.tramkien.hau.ACTION_UPDATE_WIDGET_MONTH_TODAY"
+        const val ACTION_UPDATE_WIDGET_COMMON = "com.tramkien.hau.ACTION_UPDATE_WIDGET"
         const val ACTION_MONTH_PREV = "com.tramkien.hau.ACTION_MONTH_PREV"
         const val ACTION_MONTH_NEXT = "com.tramkien.hau.ACTION_MONTH_NEXT"
 
@@ -129,8 +120,7 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
         )
 
         fun getMonthOffset(context: Context, appWidgetId: Int): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            return prefs.getInt("$KEY_MONTH_OFFSET_PREFIX$appWidgetId", 0)
+            return 0
         }
 
         fun setMonthOffset(context: Context, appWidgetId: Int, offset: Int) {
@@ -141,6 +131,41 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
         fun resetAllMonthOffsets(context: Context) {
             val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
             prefs.edit().clear().apply()
+        }
+
+        fun isSystemDarkMode(context: Context): Boolean {
+            val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
+            if (uiModeManager != null) {
+                if (uiModeManager.nightMode == UiModeManager.MODE_NIGHT_YES) return true
+                if (uiModeManager.nightMode == UiModeManager.MODE_NIGHT_NO) return false
+            }
+            val systemNight = (Resources.getSystem().configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            if (systemNight) return true
+
+            return (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        }
+
+        fun getThemedContext(context: Context): Context {
+            val isDark = isSystemDarkMode(context)
+            val config = Configuration(context.resources.configuration)
+            config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
+                (if (isDark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO)
+            return context.createConfigurationContext(config)
+        }
+
+        fun setViewTextColorRes(views: RemoteViews, viewId: Int, colorResId: Int, context: Context) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                views.setColor(viewId, "setTextColor", colorResId)
+            } else {
+                val themedContext = getThemedContext(context)
+                @Suppress("DEPRECATION")
+                val color = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    themedContext.getColor(colorResId)
+                } else {
+                    themedContext.resources.getColor(colorResId)
+                }
+                views.setTextColor(viewId, color)
+            }
         }
 
         fun updateAppWidget(
@@ -155,35 +180,13 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
             val dateFormatIso = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = vnTz }
             val dateFormatDdMm = SimpleDateFormat("dd/MM", Locale.getDefault()).apply { timeZone = vnTz }
 
-            val isDark = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
-            val textPrimary = if (isDark) Color.parseColor("#F1EFE8") else Color.parseColor("#1F1F1E")
-            val textSecondary = if (isDark) Color.parseColor("#B4B2A9") else Color.parseColor("#5F5E5A")
+            val isDark = isSystemDarkMode(context)
+            val textPrimary = if (isDark) Color.parseColor("#FFFFFF") else Color.parseColor("#1F1F1E")
+            val textSecondary = if (isDark) Color.parseColor("#D3D1C7") else Color.parseColor("#5F5E5A")
+            val textDimmed = if (isDark) Color.parseColor("#A8A69E") else Color.parseColor("#888780")
             val accentOn = if (isDark) Color.parseColor("#042C53") else Color.parseColor("#FFFFFF")
 
-            // Nút chuyển tháng ‹ ›
-            val prevIntent = Intent(context, MonthToday4x2ScheduleWidgetProvider::class.java).apply {
-                action = ACTION_MONTH_PREV
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-            }
-            val pendingPrev = PendingIntent.getBroadcast(
-                context,
-                appWidgetId * 10 + 1,
-                prevIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.month_btn_prev, pendingPrev)
-
-            val nextIntent = Intent(context, MonthToday4x2ScheduleWidgetProvider::class.java).apply {
-                action = ACTION_MONTH_NEXT
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-            }
-            val pendingNext = PendingIntent.getBroadcast(
-                context,
-                appWidgetId * 10 + 2,
-                nextIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.month_btn_next, pendingNext)
+            // Luôn hiển thị tháng hiện tại (offset = 0)
 
             // Deep link chung khi tap vào widget
             val rootIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tramkien://schedule")).apply {
@@ -240,13 +243,15 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
                 val c = idx % 7
                 val cellId = context.resources.getIdentifier("cell_${r}_${c}", "id", context.packageName)
                 val textId = context.resources.getIdentifier("cell_text_${r}_${c}", "id", context.packageName)
+                val todayTextId = context.resources.getIdentifier("cell_today_text_${r}_${c}", "id", context.packageName)
                 val dotId = context.resources.getIdentifier("cell_dot_${r}_${c}", "id", context.packageName)
 
                 if (idx < emptyLeading || idx >= emptyLeading + daysInMonth) {
                     // Ô trống ngoài tháng
                     views.setTextViewText(textId, "")
+                    views.setViewVisibility(textId, View.VISIBLE)
+                    views.setViewVisibility(todayTextId, View.GONE)
                     views.setViewVisibility(dotId, View.GONE)
-                    views.setInt(textId, "setBackgroundResource", 0)
                     views.setOnClickPendingIntent(cellId, null)
                 } else {
                     val d = idx - emptyLeading + 1
@@ -271,12 +276,11 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
                         }
                     }
 
-                    views.setTextViewText(textId, "$d")
-
                     if (isToday) {
-                        // Hôm nay: nền tròn accent đầy quanh số, chữ on-accent
-                        views.setInt(textId, "setBackgroundResource", R.drawable.widget_month_today_circle)
-                        views.setTextColor(textId, accentOn)
+                        // Hôm nay: hiển thị ô tròn accent chuyên dụng (tự động nhận @color/widget_accent_on)
+                        views.setViewVisibility(textId, View.GONE)
+                        views.setViewVisibility(todayTextId, View.VISIBLE)
+                        views.setTextViewText(todayTextId, "$d")
 
                         // NẾU hôm nay có lịch thi: vòng tròn accent kèm chấm đỏ nhỏ 3pt nằm phía DƯỚI vòng tròn (không nằm trong vòng tròn)
                         if (hasExam) {
@@ -286,22 +290,21 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
                             views.setViewVisibility(dotId, View.GONE)
                         }
                     } else {
-                        // Ngày thường: không có nền tròn
-                        views.setInt(textId, "setBackgroundResource", 0)
+                        // Ngày thường
+                        views.setViewVisibility(textId, View.VISIBLE)
+                        views.setViewVisibility(todayTextId, View.GONE)
+                        views.setTextViewText(textId, "$d")
 
                         if (hasExam) {
                             // Chấm đỏ 3pt dưới số
-                            views.setTextColor(textId, textPrimary)
                             views.setInt(dotId, "setImageResource", R.drawable.widget_month_dot_exam)
                             views.setViewVisibility(dotId, View.VISIBLE)
                         } else if (hasClass) {
                             // Chấm 3pt màu phụ dưới số
-                            views.setTextColor(textId, textPrimary)
                             views.setInt(dotId, "setImageResource", R.drawable.widget_month_dot_study)
                             views.setViewVisibility(dotId, View.VISIBLE)
                         } else {
-                            // Không có lịch: chữ màu phụ, không chấm
-                            views.setTextColor(textId, textSecondary)
+                            // Không có lịch: không chấm
                             views.setViewVisibility(dotId, View.GONE)
                         }
                     }
@@ -361,8 +364,10 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
                         val next = futureSessions[0]
                         val nextThu = getVietnameseWeekdayAbbr(next.startMs)
                         val nextTime = timeFormat.format(Date(next.startMs))
-                        val nextName = if (next.shortName.isNotEmpty()) next.shortName else next.subject
-                        "Tiếp theo: $nextThu $nextTime $nextName"
+                        val roomStr = WeeklyScheduleWidgetProvider.simplifyRoom(next.room)
+                        val roomPart = if (roomStr.isNotEmpty()) " · $roomStr" else ""
+                        val nextName = next.subject.trim()
+                        "Sắp tới: $nextThu $nextTime$roomPart\n$nextName"
                     } else {
                         "Không có lịch sắp tới"
                     }
@@ -382,21 +387,34 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
                     val classes = remainingSessions.filter { it.kind != "exam" }
 
                     val chosenSessions: List<SessionData> = when {
-                        exams.size >= 2 -> exams.take(2)
-                        exams.size == 1 -> {
-                            val combined = mutableListOf(exams[0])
+                        exams.size >= 3 -> exams.take(3)
+                        exams.size == 2 -> {
+                            val combined = mutableListOf(exams[0], exams[1])
                             if (classes.isNotEmpty()) {
                                 combined.add(classes[0])
                             }
                             combined.sortBy { it.startMs }
                             combined
                         }
-                        else -> classes.take(2)
+                        exams.size == 1 -> {
+                            val combined = mutableListOf(exams[0])
+                            combined.addAll(classes.take(2))
+                            combined.sortBy { it.startMs }
+                            combined
+                        }
+                        else -> classes.take(3)
                     }
+
+                    // Chọn DUY NHẤT 1 ca đang diễn ra (Single Active Session Arbiter)
+                    // Ưu tiên lịch thi, sau đó tới ca bắt đầu sớm nhất
+                    val activeSession = chosenSessions
+                        .filter { it.startMs <= nowMs && nowMs < it.endMs }
+                        .sortedWith(compareByDescending<SessionData> { it.kind == "exam" }.thenBy { it.startMs })
+                        .firstOrNull()
 
                     // Card 1
                     if (chosenSessions.isNotEmpty()) {
-                        bindCourseCard(context, views, R.id.today_card_1, R.id.card_1_time_room, R.id.card_1_title, chosenSessions[0], nowMs, timeFormat, isDark)
+                        bindCourseCard(context, views, R.id.today_card_1, R.id.card_1_time_room, R.id.card_1_title, chosenSessions[0], nowMs, timeFormat, isDark, chosenSessions[0].id == activeSession?.id)
                         views.setViewVisibility(R.id.today_card_1, View.VISIBLE)
                     } else {
                         views.setViewVisibility(R.id.today_card_1, View.GONE)
@@ -404,20 +422,50 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
 
                     // Card 2
                     if (chosenSessions.size >= 2) {
-                        bindCourseCard(context, views, R.id.today_card_2, R.id.card_2_time_room, R.id.card_2_title, chosenSessions[1], nowMs, timeFormat, isDark)
+                        bindCourseCard(context, views, R.id.today_card_2, R.id.card_2_time_room, R.id.card_2_title, chosenSessions[1], nowMs, timeFormat, isDark, chosenSessions[1].id == activeSession?.id)
                         views.setViewVisibility(R.id.today_card_2, View.VISIBLE)
                     } else {
                         views.setViewVisibility(R.id.today_card_2, View.GONE)
                     }
 
-                    // Footer: +N môn nữa nếu N > 0
+                    // Card 3
+                    if (chosenSessions.size >= 3) {
+                        bindCourseCard(context, views, R.id.today_card_3, R.id.card_3_time_room, R.id.card_3_title, chosenSessions[2], nowMs, timeFormat, isDark, chosenSessions[2].id == activeSession?.id)
+                        views.setViewVisibility(R.id.today_card_3, View.VISIBLE)
+                    } else {
+                        views.setViewVisibility(R.id.today_card_3, View.GONE)
+                    }
+
+                    // Footer: 2 dòng tách biệt nếu có môn tràn hoặc môn đã qua
                     val overflowCount = remainingSessions.size - chosenSessions.size
+                    val pastCount = todaySessions.size - remainingSessions.size
+
+                    var hasFooter = false
                     if (overflowCount > 0) {
-                        views.setTextViewText(R.id.today_overflow_footer, "+$overflowCount môn nữa")
+                        val overflowSessions = remainingSessions.drop(chosenSessions.size)
+                        val nextOverflow = overflowSessions.firstOrNull()
+                        val nextOverflowTime = if (nextOverflow != null) timeFormat.format(Date(nextOverflow.startMs)) else ""
+                        val overflowText = if (nextOverflowTime.isNotEmpty()) {
+                            "+$overflowCount môn nữa lúc $nextOverflowTime"
+                        } else {
+                            "+$overflowCount môn nữa"
+                        }
+                        views.setTextViewText(R.id.today_overflow_footer, overflowText)
                         views.setViewVisibility(R.id.today_overflow_footer, View.VISIBLE)
+                        hasFooter = true
                     } else {
                         views.setViewVisibility(R.id.today_overflow_footer, View.GONE)
                     }
+
+                    if (pastCount > 0) {
+                        views.setTextViewText(R.id.today_overflow_done, "$pastCount môn đã xong")
+                        views.setViewVisibility(R.id.today_overflow_done, View.VISIBLE)
+                        hasFooter = true
+                    } else {
+                        views.setViewVisibility(R.id.today_overflow_done, View.GONE)
+                    }
+
+                    views.setViewVisibility(R.id.today_overflow_container, if (hasFooter) View.VISIBLE else View.GONE)
                 }
             }
 
@@ -434,10 +482,10 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
             session: SessionData,
             nowMs: Long,
             timeFormat: SimpleDateFormat,
-            isDark: Boolean
+            isDark: Boolean,
+            isCurrent: Boolean
         ) {
             val isExam = session.kind == "exam"
-            val isCurrent = session.startMs <= nowMs && nowMs < session.endMs
             val startStr = timeFormat.format(Date(session.startMs))
             val roomStr = if (session.room.isNotEmpty()) session.room else "Chưa có phòng"
 
@@ -451,28 +499,12 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
             if (isExam) {
                 val bgRes = if (isCurrent) R.drawable.widget_card_rounded_8dp_exam_current else R.drawable.widget_card_rounded_8dp_exam
                 views.setInt(cardLayoutId, "setBackgroundResource", bgRes)
-                val examColor = if (isDark) Color.parseColor("#F7C1C1") else Color.parseColor("#791F1F")
-                views.setTextColor(timeRoomId, examColor)
-                views.setTextColor(titleId, examColor)
             } else {
                 val safeColorIdx = session.color.coerceIn(0, 7)
                 val bgResName = if (isCurrent) "widget_card_subject_${safeColorIdx}_current" else "widget_card_subject_$safeColorIdx"
                 val bgRes = context.resources.getIdentifier(bgResName, "drawable", context.packageName)
                 if (bgRes != 0) {
                     views.setInt(cardLayoutId, "setBackgroundResource", bgRes)
-                }
-
-                val textColorResName = "widget_subject_${safeColorIdx}_text"
-                val textColorRes = context.resources.getIdentifier(textColorResName, "color", context.packageName)
-                if (textColorRes != 0) {
-                    val colorVal = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        context.getColor(textColorRes)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        context.resources.getColor(textColorRes)
-                    }
-                    views.setTextColor(timeRoomId, colorVal)
-                    views.setTextColor(titleId, colorVal)
                 }
             }
 
@@ -536,9 +568,9 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
 
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC, triggerMs, pending)
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerMs, pending)
                 } else {
-                    alarmManager.set(AlarmManager.RTC, triggerMs, pending)
+                    alarmManager.set(AlarmManager.RTC_WAKEUP, triggerMs, pending)
                 }
             } catch (_: SecurityException) {
             }
@@ -553,7 +585,7 @@ class MonthToday4x2ScheduleWidgetProvider : AppWidgetProvider() {
                 val obj = JSONObject(text)
                 if (obj.optInt("version", 0) != 1) return null
                 val genAt = obj.optLong("generatedAt", 0L)
-                val maxAgeMs = 14L * 24 * 60 * 60 * 1000
+                val maxAgeMs = 180L * 24 * 60 * 60 * 1000
                 if (genAt > 0 && (System.currentTimeMillis() - genAt > maxAgeMs)) return null
                 obj
             } catch (_: Exception) {

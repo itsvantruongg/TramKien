@@ -138,7 +138,7 @@ class WidgetSnapshotStorage {
   /// - File quá cũ (> maxAge) -> trả về null nếu enforceNotStale = true
   Future<WidgetScheduleSnapshot?> readSnapshot({
     String? customPath,
-    Duration maxAge = const Duration(days: 14),
+    Duration maxAge = const Duration(days: 180),
     bool enforceNotStale = false,
     DateTime? now,
   }) async {

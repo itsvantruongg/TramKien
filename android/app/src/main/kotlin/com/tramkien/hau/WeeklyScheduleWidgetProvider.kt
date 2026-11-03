@@ -8,7 +8,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
+import android.app.UiModeManager
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -76,21 +78,8 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
         val thisWidget = ComponentName(context, WeeklyScheduleWidgetProvider::class.java)
 
         when (action) {
-            ACTION_WEEK_PREV -> {
-                val appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
-                if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                    val currentOffset = getWeekOffset(context, appWidgetId)
-                    setWeekOffset(context, appWidgetId, currentOffset - 1)
-                    updateAppWidget(context, appWidgetManager, appWidgetId)
-                }
-            }
-            ACTION_WEEK_NEXT -> {
-                val appWidgetId = intent.getIntExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID)
-                if (appWidgetId != AppWidgetManager.INVALID_APPWIDGET_ID) {
-                    val currentOffset = getWeekOffset(context, appWidgetId)
-                    setWeekOffset(context, appWidgetId, currentOffset + 1)
-                    updateAppWidget(context, appWidgetManager, appWidgetId)
-                }
+            ACTION_WEEK_PREV, ACTION_WEEK_NEXT -> {
+                // Đã lược bỏ tính năng dịch tuần theo yêu cầu người dùng
             }
             Intent.ACTION_DATE_CHANGED, Intent.ACTION_TIMEZONE_CHANGED -> {
                 // Tự động reset weekOffset về 0 khi sang ngày mới lúc 00:00
@@ -104,6 +93,8 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
             ACTION_UPDATE_WIDGET,
             ACTION_UPDATE_WIDGET_WEEKLY,
             Intent.ACTION_TIME_CHANGED,
+            Intent.ACTION_TIMEZONE_CHANGED,
+            Intent.ACTION_DATE_CHANGED,
             Intent.ACTION_BOOT_COMPLETED -> {
                 val appWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
                 for (id in appWidgetIds) {
@@ -141,9 +132,43 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
             val endEstimated: Boolean
         )
 
+        fun isSystemDarkMode(context: Context): Boolean {
+            val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
+            if (uiModeManager != null) {
+                if (uiModeManager.nightMode == UiModeManager.MODE_NIGHT_YES) return true
+                if (uiModeManager.nightMode == UiModeManager.MODE_NIGHT_NO) return false
+            }
+            val systemNight = (Resources.getSystem().configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            if (systemNight) return true
+
+            return (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        }
+
+        fun getThemedContext(context: Context): Context {
+            val isDark = isSystemDarkMode(context)
+            val config = Configuration(context.resources.configuration)
+            config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
+                (if (isDark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO)
+            return context.createConfigurationContext(config)
+        }
+
+        fun setViewTextColorRes(views: RemoteViews, viewId: Int, colorResId: Int, context: Context) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                views.setColor(viewId, "setTextColor", colorResId)
+            } else {
+                val themedContext = getThemedContext(context)
+                @Suppress("DEPRECATION")
+                val color = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    themedContext.getColor(colorResId)
+                } else {
+                    themedContext.resources.getColor(colorResId)
+                }
+                views.setTextColor(viewId, color)
+            }
+        }
+
         fun getWeekOffset(context: Context, appWidgetId: Int): Int {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            return prefs.getInt(KEY_WEEK_OFFSET_PREFIX + appWidgetId, 0)
+            return 0
         }
 
         fun setWeekOffset(context: Context, appWidgetId: Int, offset: Int) {
@@ -164,7 +189,7 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
                 val json = JSONObject(content)
                 if (json.optInt("version", -1) != 1) return null
                 val genAt = json.optLong("generatedAt", 0L)
-                val maxAgeMs = 14L * 24 * 60 * 60 * 1000
+                val maxAgeMs = 180L * 24 * 60 * 60 * 1000
                 if (genAt > 0 && (System.currentTimeMillis() - genAt > maxAgeMs)) return null
                 json
             } catch (e: Exception) {
@@ -210,7 +235,10 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int
         ) {
-            val isDark = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            val isDark = isSystemDarkMode(context)
+            val textPrimary = if (isDark) Color.parseColor("#FFFFFF") else Color.parseColor("#1F1F1E")
+            val textSecondary = if (isDark) Color.parseColor("#D3D1C7") else Color.parseColor("#5F5E5A")
+            val textDimmed = if (isDark) Color.parseColor("#A8A69E") else Color.parseColor("#888780")
             val views = RemoteViews(context.packageName, R.layout.widget_schedule_weekly)
 
             val vnTz = TimeZone.getTimeZone(VN_TIMEZONE_ID)
@@ -249,43 +277,27 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
             val weekTitle = "Tuần " + dayMonthFormat.format(mondayDate) + " \u2013 " + dayMonthFormat.format(sundayDate)
             views.setTextViewText(R.id.widget_weekly_title, weekTitle)
 
-            // 2. Nút chuyển tuần ‹ và ›
-            val prevIntent = Intent(context, WeeklyScheduleWidgetProvider::class.java).apply {
-                action = ACTION_WEEK_PREV
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-            }
-            val prevPending = PendingIntent.getBroadcast(
-                context,
-                appWidgetId * 10 + 1,
-                prevIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.widget_weekly_btn_prev, prevPending)
-
-            val nextIntent = Intent(context, WeeklyScheduleWidgetProvider::class.java).apply {
-                action = ACTION_WEEK_NEXT
-                putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
-            }
-            val nextPending = PendingIntent.getBroadcast(
-                context,
-                appWidgetId * 10 + 2,
-                nextIntent,
-                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-            views.setOnClickPendingIntent(R.id.widget_weekly_btn_next, nextPending)
+            // Luôn hiển thị tuần hiện tại (offset = 0)
 
             // Kiểm tra trạng thái có snapshot (AC-10)
             if (snapshotObj == null) {
                 // Hiển thị dải 7 ngày trống với dấu ·
                 for (i in 0 until 7) {
                     val countId = getCountViewId(i)
+                    val todayCountId = getTodayCountViewId(i)
+                    val labelId = getLabelViewId(i)
+                    val todayLabelId = getTodayLabelViewId(i)
+
+                    views.setViewVisibility(labelId, View.VISIBLE)
+                    views.setViewVisibility(todayLabelId, View.GONE)
+                    views.setViewVisibility(countId, View.VISIBLE)
+                    views.setViewVisibility(todayCountId, View.GONE)
                     views.setTextViewText(countId, "\u00B7")
-                    views.setTextColor(countId, if (isDark) Color.parseColor("#888780") else Color.parseColor("#888780"))
-                    views.setInt(countId, "setBackgroundResource", 0)
                 }
 
                 views.setViewVisibility(R.id.widget_weekly_list, View.GONE)
                 views.setViewVisibility(R.id.widget_weekly_empty_container, View.VISIBLE)
+                views.setViewVisibility(R.id.widget_weekly_footer_empty, View.GONE)
                 views.setTextViewText(R.id.widget_weekly_empty_text, "Đăng nhập để xem lịch")
 
                 val openAppIntent = Intent(Intent.ACTION_VIEW, Uri.parse("tramkien://schedule")).apply {
@@ -311,55 +323,94 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
 
             val allSessions = parseSessions(snapshotObj)
 
-            // Đếm số môn từng ngày trong tuần
-            val countPerDay = IntArray(7)
-            val dayCal = mondayCal.clone() as Calendar
+            val startOfTodayCal = Calendar.getInstance(vnTz, Locale.US).apply {
+                timeInMillis = nowMs
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val startOfTodayMs = startOfTodayCal.timeInMillis
 
+            val dayCal = mondayCal.clone() as Calendar
             for (i in 0 until 7) {
                 val dYear = dayCal.get(Calendar.YEAR)
                 val dMonth = dayCal.get(Calendar.MONTH)
                 val dDay = dayCal.get(Calendar.DAY_OF_MONTH)
-
-                var count = 0
-                for (s in allSessions) {
-                    val sCal = Calendar.getInstance(vnTz, Locale.US).apply { timeInMillis = s.startMs }
-                    if (sCal.get(Calendar.YEAR) == dYear &&
-                        sCal.get(Calendar.MONTH) == dMonth &&
-                        sCal.get(Calendar.DAY_OF_MONTH) == dDay) {
-                        count++
-                    }
-                }
-                countPerDay[i] = count
+                val dTimeMs = dayCal.timeInMillis
 
                 val countId = getCountViewId(i)
+                val labelId = getLabelViewId(i)
+                val todayCountId = getTodayCountViewId(i)
+                val todayLabelId = getTodayLabelViewId(i)
+
                 val isToday = (dYear == todayYear && dMonth == todayMonth && dDay == todayDay)
+                val isPastDay = dTimeMs < startOfTodayMs
+
+                val dateStr = dayMonthFormat.format(dayCal.time)
 
                 if (isToday) {
-                    views.setTextViewText(countId, if (count > 0) count.toString() else "\u00B7")
-                    views.setInt(countId, "setBackgroundResource", R.drawable.widget_weekly_pill_accent)
-                    views.setTextColor(countId, if (isDark) Color.parseColor("#042C53") else Color.parseColor("#FFFFFF"))
+                    views.setViewVisibility(labelId, View.GONE)
+                    views.setViewVisibility(todayLabelId, View.VISIBLE)
+                    views.setTextViewText(todayLabelId, WEEKDAY_LABELS[i])
+
+                    views.setViewVisibility(countId, View.GONE)
+                    views.setViewVisibility(todayCountId, View.VISIBLE)
+                    views.setTextViewText(todayCountId, dateStr)
                 } else {
-                    views.setInt(countId, "setBackgroundResource", 0)
-                    if (count > 0) {
-                        views.setTextViewText(countId, count.toString())
-                        views.setTextColor(countId, if (isDark) Color.parseColor("#F1EFE8") else Color.parseColor("#1F1F1E"))
-                    } else {
-                        views.setTextViewText(countId, "\u00B7")
-                        views.setTextColor(countId, Color.parseColor("#888780"))
+                    views.setViewVisibility(labelId, View.VISIBLE)
+                    views.setViewVisibility(todayLabelId, View.GONE)
+                    views.setTextViewText(labelId, WEEKDAY_LABELS[i])
+
+                    views.setViewVisibility(countId, View.VISIBLE)
+                    views.setViewVisibility(todayCountId, View.GONE)
+                    views.setTextViewText(countId, dateStr)
+
+                    if (isPastDay) {
+                        views.setTextColor(labelId, textDimmed)
+                        views.setTextColor(countId, textDimmed)
                     }
                 }
 
                 dayCal.add(Calendar.DAY_OF_MONTH, 1)
             }
 
-            // Gán RemoteAdapter cho ListView cuộn được
+            // Phân bổ sessions theo 7 ngày để xác định footer ngày trống cuối tuần khi danh sách không cần cuộn
+            val sessionsByDay = Array(7) { mutableListOf<SessionData>() }
+            for (s in allSessions) {
+                val sCal = Calendar.getInstance(vnTz, Locale.US).apply { timeInMillis = s.startMs }
+                for (i in 0 until 7) {
+                    val dCal = mondayCal.clone() as Calendar
+                    dCal.add(Calendar.DAY_OF_MONTH, i)
+                    if (sCal.get(Calendar.YEAR) == dCal.get(Calendar.YEAR) &&
+                        sCal.get(Calendar.MONTH) == dCal.get(Calendar.MONTH) &&
+                        sCal.get(Calendar.DAY_OF_MONTH) == dCal.get(Calendar.DAY_OF_MONTH)) {
+                        sessionsByDay[i].add(s)
+                        break
+                    }
+                }
+            }
+
+            val options = appWidgetManager.getAppWidgetOptions(appWidgetId)
+            val minHeightDp = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) ?: 0
+            val isSatEmpty = sessionsByDay[5].isEmpty()
+            val isNoScroll = computeIsNoScroll(sessionsByDay, minHeightDp)
+
+            if (isNoScroll) {
+                val footerStr = if (isSatEmpty) "T7 \u2013 CN: không có lịch" else "CN: không có lịch"
+                views.setTextViewText(R.id.widget_weekly_footer_empty, footerStr)
+                views.setViewVisibility(R.id.widget_weekly_footer_empty, View.VISIBLE)
+            } else {
+                views.setViewVisibility(R.id.widget_weekly_footer_empty, View.GONE)
+            }
+
+            // Gán RemoteAdapter cho ListView cuộn được (Uri kèm timestamp để bypass cache của Launcher)
             val serviceIntent = Intent(context, WeeklyRemoteViewsService::class.java).apply {
                 putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
                 putExtra("week_offset", weekOffset)
-                data = Uri.parse(toUri(Intent.URI_INTENT_SCHEME))
+                data = Uri.parse("tramkien://widget/weekly/list/$appWidgetId/${System.currentTimeMillis()}")
             }
             views.setRemoteAdapter(R.id.widget_weekly_list, serviceIntent)
-            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.widget_weekly_list)
 
             // PendingIntent Template cho các hàng trong ListView
             val listClickIntent = Intent(Intent.ACTION_VIEW).apply {
@@ -374,7 +425,10 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
             )
             views.setPendingIntentTemplate(R.id.widget_weekly_list, listClickPending)
 
+            // BẮT BUỘC updateAppWidget TRƯỚC để Launcher commit RemoteViews mới (VISIBLE)
             appWidgetManager.updateAppWidget(appWidgetId, views)
+            // Sau đó MỚI notify để RemoteViewsFactory kích hoạt onDataSetChanged() nạp dữ liệu mới
+            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetId, R.id.widget_weekly_list)
             scheduleNextUpdate(context, allSessions, nowMs)
         }
 
@@ -387,6 +441,42 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
                 4 -> R.id.col_day_count_4
                 5 -> R.id.col_day_count_5
                 else -> R.id.col_day_count_6
+            }
+        }
+
+        private fun getTodayCountViewId(index: Int): Int {
+            return when (index) {
+                0 -> R.id.col_day_today_count_0
+                1 -> R.id.col_day_today_count_1
+                2 -> R.id.col_day_today_count_2
+                3 -> R.id.col_day_today_count_3
+                4 -> R.id.col_day_today_count_4
+                5 -> R.id.col_day_today_count_5
+                else -> R.id.col_day_today_count_6
+            }
+        }
+
+        private fun getLabelViewId(index: Int): Int {
+            return when (index) {
+                0 -> R.id.col_day_label_0
+                1 -> R.id.col_day_label_1
+                2 -> R.id.col_day_label_2
+                3 -> R.id.col_day_label_3
+                4 -> R.id.col_day_label_4
+                5 -> R.id.col_day_label_5
+                else -> R.id.col_day_label_6
+            }
+        }
+
+        private fun getTodayLabelViewId(index: Int): Int {
+            return when (index) {
+                0 -> R.id.col_day_today_label_0
+                1 -> R.id.col_day_today_label_1
+                2 -> R.id.col_day_today_label_2
+                3 -> R.id.col_day_today_label_3
+                4 -> R.id.col_day_today_label_4
+                5 -> R.id.col_day_today_label_5
+                else -> R.id.col_day_today_label_6
             }
         }
 
@@ -424,13 +514,46 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
 
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC, nextTriggerMs, pendingIntent)
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextTriggerMs, pendingIntent)
                 } else {
-                    alarmManager.set(AlarmManager.RTC, nextTriggerMs, pendingIntent)
+                    alarmManager.set(AlarmManager.RTC_WAKEUP, nextTriggerMs, pendingIntent)
                 }
             } catch (e: Exception) {
                 // Ignore security exceptions
             }
+        }
+
+        fun computeIsNoScroll(
+            sessionsByDay: Array<MutableList<SessionData>>,
+            minHeightDp: Int = 0
+        ): Boolean {
+            val isWeekendTrailingEmpty = sessionsByDay[6].isEmpty()
+            if (!isWeekendTrailingEmpty) return false
+
+            val activeDays = sessionsByDay.count { it.isNotEmpty() }
+            val totalSessions = sessionsByDay.sumOf { it.size }
+
+            var emptyBlocks = 0
+            var inEmpty = false
+            val endCheck = if (sessionsByDay[5].isEmpty()) 5 else 6
+            for (i in 0 until endCheck) {
+                if (sessionsByDay[i].isEmpty()) {
+                    if (!inEmpty) {
+                        emptyBlocks++
+                        inEmpty = true
+                    }
+                } else {
+                    inEmpty = false
+                }
+            }
+
+            val availableHeightDp = if (minHeightDp > 0) maxOf(minHeightDp - 90, 240) else 260
+            val itemHeight = 28
+            val headerHeight = 22
+            val emptyHeight = 18
+            val totalContentHeightDp = (activeDays * headerHeight) + (totalSessions * itemHeight) + (emptyBlocks * emptyHeight)
+
+            return totalContentHeightDp <= availableHeightDp
         }
     }
 }
@@ -456,7 +579,7 @@ class WeeklyRemoteViewsFactory(
     private var weekOffset = intent.getIntExtra("week_offset", 0)
 
     sealed class ListItem {
-        data class DayHeader(val title: String, val dateIso: String, val isToday: Boolean) : ListItem()
+        data class DayHeader(val title: String, val dateIso: String, val isToday: Boolean, val isPastDay: Boolean) : ListItem()
         data class SessionRow(
             val session: WeeklyScheduleWidgetProvider.Companion.SessionData,
             val timeStr: String,
@@ -472,28 +595,29 @@ class WeeklyRemoteViewsFactory(
     }
 
     private val items = mutableListOf<ListItem>()
+    private var isAdaptiveMode = false
 
-    // Bảng 8 màu Text/Bar chuẩn
+    // Bảng 8 màu Text/Bar chuẩn phân biệt rõ rệt (Vibrant & High Contrast - Cool Tones cho môn học)
     private val subjectColorsLight = intArrayOf(
-        Color.parseColor("#0C447C"), // 0
-        Color.parseColor("#27500A"), // 1
-        Color.parseColor("#3C3489"), // 2
-        Color.parseColor("#633806"), // 3
-        Color.parseColor("#085041"), // 4
-        Color.parseColor("#72243E"), // 5
-        Color.parseColor("#712B13"), // 6
-        Color.parseColor("#444441")  // 7
+        Color.parseColor("#2563EB"), // 0 - Blue
+        Color.parseColor("#059669"), // 1 - Emerald
+        Color.parseColor("#7C3AED"), // 2 - Violet
+        Color.parseColor("#0D9488"), // 3 - Teal (thay cho Amber để độc quyền màu ấm cho lịch thi)
+        Color.parseColor("#0891B2"), // 4 - Cyan
+        Color.parseColor("#0284C7"), // 5 - Sky (thay cho Rose để độc quyền màu ấm cho lịch thi)
+        Color.parseColor("#0369A1"), // 6 - Ocean Blue (thay cho Slate để màu xám chỉ dành cho môn đã qua)
+        Color.parseColor("#4F46E5")  // 7 - Indigo
     )
 
     private val subjectColorsDark = intArrayOf(
-        Color.parseColor("#B5D4F4"), // 0
-        Color.parseColor("#C0DD97"), // 1
-        Color.parseColor("#CECBF6"), // 2
-        Color.parseColor("#FAC775"), // 3
-        Color.parseColor("#9FE1CB"), // 4
-        Color.parseColor("#F4C0D1"), // 5
-        Color.parseColor("#F5C4B3"), // 6
-        Color.parseColor("#D3D1C7")  // 7
+        Color.parseColor("#93C5FD"), // 0 - Blue light
+        Color.parseColor("#6EE7B7"), // 1 - Emerald light
+        Color.parseColor("#C4B5FD"), // 2 - Violet light
+        Color.parseColor("#5EEAD4"), // 3 - Teal light
+        Color.parseColor("#67E8F9"), // 4 - Cyan light
+        Color.parseColor("#7DD3FC"), // 5 - Sky light
+        Color.parseColor("#7DD3FC"), // 6 - Ocean Blue light
+        Color.parseColor("#A5B4FC")  // 7 - Indigo light
     )
 
     override fun onCreate() {
@@ -521,6 +645,15 @@ class WeeklyRemoteViewsFactory(
         val todayYear = cal.get(Calendar.YEAR)
         val todayMonth = cal.get(Calendar.MONTH)
         val todayDay = cal.get(Calendar.DAY_OF_MONTH)
+
+        val startOfTodayCal = Calendar.getInstance(vnTz, Locale.US).apply {
+            timeInMillis = nowMs
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val startOfTodayMs = startOfTodayCal.timeInMillis
 
         var currentDayOfWeek = cal.get(Calendar.DAY_OF_WEEK)
         var daysFromMonday = if (currentDayOfWeek == Calendar.SUNDAY) 6 else currentDayOfWeek - Calendar.MONDAY
@@ -552,11 +685,43 @@ class WeeklyRemoteViewsFactory(
             sessionsByDay[i].sortBy { it.startMs }
         }
 
+        val totalSessionsInWeek = sessionsByDay.sumOf { it.size }
+        isAdaptiveMode = true
+
+        val options = AppWidgetManager.getInstance(context).getAppWidgetOptions(appWidgetId)
+        val minHeightDp = options?.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_HEIGHT, 0) ?: 0
+        val isSatEmpty = sessionsByDay[5].isEmpty()
+        val isNoScroll = WeeklyScheduleWidgetProvider.computeIsNoScroll(sessionsByDay, minHeightDp)
+
         // Tạo items xen kẽ nhóm ngày và gộp ngày trống
         var emptyStart = -1
 
         fun flushEmpty(currentIdx: Int) {
             if (emptyStart != -1) {
+                if (currentIdx == 7 && isNoScroll) {
+                    if (emptyStart >= 5) {
+                        emptyStart = -1
+                        return
+                    } else {
+                        val startIdx = emptyStart
+                        val endIdx = if (isSatEmpty) 4 else 5
+                        if (endIdx >= startIdx) {
+                            val startWk = WeeklyScheduleWidgetProvider.WEEKDAY_LABELS[startIdx]
+                            val endWk = WeeklyScheduleWidgetProvider.WEEKDAY_LABELS[endIdx]
+                            val title = if (startIdx == endIdx) {
+                                "$startWk: không có lịch"
+                            } else {
+                                "$startWk \u2013 $endWk: không có lịch"
+                            }
+                            val eCal = targetMondayCal.clone() as Calendar
+                            eCal.add(Calendar.DAY_OF_MONTH, startIdx)
+                            items.add(ListItem.MergedEmptyDays(title, isoFormat.format(eCal.time)))
+                        }
+                        emptyStart = -1
+                        return
+                    }
+                }
+
                 val startIdx = emptyStart
                 val endIdx = currentIdx - 1
                 val startWk = WeeklyScheduleWidgetProvider.WEEKDAY_LABELS[startIdx]
@@ -588,6 +753,7 @@ class WeeklyRemoteViewsFactory(
                 val isToday = (dCal.get(Calendar.YEAR) == todayYear &&
                                dCal.get(Calendar.MONTH) == todayMonth &&
                                dCal.get(Calendar.DAY_OF_MONTH) == todayDay)
+                val isPastDay = dCal.timeInMillis < startOfTodayMs
 
                 val wkStr = WeeklyScheduleWidgetProvider.WEEKDAY_LABELS[i]
                 val headerTitle = if (isToday) {
@@ -597,7 +763,7 @@ class WeeklyRemoteViewsFactory(
                 }
                 val dateIso = isoFormat.format(dDate)
 
-                items.add(ListItem.DayHeader(headerTitle, dateIso, isToday))
+                items.add(ListItem.DayHeader(headerTitle, dateIso, isToday, isPastDay))
 
                 for (s in daySessions) {
                     val isExam = (s.kind == "exam")
@@ -638,17 +804,21 @@ class WeeklyRemoteViewsFactory(
     override fun getViewAt(position: Int): RemoteViews? {
         if (position < 0 || position >= items.size) return null
         val item = items[position]
-        val isDark = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        val isDark = WeeklyScheduleWidgetProvider.isSystemDarkMode(context)
 
         return when (item) {
             is ListItem.DayHeader -> {
-                val rv = RemoteViews(context.packageName, R.layout.widget_weekly_item_header)
+                val layoutId = R.layout.widget_weekly_item_header_adaptive
+                val rv = RemoteViews(context.packageName, layoutId)
                 rv.setTextViewText(R.id.item_header_text, item.title)
                 if (item.isToday) {
-                    rv.setTextColor(R.id.item_header_text, if (isDark) Color.parseColor("#85B7EB") else Color.parseColor("#185FA5"))
-                } else {
-                    rv.setTextColor(R.id.item_header_text, if (isDark) Color.parseColor("#F1EFE8") else Color.parseColor("#1F1F1E"))
+                    val todayColor = if (isDark) Color.parseColor("#85B7EB") else Color.parseColor("#185FA5")
+                    rv.setTextColor(R.id.item_header_text, todayColor)
+                } else if (item.isPastDay) {
+                    val dimColor = if (isDark) Color.parseColor("#A8A69E") else Color.parseColor("#888780")
+                    rv.setTextColor(R.id.item_header_text, dimColor)
                 }
+
                 val fillIntent = Intent().apply {
                     data = Uri.parse("tramkien://schedule?date=${item.dateIso}")
                 }
@@ -656,34 +826,40 @@ class WeeklyRemoteViewsFactory(
                 rv
             }
             is ListItem.SessionRow -> {
-                val rv = RemoteViews(context.packageName, R.layout.widget_weekly_item_session)
+                val layoutId = R.layout.widget_weekly_item_session_adaptive
+                val rv = RemoteViews(context.packageName, layoutId)
                 rv.setTextViewText(R.id.item_session_time, item.timeStr)
                 rv.setTextViewText(R.id.item_session_title, item.displayTitle)
                 rv.setTextViewText(R.id.item_session_room, item.roomStr)
 
                 // Cài đặt màu vạch và chữ
-                if (item.isToday && item.isPast) {
-                    // Môn đã qua của hôm nay: thanh màu xám, toàn hàng chuyển màu mờ #888780
+                if (item.isPast) {
+                    // Môn đã kết thúc: thanh màu xám, toàn hàng chuyển màu mờ
                     val grayBar = if (isDark) Color.parseColor("#444441") else Color.parseColor("#D3D1C7")
                     rv.setInt(R.id.item_color_bar, "setColorFilter", grayBar)
-                    val textDimmed = Color.parseColor("#888780")
-                    rv.setTextColor(R.id.item_session_time, textDimmed)
-                    rv.setTextColor(R.id.item_session_title, textDimmed)
-                    rv.setTextColor(R.id.item_session_room, textDimmed)
+                    val dimColor = if (isDark) Color.parseColor("#A8A69E") else Color.parseColor("#888780")
+                    val subColor = if (isDark) Color.parseColor("#D3D1C7") else Color.parseColor("#888780")
+                    rv.setTextColor(R.id.item_session_time, subColor)
+                    rv.setTextColor(R.id.item_session_title, dimColor)
+                    rv.setTextColor(R.id.item_session_room, subColor)
                 } else if (item.isExam) {
-                    // Môn thi: Vạch màu đỏ, chữ đậm vừa, tiền tố "Thi "
-                    rv.setInt(R.id.item_color_bar, "setColorFilter", Color.parseColor("#E24B4A"))
-                    rv.setTextColor(R.id.item_session_time, if (isDark) Color.parseColor("#B4B2A9") else Color.parseColor("#5F5E5A"))
-                    rv.setTextColor(R.id.item_session_title, if (isDark) Color.parseColor("#F7C1C1") else Color.parseColor("#791F1F"))
-                    rv.setTextColor(R.id.item_session_room, if (isDark) Color.parseColor("#B4B2A9") else Color.parseColor("#5F5E5A"))
+                    // Môn thi chưa kết thúc: Vạch màu đỏ, chữ đỏ
+                    rv.setInt(R.id.item_color_bar, "setColorFilter", Color.parseColor("#EF4444"))
+                    val examTitleColor = if (isDark) Color.parseColor("#FCA5A5") else Color.parseColor("#791F1F")
+                    val subColor = if (isDark) Color.parseColor("#D3D1C7") else Color.parseColor("#5F5E5A")
+                    rv.setTextColor(R.id.item_session_time, subColor)
+                    rv.setTextColor(R.id.item_session_title, examTitleColor)
+                    rv.setTextColor(R.id.item_session_room, subColor)
                 } else {
-                    // Môn học thường: 8 màu theo colorIndex
+                    // Môn học thường chưa kết thúc: Vạch màu theo colorIndex, reset màu text chống tái sử dụng view rác
                     val palette = if (isDark) subjectColorsDark else subjectColorsLight
                     val safeIdx = item.colorIndex.coerceIn(0, 7)
                     rv.setInt(R.id.item_color_bar, "setColorFilter", palette[safeIdx])
-                    rv.setTextColor(R.id.item_session_time, if (isDark) Color.parseColor("#B4B2A9") else Color.parseColor("#5F5E5A"))
-                    rv.setTextColor(R.id.item_session_title, if (isDark) Color.parseColor("#F1EFE8") else Color.parseColor("#1F1F1E"))
-                    rv.setTextColor(R.id.item_session_room, if (isDark) Color.parseColor("#B4B2A9") else Color.parseColor("#5F5E5A"))
+                    val titleColor = if (isDark) Color.parseColor("#F1EFE8") else Color.parseColor("#1F1F1E")
+                    val subColor = if (isDark) Color.parseColor("#D3D1C7") else Color.parseColor("#5F5E5A")
+                    rv.setTextColor(R.id.item_session_title, titleColor)
+                    rv.setTextColor(R.id.item_session_time, subColor)
+                    rv.setTextColor(R.id.item_session_room, subColor)
                 }
 
                 val fillIntent = Intent().apply {
@@ -693,9 +869,9 @@ class WeeklyRemoteViewsFactory(
                 rv
             }
             is ListItem.MergedEmptyDays -> {
-                val rv = RemoteViews(context.packageName, R.layout.widget_weekly_item_empty)
+                val layoutId = R.layout.widget_weekly_item_empty_adaptive
+                val rv = RemoteViews(context.packageName, layoutId)
                 rv.setTextViewText(R.id.item_empty_text, item.title)
-                rv.setTextColor(R.id.item_empty_text, Color.parseColor("#888780"))
                 val fillIntent = Intent().apply {
                     data = Uri.parse("tramkien://schedule?date=${item.dateIso}")
                 }
@@ -705,9 +881,11 @@ class WeeklyRemoteViewsFactory(
         }
     }
 
-    override fun getLoadingView(): RemoteViews? = null
+    override fun getLoadingView(): RemoteViews {
+        return RemoteViews(context.packageName, R.layout.widget_weekly_loading)
+    }
 
-    override fun getViewTypeCount(): Int = 3
+    override fun getViewTypeCount(): Int = 6
 
     override fun getItemId(position: Int): Long = position.toLong()
 

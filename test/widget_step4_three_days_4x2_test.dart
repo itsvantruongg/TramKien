@@ -155,13 +155,13 @@ void main() {
   });
 
   group('2. Kỷ luật ẩn hiện "+N" & Bỏ "+0" (SPEC Mục 3.3 & 5.2)', () {
-    test('Cột hôm nay 28/10: Có 3 môn còn lại, hiện 2 thẻ -> hiện "+1"', () {
+    test('Cột hôm nay 28/10: Có 3 môn còn lại, hiện đủ cả 3 thẻ (sức chứa 4 thẻ)', () {
       final data = WidgetThreeDaysSelector.select(snapshot: fullSnapshot, now: now1005);
       final colToday = data.columns[0];
 
-      expect(colToday.visibleCards.length, 2);
-      expect(colToday.hiddenCount, 1);
-      expect(colToday.badgeText, '+1');
+      expect(colToday.visibleCards.length, 3);
+      expect(colToday.hiddenCount, 0);
+      expect(colToday.badgeText, isNull);
     });
 
     test('Cột T5 (29/10): Có đúng 2 môn, hiện cả 2 thẻ -> ẩn hoàn toàn "+N" (bỏ +0)', () {
@@ -182,7 +182,7 @@ void main() {
       expect(colT6.badgeText, isNull);
     });
 
-    test('Ngày có 4 môn chưa qua -> hiển thị 2 thẻ, hiện "+2"', () {
+    test('Ngày có 4 môn chưa qua -> hiển thị đủ cả 4 thẻ (sức chứa 4 thẻ)', () {
       // Giả sử T5 có thêm 2 môn nữa thành 4 môn
       final extra1 = Session(
         id: 203,
@@ -214,9 +214,9 @@ void main() {
       final data = WidgetThreeDaysSelector.select(snapshot: snapshotWith4, now: now1005);
       final colT5 = data.columns[1];
 
-      expect(colT5.visibleCards.length, 2);
-      expect(colT5.hiddenCount, 2);
-      expect(colT5.badgeText, '+2');
+      expect(colT5.visibleCards.length, 4);
+      expect(colT5.hiddenCount, 0);
+      expect(colT5.badgeText, isNull);
     });
   });
 
@@ -237,7 +237,7 @@ void main() {
       final card1 = data.columns[0].visibleCards[0];
 
       expect(card1.timeRoomLine, '09:45 · B205');
-      expect(card1.shortName, 'PPL NCKH');
+      expect(card1.shortName, 'Thi PPL NCKH');
 
       final card2 = data.columns[0].visibleCards[1];
       expect(card2.timeRoomLine, '12:55 · P102');
@@ -322,12 +322,10 @@ void main() {
       // Xem ngày mai (T5 29/10)
       final col = WidgetThreeDaysSelector.selectColumn(snapshot: snap, now: now1005, dayOffset: 1);
 
-      expect(col.visibleCards.length, 2);
-      // Ca thi muộn 15:30 BẮT BUỘC có mặt trong 2 thẻ hiển thị
+      expect(col.visibleCards.length, 3);
+      // Ca thi muộn 15:30 BẮT BUỘC có mặt trong các thẻ hiển thị
       expect(col.visibleCards.any((c) => c.session.id == 503 && c.isExam), isTrue);
-      // Môn giữa 09:45 bị ẩn nhường chỗ cho ca thi
-      expect(col.hiddenCount, 1);
-      expect(col.badgeText, '+1');
+      expect(col.hiddenCount, 0);
     });
 
     test('Hai ca thi trong ngày chiếm trọn 2 thẻ hiển thị', () {
@@ -369,10 +367,9 @@ void main() {
       );
 
       final col = WidgetThreeDaysSelector.selectColumn(snapshot: snap, now: now1005, dayOffset: 1);
-      expect(col.visibleCards.length, 2);
-      expect(col.visibleCards[0].isExam, isTrue);
-      expect(col.visibleCards[1].isExam, isTrue);
-      expect(col.badgeText, '+1');
+      expect(col.visibleCards.length, 3);
+      expect(col.visibleCards.where((c) => c.isExam).length, 2);
+      expect(col.hiddenCount, 0);
     });
   });
 
@@ -415,13 +412,13 @@ void main() {
     test('Xác thực trọn vẹn kết quả mong đợi Mục 5.2', () {
       final data = WidgetThreeDaysSelector.select(snapshot: fullSnapshot, now: now1005);
 
-      // Cột hôm nay: "Hôm nay 28", nhãn "+1"
+      // Cột hôm nay: "Hôm nay 28", sức chứa 4 thẻ -> hiển thị cả 3 môn
       final colToday = data.columns[0];
       expect(colToday.title, 'Hôm nay 28');
-      expect(colToday.badgeText, '+1');
-      expect(colToday.visibleCards.length, 2);
+      expect(colToday.badgeText, isNull);
+      expect(colToday.visibleCards.length, 3);
       expect(colToday.visibleCards[0].timeRoomLine, '09:45 · B205');
-      expect(colToday.visibleCards[0].shortName, 'PPL NCKH');
+      expect(colToday.visibleCards[0].shortName, 'Thi PPL NCKH');
       expect(colToday.visibleCards[0].isExam, isTrue);
       expect(colToday.visibleCards[0].isCurrent, isTrue); // viền accent
 
@@ -526,21 +523,22 @@ void main() {
       expect(find.text('T5 · 29'), findsOneWidget);
       expect(find.text('T6 · 30'), findsOneWidget);
 
-      // Tìm badge +1 trên cột hôm nay
-      expect(find.text('+1'), findsOneWidget);
+      // Cột hôm nay có 3 môn hiển thị đủ cả 3 nên không có badge +1
+      expect(find.text('+1'), findsNothing);
 
       // Tuyệt đối không có "+0"
       expect(find.text('+0'), findsNothing);
 
       // Thẻ môn cột hôm nay
       expect(find.text('09:45 · B205'), findsOneWidget);
-      expect(find.text('PPL NCKH'), findsOneWidget);
+      expect(find.text('Thi PPL NCKH'), findsOneWidget);
       expect(find.text('12:55 · P102'), findsOneWidget);
       expect(find.text('CTDL & GT 2'), findsOneWidget);
 
       // Thẻ môn cột T5
       expect(find.text('06:55 · P204'), findsOneWidget);
-      expect(find.text('Mạng máy tính'), findsOneWidget);
+      // 'Mạng máy tính' xuất hiện ở cả hôm nay (15:30) và T5 (06:55)
+      expect(find.text('Mạng máy tính'), findsNWidgets(2));
       expect(find.text('12:55 · Sân A'), findsOneWidget);
       expect(find.text('Thể dục'), findsOneWidget);
 
@@ -566,7 +564,7 @@ void main() {
       );
 
       expect(find.text('Hôm nay 28'), findsOneWidget);
-      expect(find.text('PPL NCKH'), findsOneWidget);
+      expect(find.text('Thi PPL NCKH'), findsOneWidget);
     });
 
     testWidgets('Render trạng thái trống "Đăng nhập để xem lịch"', (tester) async {
@@ -634,7 +632,7 @@ void main() {
         ),
       );
 
-      await tester.tap(find.text('PPL NCKH'));
+      await tester.tap(find.text('Thi PPL NCKH'));
       await tester.pump();
       expect(tappedCard, isNotNull);
       expect(tappedCard?.session.id, 102);

@@ -579,14 +579,13 @@ Future<void> _runSyncLogic() async {
 
     // 11. Đồng bộ bản chụp Widget Snapshot từ SQLite và kích hoạt native widget (SPEC-DYNAMIC-SQLITE-WIDGET-SYSTEM-01)
     try {
-      final snapshot = WidgetSnapshotGenerator.generateSnapshot(
-        lichHocList: newLichHoc,
-        lichThiList: newLichThi,
-      );
-      const snapshotStorage = WidgetSnapshotStorage();
-      await snapshotStorage.saveSnapshot(snapshot);
-      await WidgetDataSyncService.triggerNativeWidgetUpdate();
-      debugPrint('💾 [BG][Step11-WidgetSnapshot] Đã sinh và lưu snapshot (${snapshot.sessions.length} sessions)');
+      final snapshot = await WidgetSnapshotGenerator.generateSnapshotFromDb();
+      if (snapshot.sessions.isNotEmpty) {
+        const snapshotStorage = WidgetSnapshotStorage();
+        await snapshotStorage.saveSnapshot(snapshot);
+        await WidgetDataSyncService.triggerNativeWidgetUpdate();
+        debugPrint('💾 [BG][Step11-WidgetSnapshot] Đã sinh và lưu snapshot (${snapshot.sessions.length} sessions)');
+      }
     } catch (e) {
       debugPrint('⚠️ [BG][Step11-WidgetSnapshot] Lỗi sinh snapshot: $e');
     }

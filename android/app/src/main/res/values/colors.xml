@@ -10,27 +10,29 @@
     <color name="widget_text_primary">#1F1F1E</color>
     <color name="widget_text_secondary">#5F5E5A</color>
     <color name="widget_text_dimmed">#888780</color>
+    <color name="widget_card_title">#1F1F1E</color>
     <color name="widget_accent">#185FA5</color>
     <color name="widget_accent_border">#378ADD</color>
     <color name="widget_accent_on">#FFFFFF</color>
     <color name="widget_exam_bg">#FCEBEB</color>
     <color name="widget_exam_text">#791F1F</color>
+    <color name="widget_exam_stroke_active">#EF4444</color>
 
     <!-- 8 Subject Colors (Light) -->
-    <color name="widget_subject_0_bg">#E6F1FB</color>
-    <color name="widget_subject_0_text">#0C447C</color>
-    <color name="widget_subject_1_bg">#EAF3DE</color>
-    <color name="widget_subject_1_text">#27500A</color>
-    <color name="widget_subject_2_bg">#EEEDFE</color>
-    <color name="widget_subject_2_text">#3C3489</color>
-    <color name="widget_subject_3_bg">#FAEEDA</color>
-    <color name="widget_subject_3_text">#633806</color>
-    <color name="widget_subject_4_bg">#E1F5EE</color>
-    <color name="widget_subject_4_text">#085041</color>
-    <color name="widget_subject_5_bg">#FBEAF0</color>
-    <color name="widget_subject_5_text">#72243E</color>
-    <color name="widget_subject_6_bg">#FAECE7</color>
-    <color name="widget_subject_6_text">#712B13</color>
-    <color name="widget_subject_7_bg">#F1EFE8</color>
-    <color name="widget_subject_7_text">#444441</color>
+    <color name="widget_subject_0_bg">#EFF6FF</color>
+    <color name="widget_subject_0_text">#2563EB</color>
+    <color name="widget_subject_1_bg">#ECFDF5</color>
+    <color name="widget_subject_1_text">#059669</color>
+    <color name="widget_subject_2_bg">#F5F3FF</color>
+    <color name="widget_subject_2_text">#7C3AED</color>
+    <color name="widget_subject_3_bg">#F0FDFA</color>
+    <color name="widget_subject_3_text">#0D9488</color>
+    <color name="widget_subject_4_bg">#ECFEFF</color>
+    <color name="widget_subject_4_text">#0891B2</color>
+    <color name="widget_subject_5_bg">#F0F9FF</color>
+    <color name="widget_subject_5_text">#0284C7</color>
+    <color name="widget_subject_6_bg">#E0F2FE</color>
+    <color name="widget_subject_6_text">#0369A1</color>
+    <color name="widget_subject_7_bg">#EEF2FF</color>
+    <color name="widget_subject_7_text">#4F46E5</color>
 </resources>

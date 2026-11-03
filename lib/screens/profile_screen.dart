@@ -7,7 +7,6 @@ import '../widgets/shared_widgets.dart';
 import 'curriculum_screen.dart';
 import 'feedback_screen.dart';
 import 'terms_screen.dart';
-import 'widget_studio_screen.dart';
 import '../services/local_notification_service.dart';
 import 'debug_sync_screen.dart';
 
@@ -101,14 +100,6 @@ class ProfileScreen extends StatelessWidget {
                                       MaterialPageRoute(
                                           builder: (_) =>
                                               const FeedbackScreen()));
-                                }),
-                                _Item(Icons.widgets_outlined,
-                                    'Tiện ích màn hình', () {
-                                  Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (_) =>
-                                              const WidgetStudioScreen()));
                                 }),
                                 _Item(
                                     Icons.policy_outlined, 'Điều khoản dịch vụ',

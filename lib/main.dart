@@ -16,7 +16,6 @@ import 'services/app_info_service.dart';
 import 'services/background_sync_service.dart';
 import 'services/local_notification_service.dart';
 import 'services/widget_data_sync_service.dart';
-import 'screens/widget_studio_screen.dart';
 import 'widgets/shared_widgets.dart';
 import 'theme/app_theme.dart';
 
@@ -67,17 +66,6 @@ Future<void> main() async {
   WidgetsBinding.instance.addPostFrameCallback((_) async {
     unawaited(AnalyticsService.logAppOpen());
     unawaited(BackgroundSyncService.initialize());
-
-    // Deep link from Android Widget (AC-06)
-    try {
-      final initialRoute = await WidgetDataSyncService.getInitialRoute();
-      if (initialRoute == '/widget_studio' &&
-          navigatorKey.currentState != null) {
-        navigatorKey.currentState!.push(
-          MaterialPageRoute(builder: (_) => const WidgetStudioScreen()),
-        );
-      }
-    } catch (_) {}
   });
 }
 

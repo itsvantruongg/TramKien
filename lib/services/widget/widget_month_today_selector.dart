@@ -335,8 +335,8 @@ class WidgetMonthTodaySelector {
       }
     }
 
-    // Áp dụng QUY TẮC ƯU TIÊN LỊCH THI (AC-11) cho tối đa 2 thẻ:
-    // Lịch thi chưa diễn ra trong ngày LUÔN ĐƯỢC ƯU TIÊN đưa vào 1 trong 2 vị trí hiển thị.
+    // Áp dụng QUY TẮC ƯU TIÊN LỊCH THI (AC-11) cho tối đa 3 thẻ:
+    // Lịch thi chưa diễn ra trong ngày LUÔN ĐƯỢC ƯU TIÊN đưa vào vùng hiển thị.
     final exams = remainingSessions
         .where((s) => s.kind == SessionKind.examSession)
         .toList();
@@ -346,21 +346,19 @@ class WidgetMonthTodaySelector {
 
     List<Session> chosenSessions = [];
 
-    if (exams.length >= 2) {
-      // 2 môn thi chiếm 2 vị trí
+    if (exams.length >= 3) {
+      chosenSessions = exams.take(3).toList();
+    } else if (exams.length == 2) {
       chosenSessions = exams.take(2).toList();
-    } else if (exams.length == 1) {
-      // 1 môn thi được ưu tiên vị trí 1
-      chosenSessions = [exams.first];
-      // Vị trí 2 dành cho môn thường sớm nhất chưa qua
       if (nonExams.isNotEmpty) {
         chosenSessions.add(nonExams.first);
       }
-      // Sắp xếp lại theo thời gian bắt đầu thực tế để hiển thị tự nhiên
+      chosenSessions.sort((a, b) => a.startMs.compareTo(b.startMs));
+    } else if (exams.length == 1) {
+      chosenSessions = [exams.first, ...nonExams.take(2)];
       chosenSessions.sort((a, b) => a.startMs.compareTo(b.startMs));
     } else {
-      // Không có môn thi -> lấy 2 môn học sớm nhất
-      chosenSessions = nonExams.take(2).toList();
+      chosenSessions = nonExams.take(3).toList();
     }
 
     final visibleCards = chosenSessions.map((s) {

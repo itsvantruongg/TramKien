@@ -13,30 +13,18 @@
         android:background="@drawable/widget_card_rounded_20dp"
         android:padding="12dp">
 
-        <!-- 1. Dòng tiêu đề: "Tuần dd/MM – dd/MM" (cỡ 12, vừa) kèm nút ‹ › chuyển tuần -->
+        <!-- 1. Dòng tiêu đề: "Tuần dd/MM – dd/MM" (cỡ 12, vừa) -->
         <LinearLayout
             android:id="@+id/widget_weekly_header_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical">
-
-            <TextView
-                android:id="@+id/widget_weekly_btn_prev"
-                android:layout_width="28dp"
-                android:layout_height="24dp"
-                android:gravity="center"
-                android:text="‹"
-                android:textColor="@color/widget_text_secondary"
-                android:textSize="16sp"
-                android:fontFamily="sans-serif-medium"
-                android:includeFontPadding="false" />
+            android:gravity="center">
 
             <TextView
                 android:id="@+id/widget_weekly_title"
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
                 android:gravity="center"
                 android:text="Tuần"
                 android:textColor="@color/widget_text_primary"
@@ -44,17 +32,6 @@
                 android:fontFamily="sans-serif-medium"
                 android:singleLine="true"
                 android:ellipsize="end" />
-
-            <TextView
-                android:id="@+id/widget_weekly_btn_next"
-                android:layout_width="28dp"
-                android:layout_height="24dp"
-                android:gravity="center"
-                android:text="›"
-                android:textColor="@color/widget_text_secondary"
-                android:textSize="16sp"
-                android:fontFamily="sans-serif-medium"
-                android:includeFontPadding="false" />
         </LinearLayout>
 
         <!-- 2. Dải 7 ngày: Hàng nhãn T2..CN (cỡ 11, phụ), Hàng số môn (hoặc ·), Hôm nay viên thuốc accent -->
@@ -82,15 +59,37 @@
                     android:textSize="11sp"
                     android:fontFamily="sans-serif-medium" />
                 <TextView
+                    android:id="@+id/col_day_today_label_0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="T2"
+                    android:textColor="@color/widget_accent"
+                    android:textSize="11sp"
+                    android:visibility="gone"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
                     android:id="@+id/col_day_count_0"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:paddingHorizontal="7dp"
+                    android:paddingHorizontal="4dp"
                     android:paddingVertical="2dp"
                     android:gravity="center"
                     android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
+                    android:id="@+id/col_day_today_count_0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="4dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:background="@drawable/widget_weekly_pill_accent"
+                    android:textColor="@color/widget_accent_on"
+                    android:textSize="10sp"
+                    android:visibility="gone"
                     android:fontFamily="sans-serif-medium" />
             </LinearLayout>
 
@@ -110,15 +109,37 @@
                     android:textSize="11sp"
                     android:fontFamily="sans-serif-medium" />
                 <TextView
+                    android:id="@+id/col_day_today_label_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="T3"
+                    android:textColor="@color/widget_accent"
+                    android:textSize="11sp"
+                    android:visibility="gone"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
                     android:id="@+id/col_day_count_1"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:paddingHorizontal="7dp"
+                    android:paddingHorizontal="4dp"
                     android:paddingVertical="2dp"
                     android:gravity="center"
                     android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
+                    android:id="@+id/col_day_today_count_1"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="4dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:background="@drawable/widget_weekly_pill_accent"
+                    android:textColor="@color/widget_accent_on"
+                    android:textSize="10sp"
+                    android:visibility="gone"
                     android:fontFamily="sans-serif-medium" />
             </LinearLayout>
 
@@ -138,15 +159,37 @@
                     android:textSize="11sp"
                     android:fontFamily="sans-serif-medium" />
                 <TextView
+                    android:id="@+id/col_day_today_label_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="T4"
+                    android:textColor="@color/widget_accent"
+                    android:textSize="11sp"
+                    android:visibility="gone"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
                     android:id="@+id/col_day_count_2"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:paddingHorizontal="7dp"
+                    android:paddingHorizontal="4dp"
                     android:paddingVertical="2dp"
                     android:gravity="center"
                     android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
+                    android:id="@+id/col_day_today_count_2"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="4dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:background="@drawable/widget_weekly_pill_accent"
+                    android:textColor="@color/widget_accent_on"
+                    android:textSize="10sp"
+                    android:visibility="gone"
                     android:fontFamily="sans-serif-medium" />
             </LinearLayout>
 
@@ -166,15 +209,37 @@
                     android:textSize="11sp"
                     android:fontFamily="sans-serif-medium" />
                 <TextView
+                    android:id="@+id/col_day_today_label_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="T5"
+                    android:textColor="@color/widget_accent"
+                    android:textSize="11sp"
+                    android:visibility="gone"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
                     android:id="@+id/col_day_count_3"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:paddingHorizontal="7dp"
+                    android:paddingHorizontal="4dp"
                     android:paddingVertical="2dp"
                     android:gravity="center"
                     android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
+                    android:id="@+id/col_day_today_count_3"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="4dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:background="@drawable/widget_weekly_pill_accent"
+                    android:textColor="@color/widget_accent_on"
+                    android:textSize="10sp"
+                    android:visibility="gone"
                     android:fontFamily="sans-serif-medium" />
             </LinearLayout>
 
@@ -194,15 +259,37 @@
                     android:textSize="11sp"
                     android:fontFamily="sans-serif-medium" />
                 <TextView
+                    android:id="@+id/col_day_today_label_4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="T6"
+                    android:textColor="@color/widget_accent"
+                    android:textSize="11sp"
+                    android:visibility="gone"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
                     android:id="@+id/col_day_count_4"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:paddingHorizontal="7dp"
+                    android:paddingHorizontal="4dp"
                     android:paddingVertical="2dp"
                     android:gravity="center"
                     android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
+                    android:id="@+id/col_day_today_count_4"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="4dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:background="@drawable/widget_weekly_pill_accent"
+                    android:textColor="@color/widget_accent_on"
+                    android:textSize="10sp"
+                    android:visibility="gone"
                     android:fontFamily="sans-serif-medium" />
             </LinearLayout>
 
@@ -222,15 +309,37 @@
                     android:textSize="11sp"
                     android:fontFamily="sans-serif-medium" />
                 <TextView
+                    android:id="@+id/col_day_today_label_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="T7"
+                    android:textColor="@color/widget_accent"
+                    android:textSize="11sp"
+                    android:visibility="gone"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
                     android:id="@+id/col_day_count_5"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:paddingHorizontal="7dp"
+                    android:paddingHorizontal="4dp"
                     android:paddingVertical="2dp"
                     android:gravity="center"
                     android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
+                    android:id="@+id/col_day_today_count_5"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="4dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:background="@drawable/widget_weekly_pill_accent"
+                    android:textColor="@color/widget_accent_on"
+                    android:textSize="10sp"
+                    android:visibility="gone"
                     android:fontFamily="sans-serif-medium" />
             </LinearLayout>
 
@@ -250,15 +359,37 @@
                     android:textSize="11sp"
                     android:fontFamily="sans-serif-medium" />
                 <TextView
+                    android:id="@+id/col_day_today_label_6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="CN"
+                    android:textColor="@color/widget_accent"
+                    android:textSize="11sp"
+                    android:visibility="gone"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
                     android:id="@+id/col_day_count_6"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="3dp"
-                    android:paddingHorizontal="7dp"
+                    android:paddingHorizontal="4dp"
                     android:paddingVertical="2dp"
                     android:gravity="center"
                     android:textColor="@color/widget_text_primary"
-                    android:textSize="11sp"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-medium" />
+                <TextView
+                    android:id="@+id/col_day_today_count_6"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:paddingHorizontal="4dp"
+                    android:paddingVertical="2dp"
+                    android:gravity="center"
+                    android:background="@drawable/widget_weekly_pill_accent"
+                    android:textColor="@color/widget_accent_on"
+                    android:textSize="10sp"
+                    android:visibility="gone"
                     android:fontFamily="sans-serif-medium" />
             </LinearLayout>
         </LinearLayout>
@@ -301,5 +432,18 @@
                     android:fontFamily="sans-serif-medium" />
             </FrameLayout>
         </FrameLayout>
+
+        <!-- 4. Footer ngày trống cuối tuần khi danh sách không cần cuộn -->
+        <TextView
+            android:id="@+id/widget_weekly_footer_empty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="2dp"
+            android:textColor="@color/widget_text_dimmed"
+            android:textSize="11sp"
+            android:fontFamily="sans-serif-medium"
+            android:visibility="gone" />
     </LinearLayout>
 </FrameLayout>

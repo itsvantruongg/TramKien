@@ -22,9 +22,9 @@ class WidgetScheduleSnapshot {
   /// Kiểm tra tính hợp lệ của bản chụp
   bool get isValid => version == currentVersion && generatedAt > 0;
 
-  /// Kiểm tra xem bản chụp có quá cũ hay không (mặc định 14 ngày)
+  /// Kiểm tra xem bản chụp có quá cũ hay không (mặc định 180 ngày để hỗ trợ học kỳ/nghỉ hè)
   bool isStale({
-    Duration maxAge = const Duration(days: 14),
+    Duration maxAge = const Duration(days: 180),
     DateTime? now,
   }) {
     final nowMs = (now ?? DateTime.now()).millisecondsSinceEpoch;

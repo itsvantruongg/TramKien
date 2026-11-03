@@ -7,7 +7,6 @@ import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../models/models.dart';
 import '../widgets/shared_widgets.dart';
-import 'widget_studio_screen.dart';
 
 class ScheduleScreen extends StatefulWidget {
   final void Function(int, {DateTime? focusDate})? onNavigate;
@@ -50,14 +49,6 @@ class _ScheduleScreenState extends State<ScheduleScreen>
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('has_dismissed_schedule_widget_banner', true);
     } catch (_) {}
-  }
-
-  void _openWidgetStudio() {
-    _dismissWidgetBanner();
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const WidgetStudioScreen()),
-    );
   }
 
   @override
@@ -119,66 +110,47 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                   ),
                   child: Row(
                     children: [
-                      GestureDetector(
-                        onTap: _openWidgetStudio,
-                        child: Container(
-                          padding: const EdgeInsets.all(7),
-                          decoration: BoxDecoration(
-                            color: AppTheme.primary.withOpacity(0.12),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.widgets_rounded,
-                            size: 18,
-                            color: AppTheme.primary,
-                          ),
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary.withOpacity(0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.widgets_rounded,
+                          size: 18,
+                          color: AppTheme.primary,
                         ),
                       ),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: _openWidgetStudio,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Row(
-                                children: [
-                                  Flexible(
-                                    child: Text(
-                                      'Đưa lịch học ra màn hình chính',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                        fontFamily: 'Manrope',
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppTheme.onSurface,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  const Icon(
-                                    Icons.arrow_forward_ios_rounded,
-                                    size: 10,
-                                    color: AppTheme.primary,
-                                  ),
-                                ],
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Đưa lịch học ra màn hình chính',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: 'Manrope',
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppTheme.onSurface,
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Cài đặt Tiện ích màn hình để theo dõi ca học tức thì',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontFamily: 'Inter',
-                                  fontSize: 11,
-                                  color: AppTheme.onSurfaceVariant,
-                                ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Nhấn giữ màn hình chính và thêm tiện ích Trạm Kiến',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontFamily: 'Inter',
+                                fontSize: 11,
+                                color: AppTheme.onSurfaceVariant,
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
                       ),
                       IconButton(
@@ -198,7 +170,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
 
         // Tab bar: Tháng | Tuần
         Container(
-          margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          margin: const EdgeInsets.fromLTRB(16, 6, 16, 0),
           height: 40,
           decoration: BoxDecoration(
             color: AppTheme.surfaceContainerHigh,
@@ -1123,7 +1095,7 @@ class _WeekViewState extends State<_WeekView> {
     return Column(children: [
       // Week label + arrows + Today button
       Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         child: Row(children: [
           IconButton(
             icon: const Icon(Icons.chevron_left, color: AppTheme.primary),
@@ -1186,7 +1158,7 @@ class _WeekViewState extends State<_WeekView> {
 
       // 7-day strip
       SizedBox(
-        height: 80,
+        height: 60,
         child: PageView.builder(
           controller: _pageCtrl,
           onPageChanged: (page) => setState(() {
@@ -1205,6 +1177,7 @@ class _WeekViewState extends State<_WeekView> {
           },
         ),
       ),
+      const SizedBox(height: 6),
 
       // Schedule list for selected day
       Expanded(
@@ -1530,20 +1503,20 @@ class _WeekStrip extends StatelessWidget {
             onTap: () => onSelect(day),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              margin: const EdgeInsets.symmetric(horizontal: 3, vertical: 4),
+              margin: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 2),
               decoration: BoxDecoration(
                 color: isSel
                     ? AppTheme.primary
                     : (isToday
                         ? AppTheme.primaryFixed
                         : AppTheme.surfaceContainerLow),
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(12),
                 boxShadow: isSel
                     ? [
                         BoxShadow(
-                          color: AppTheme.primary.withOpacity(0.3),
-                          blurRadius: 12,
-                          offset: const Offset(0, 6),
+                          color: AppTheme.primary.withOpacity(0.18),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
                         )
                       ]
                     : null,
@@ -1553,17 +1526,17 @@ class _WeekStrip extends StatelessWidget {
                   children: [
                     Text(names[i],
                         style: TextStyle(
-                          fontSize: 9,
+                          fontSize: 9.5,
                           fontWeight: FontWeight.w700,
-                          letterSpacing: 1,
+                          letterSpacing: 0.5,
                           color: isSel
                               ? Colors.white70
                               : AppTheme.onSurfaceVariant,
                         )),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: 2),
                     Text('${day.day}',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: isSel
                               ? Colors.white
@@ -1624,9 +1597,10 @@ class _DayList extends StatelessWidget {
       final label = DateFormat('EEEE, dd/MM', 'vi_VN').format(day);
       final dayLabel = label[0].toUpperCase() + label.substring(1);
       final isToday = _isSameDay(day, DateTime.now());
+      final isFirstDay = items.isEmpty;
 
       items.add(Padding(
-        padding: const EdgeInsets.only(top: 16, bottom: 8),
+        padding: EdgeInsets.only(top: isFirstDay ? 4 : 14, bottom: 8),
         child: Row(children: [
           Text(
             dayLabel,
@@ -1652,7 +1626,7 @@ class _DayList extends StatelessWidget {
       // Thẻ lịch thi
       for (final t in exams) {
         items.add(Padding(
-          padding: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.only(bottom: 8),
           child: ExamCard(lichThi: t),
         ));
       }
@@ -1660,7 +1634,7 @@ class _DayList extends StatelessWidget {
       // Thẻ lịch học
       for (final l in classes) {
         items.add(Padding(
-          padding: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.only(bottom: 8),
           child: _ScheduleCardFull(lichHoc: l),
         ));
       }

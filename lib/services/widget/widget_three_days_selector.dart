@@ -190,9 +190,9 @@ class WidgetThreeDaysSelector {
       remainingSessions = daySessions;
     }
 
-    // Tối đa 2 thẻ môn:
+    // Tối đa 4 thẻ môn:
     // QUY TẮC ƯU TIÊN LỊCH THI (AC-11):
-    // Lịch thi mang nền đỏ và LUÔN LUÔN ĐƯỢC ƯU TIÊN VÀO VÙNG HIỂN THỊ (chiếm 1 trong 2 thẻ).
+    // Lịch thi mang nền đỏ và LUÔN LUÔN ĐƯỢC ƯU TIÊN VÀO VÙNG HIỂN THỊ (tối đa 4 thẻ).
     final exams = remainingSessions
         .where((s) => s.kind == SessionKind.examSession)
         .toList();
@@ -202,14 +202,15 @@ class WidgetThreeDaysSelector {
 
     List<Session> chosenSessions;
     if (exams.isNotEmpty) {
-      if (exams.length >= 2) {
-        chosenSessions = exams.take(2).toList();
+      if (exams.length >= 4) {
+        chosenSessions = exams.take(4).toList();
       } else {
-        chosenSessions = [exams.first, ...nonExams.take(1)];
+        final neededClasses = 4 - exams.length;
+        chosenSessions = [...exams, ...nonExams.take(neededClasses)];
       }
       chosenSessions.sort((a, b) => a.startMs.compareTo(b.startMs));
     } else {
-      chosenSessions = nonExams.take(2).toList();
+      chosenSessions = nonExams.take(4).toList();
     }
 
     // Chuyển đổi sang ThreeDaysCardItem
@@ -220,9 +221,10 @@ class WidgetThreeDaysSelector {
       final roomStr = simplifyRoom(s.room);
       final timeRoomLine = roomStr.isNotEmpty ? '$timeStr · $roomStr' : timeStr;
 
-      // shortName 1 dòng
+      // shortName 1 dòng (kèm tiền tố "Thi " nếu là ca thi)
       final rawShortName = s.shortName.trim().isNotEmpty ? s.shortName.trim() : s.subjectName.trim();
-      final shortName = WidgetHashUtils.formatWithEllipsisPreservation(rawShortName, maxLength: 24);
+      final titleWithExam = isExam ? 'Thi $rawShortName' : rawShortName;
+      final shortName = WidgetHashUtils.formatWithEllipsisPreservation(titleWithExam, maxLength: 24);
 
       final sessionDateIso = WidgetTimeUtils.formatVnDateIso(s.start);
       final deepLink = 'tramkien://schedule?date=$sessionDateIso&sessionId=${s.id}';

@@ -6,6 +6,7 @@
     android:targetCellHeight="2"
     android:updatePeriodMillis="1800000"
     android:initialLayout="@layout/widget_schedule_three_days"
+    android:previewLayout="@layout/widget_schedule_three_days"
     android:previewImage="@drawable/widget_preview_three_days"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />

@@ -53,10 +53,41 @@ import WidgetKit
           result(FlutterMethodNotImplemented)
         }
       }
+      let intentChannel = FlutterMethodChannel(name: "com.tramkien.hau/initial_intent", binaryMessenger: controller.binaryMessenger)
+      intentChannel.setMethodCallHandler { [weak self] (call: FlutterMethodCall, result: @escaping FlutterResult) in
+        switch call.method {
+        case "getInitialRoute":
+          result(self?.initialUrlString)
+        case "clearInitialIntent":
+          self?.initialUrlString = nil
+          result(true)
+        default:
+          result(FlutterMethodNotImplemented)
+        }
+      }
     }
 
     UNUserNotificationCenter.current().delegate = self
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  private var initialUrlString: String? = nil
+
+  override func application(
+    _ app: UIApplication,
+    open url: URL,
+    options: [UIApplication.OpenURLOptionsKey : Any] = [:]
+  ) -> Bool {
+    let urlStr = url.absoluteString
+    if urlStr.starts(with: "tramkien://") {
+      initialUrlString = urlStr
+      if let controller = window?.rootViewController as? FlutterViewController {
+        let channel = FlutterMethodChannel(name: "com.tramkien.hau/initial_intent", binaryMessenger: controller.binaryMessenger)
+        channel.invokeMethod("onNewIntent", urlStr)
+      }
+      return true
+    }
+    return super.application(app, open: url, options: options)
   }
 
   // Hiển thị thông báo kể cả khi app đang mở (foreground)

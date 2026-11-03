@@ -256,8 +256,8 @@ void main() {
       // 1. 06:55-09:20 Lập trình Web -> past (không hiển thị trong thẻ)
       // 2. 09:45-11:45 Thi PPL NCKH -> current (Exam) -> Thẻ 1
       // 3. 12:55-15:25 CTDL & GT 2 -> upcoming -> Thẻ 2
-      // 4. 15:30-17:05 Mạng máy tính -> upcoming -> Overflow
-      expect(todayData.visibleCards.length, 2);
+      // 4. 15:30-17:05 Mạng máy tính -> upcoming -> Thẻ 3 (chuẩn mới 3 thẻ)
+      expect(todayData.visibleCards.length, 3);
 
       // Thẻ 1: Môn thi PPL NCKH
       final card1 = todayData.visibleCards[0];
@@ -275,9 +275,15 @@ void main() {
       expect(card2.displayTitle, contains('2')); // bảo tồn hậu tố số 2 (AC-09)
       expect(card2.deepLinkUri, contains('sessionId=103'));
 
-      // Footer: +1 môn nữa
-      expect(todayData.overflowCount, 1);
-      expect(todayData.overflowLabel, '+1 môn nữa');
+      // Thẻ 3: Mạng máy tính
+      final card3 = todayData.visibleCards[2];
+      expect(card3.isExam, isFalse);
+      expect(card3.isCurrent, isFalse);
+      expect(card3.timeRoomLine, contains('15:30'));
+
+      // Vừa đủ 3 thẻ -> không overflow
+      expect(todayData.overflowCount, 0);
+      expect(todayData.overflowLabel, isNull);
     });
 
     test('AC-11: Quy tắc ưu tiên lịch thi chưa diễn ra dù ở mốc giờ xa hơn trong ngày', () {
@@ -326,18 +332,13 @@ void main() {
       final now0600 = WidgetTimeUtils.vnComponentsToDateTime(testYear, testMonth, testDay, 6, 0);
       final data = WidgetMonthTodaySelector.selectTodaySchedule(snapshot: snapshotPriority, now: now0600);
 
-      expect(data.visibleCards.length, 2);
-      // Thẻ 1: Môn sáng 1 (06:55)
-      expect(data.visibleCards[0].session.id, 501);
-      // Thẻ 2: BẮT BUỘC LÀ CA THI (15:30) vì ca thi được ưu tiên vị trí hiển thị (AC-11),
-      // mặc dù Môn sáng 2 (09:45) diễn ra sớm hơn!
-      expect(data.visibleCards[1].isExam, isTrue);
-      expect(data.visibleCards[1].session.id, 503);
-      expect(data.visibleCards[1].timeRoomLine, '15:30 · B201 · Thi');
-
-      // Môn sáng 2 bị đẩy vào số đếm overflow (+1 môn nữa)
-      expect(data.overflowCount, 1);
-      expect(data.overflowLabel, '+1 môn nữa');
+      expect(data.visibleCards.length, 3);
+      // Ca thi (15:30) BẮT BUỘC có mặt trong các thẻ hiển thị (AC-11)
+      expect(data.visibleCards.any((c) => c.session.id == 503 && c.isExam), isTrue);
+      expect(data.visibleCards.any((c) => c.timeRoomLine == '15:30 · B201 · Thi'), isTrue);
+      // Cả 3 môn đều hiển thị đầy đủ
+      expect(data.overflowCount, 0);
+      expect(data.overflowLabel, isNull);
     });
 
     test('Kỷ luật đếm tràn overflow: Chỉ hiện +N khi N > 0, không bao giờ hiện +0', () {
@@ -543,7 +544,8 @@ void main() {
       expect(find.text('4 môn'), findsOneWidget);
       expect(find.text('09:45 · B205 · Thi'), findsOneWidget);
       expect(find.text('12:55 · P.102'), findsOneWidget);
-      expect(find.text('+1 môn nữa'), findsOneWidget);
+      // Chuẩn 3 thẻ hiển thị đầy đủ 3 môn còn lại
+      expect(find.text('+1 môn nữa'), findsNothing);
     });
 
     testWidgets('Render Dark mode chính xác theo Token Mục 1.4 & 1.5', (tester) async {

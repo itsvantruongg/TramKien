@@ -149,6 +149,11 @@ class ScheduleDb {
         where: where, whereArgs: args, orderBy: 'thu ASC, tiet ASC');
 
     final result = rows.map(LichHoc.fromMap).toList();
+    result.sort((a, b) {
+      final thuCmp = a.thuSo.compareTo(b.thuSo);
+      if (thuCmp != 0) return thuCmp;
+      return a.tietBatDau.compareTo(b.tietBatDau);
+    });
 
     final filterStr = where ?? 'NONE';
     print('📚 [DB] getLichHoc($filterStr) → ${result.length} records');
@@ -171,7 +176,13 @@ class ScheduleDb {
         where: 'hoc_ky = ? AND nam_hoc = ?',
         whereArgs: [hocKy, namHoc],
         orderBy: 'thu ASC, tiet ASC');
-    return rows.map(LichHoc.fromMap).toList();
+    final result = rows.map(LichHoc.fromMap).toList();
+    result.sort((a, b) {
+      final thuCmp = a.thuSo.compareTo(b.thuSo);
+      if (thuCmp != 0) return thuCmp;
+      return a.tietBatDau.compareTo(b.tietBatDau);
+    });
+    return result;
   }
 
   static Future<void> updateLichHocNote(int id, String note) async {

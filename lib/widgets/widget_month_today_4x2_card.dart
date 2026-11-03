@@ -342,19 +342,16 @@ class WidgetMonthToday4x2Card extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ...schedule.visibleCards.map((cardItem) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 3),
-                    child: _buildCourseCard(cardItem),
-                  );
-                }),
-                const Spacer(),
+                for (int i = 0; i < schedule.visibleCards.length; i++) ...[
+                  if (i > 0) const SizedBox(height: 2),
+                  _buildCourseCard(schedule.visibleCards[i]),
+                ],
                 // Footer: "+N môn nữa" (cỡ 11, phụ) nếu còn ca học tiếp theo (chỉ hiện khi N > 0, không hiện +0)
                 if (schedule.overflowLabel != null)
                   Text(
                     schedule.overflowLabel!,
                     style: TextStyle(
-                      fontSize: 10.5,
+                      fontSize: 9.5,
                       fontWeight: FontWeight.w400,
                       color: textSecondary,
                     ),
@@ -375,8 +372,8 @@ class WidgetMonthToday4x2Card extends StatelessWidget {
 
     if (cardItem.isExam) {
       cardBg = isDarkMode ? WidgetDesignTokens.darkExamBg : WidgetDesignTokens.lightExamBg;
-      titleColor = isDarkMode ? WidgetDesignTokens.darkExamText : WidgetDesignTokens.lightExamText;
-      subColor = titleColor;
+      titleColor = isDarkMode ? Colors.white : WidgetDesignTokens.lightExamText;
+      subColor = isDarkMode ? WidgetDesignTokens.darkExamText : WidgetDesignTokens.lightExamText;
     } else {
       final colorTokens = isDarkMode
           ? WidgetDesignTokens.darkSubjectColors
@@ -384,8 +381,8 @@ class WidgetMonthToday4x2Card extends StatelessWidget {
       final safeColorIdx = cardItem.colorIndex.clamp(0, colorTokens.length - 1);
       final token = colorTokens[safeColorIdx];
       cardBg = token.bg;
-      titleColor = token.text;
-      subColor = token.text.withValues(alpha: 0.9);
+      titleColor = isDarkMode ? Colors.white : token.text;
+      subColor = token.text;
     }
 
     final accentBorder = isDarkMode
@@ -401,7 +398,7 @@ class WidgetMonthToday4x2Card extends StatelessWidget {
       onTap: () => onCardTap?.call(cardItem),
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(8),
@@ -415,8 +412,9 @@ class WidgetMonthToday4x2Card extends StatelessWidget {
             Text(
               cardItem.timeRoomLine,
               style: TextStyle(
-                fontSize: 10.5,
+                fontSize: 10,
                 fontWeight: FontWeight.w500,
+                height: 1.1,
                 color: subColor,
               ),
               maxLines: 1,
@@ -427,9 +425,10 @@ class WidgetMonthToday4x2Card extends StatelessWidget {
             Text(
               cardItem.displayTitle,
               style: TextStyle(
-                fontSize: 10.5,
+                fontSize: 10,
                 fontWeight: FontWeight.w400,
                 color: titleColor,
+                height: 1.1,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,

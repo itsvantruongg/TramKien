@@ -33,15 +33,48 @@ class MainActivity: FlutterActivity() {
         handleIntent(intent)
         flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
             val channel = MethodChannel(messenger, WIDGET_CHANNEL)
-            val tab = initialTargetTab ?: 1
+            val tab = initialTargetTab
             val route = initialRoute
-            channel.invokeMethod("onNavigate", mapOf(
-                "tab" to tab,
-                "route" to route
-            ))
-            channel.invokeMethod("onNavigateTab", tab)
-            route?.let { channel.invokeMethod("onNavigateRoute", it) }
+            if (tab != null && tab >= 0) {
+                channel.invokeMethod("onNavigate", mapOf(
+                    "tab" to tab,
+                    "route" to route
+                ))
+                channel.invokeMethod("onNavigateTab", tab)
+                route?.let { channel.invokeMethod("onNavigateRoute", it) }
+            } else if (route != null) {
+                channel.invokeMethod("onNavigateRoute", route)
+            }
         }
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        try {
+            val appWidgetManager = AppWidgetManager.getInstance(this)
+            val providerClasses = listOf(
+                SingleDay2x2ScheduleWidgetProvider::class.java,
+                MonthToday4x2ScheduleWidgetProvider::class.java,
+                ThreeDaysScheduleWidgetProvider::class.java,
+                WeeklyScheduleWidgetProvider::class.java
+            )
+            for (cls in providerClasses) {
+                val thisWidget = ComponentName(this, cls)
+                val appWidgetIds = appWidgetManager.getAppWidgetIds(thisWidget)
+                if (appWidgetIds.isNotEmpty()) {
+                    val intent = Intent(this, cls).apply {
+                        action = "com.tramkien.hau.ACTION_UPDATE_WIDGET"
+                        putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
+                    }
+                    sendBroadcast(intent)
+                    if (cls == WeeklyScheduleWidgetProvider::class.java) {
+                        try {
+                            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widget_weekly_list)
+                        } catch (_: Exception) {}
+                    }
+                }
+            }
+        } catch (_: Exception) {}
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -70,6 +103,8 @@ class MainActivity: FlutterActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
+        initialRoute = null
+        initialTargetTab = null
         val dataUri = intent?.data
         android.util.Log.i("MainActivity", "handleIntent: action=${intent?.action}, data=$dataUri")
         intent?.getStringExtra("open_route")?.let {
@@ -116,6 +151,11 @@ class MainActivity: FlutterActivity() {
                                         putExtra(AppWidgetManager.EXTRA_APPWIDGET_IDS, appWidgetIds)
                                     }
                                     context.sendBroadcast(intent)
+                                    if (cls == WeeklyScheduleWidgetProvider::class.java) {
+                                        try {
+                                            appWidgetManager.notifyAppWidgetViewDataChanged(appWidgetIds, R.id.widget_weekly_list)
+                                        } catch (_: Exception) {}
+                                    }
                                 }
                             } catch (_: Exception) {}
                         }

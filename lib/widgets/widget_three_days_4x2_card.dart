@@ -127,7 +127,7 @@ class WidgetThreeDays4x2Card extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 4),
 
           // Thân cột: Hoặc "Trống", hoặc tối đa 2 thẻ môn
           Expanded(
@@ -139,7 +139,7 @@ class WidgetThreeDays4x2Card extends StatelessWidget {
                       child: Text(
                         column.emptyText,
                         style: TextStyle(
-                          color: textDimmed,
+                          color: isDarkMode ? WidgetDesignTokens.darkTextSecondary : textDimmed,
                           fontSize: 11,
                           fontWeight: FontWeight.w400,
                           fontFamily: 'sans-serif',
@@ -151,7 +151,7 @@ class WidgetThreeDays4x2Card extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       for (int k = 0; k < column.visibleCards.length; k++) ...[
-                        if (k > 0) const SizedBox(height: 4),
+                        if (k > 0) const SizedBox(height: 2),
                         _buildCard(context, column.visibleCards[k]),
                       ],
                     ],
@@ -169,14 +169,18 @@ class WidgetThreeDays4x2Card extends StatelessWidget {
         : WidgetDesignTokens.lightSubjectColors;
 
     final Color cardBg;
-    final Color textColor;
+    final Color titleColor;
+    final Color timeColor;
     Border? border;
 
     if (card.isExam) {
       cardBg = isDarkMode
           ? WidgetDesignTokens.darkExamBg
           : WidgetDesignTokens.lightExamBg;
-      textColor = isDarkMode
+      titleColor = isDarkMode
+          ? Colors.white
+          : WidgetDesignTokens.lightExamText;
+      timeColor = isDarkMode
           ? WidgetDesignTokens.darkExamText
           : WidgetDesignTokens.lightExamText;
 
@@ -190,7 +194,8 @@ class WidgetThreeDays4x2Card extends StatelessWidget {
       final safeColorIdx = card.colorIndex.clamp(0, colorTokens.length - 1);
       final token = colorTokens[safeColorIdx];
       cardBg = token.bg;
-      textColor = token.text;
+      titleColor = isDarkMode ? Colors.white : token.text;
+      timeColor = token.text;
 
       if (card.isCurrent) {
         final accentBorder = isDarkMode
@@ -204,7 +209,7 @@ class WidgetThreeDays4x2Card extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: () => onCardTap?.call(card),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
+        padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 5),
         decoration: BoxDecoration(
           color: cardBg,
           borderRadius: BorderRadius.circular(8),
@@ -220,11 +225,11 @@ class WidgetThreeDays4x2Card extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: textColor,
-                fontSize: 11,
+                color: timeColor,
+                fontSize: 10,
                 fontWeight: FontWeight.w500,
                 fontFamily: 'sans-serif-medium',
-                height: 1.15,
+                height: 1.1,
               ),
             ),
             const SizedBox(height: 1),
@@ -234,7 +239,7 @@ class WidgetThreeDays4x2Card extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: textColor,
+                color: titleColor,
                 fontSize: 11,
                 fontWeight: FontWeight.w400,
                 fontFamily: 'sans-serif',

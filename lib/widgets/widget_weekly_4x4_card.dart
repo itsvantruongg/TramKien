@@ -188,39 +188,43 @@ class WidgetWeekly4x4Card extends StatelessWidget {
               ),
               const SizedBox(height: 4),
 
-              // Hàng số môn: số môn hoặc dấu "·" mờ; Hôm nay là viên thuốc accent đầy
-              if (isToday)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: accentColor,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    dayItem.countText,
-                    style: TextStyle(
-                      color: accentOn,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      fontFamily: 'sans-serif-medium',
-                      height: 1.1,
+              // Hàng ngày trong tháng (ví dụ 26/10); Hôm nay là viên thuốc accent đầy
+              Builder(builder: (context) {
+                final dateStr = '${dayItem.date.day.toString().padLeft(2, '0')}/${dayItem.date.month.toString().padLeft(2, '0')}';
+                if (isToday) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: accentColor,
+                      borderRadius: BorderRadius.circular(10),
                     ),
-                  ),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  child: Text(
-                    dayItem.countText,
-                    style: TextStyle(
-                      color: dayItem.sessionCount > 0 ? textPrimary : textDimmed,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w400,
-                      fontFamily: 'sans-serif-medium',
-                      height: 1.1,
+                    child: Text(
+                      dateStr,
+                      style: TextStyle(
+                        color: accentOn,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'sans-serif-medium',
+                        height: 1.1,
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                } else {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    child: Text(
+                      dateStr,
+                      style: TextStyle(
+                        color: dayItem.isPastDay ? textDimmed : textPrimary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                        fontFamily: 'sans-serif-medium',
+                        height: 1.1,
+                      ),
+                    ),
+                  );
+                }
+              }),
             ],
           ),
         );

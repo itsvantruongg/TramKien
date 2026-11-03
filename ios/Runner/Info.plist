@@ -42,8 +42,6 @@
 		<array>
 			<string>UIInterfaceOrientationPortrait</string>
 		</array>
-		<key>CFBundleURLTypes</key>
-		<array></array>
 		<!-- Schemes cho url_launcher (canLaunchUrl) -->
 		<key>LSApplicationQueriesSchemes</key>
 		<array>

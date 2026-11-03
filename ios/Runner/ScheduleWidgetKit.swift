@@ -128,6 +128,8 @@ struct Today2x2ViewModel {
     let colorIndex: Int
     let endEstimated: Bool
     let deepLinkUrl: String
+    let nextSessionLabel: String?
+    let nextSessionSubject: String?
 
     var hasSession: Bool {
         return stateType == "sessionActive"
@@ -146,7 +148,9 @@ struct Today2x2ViewModel {
             isExam: false,
             colorIndex: 0,
             endEstimated: false,
-            deepLinkUrl: "tramkien://schedule"
+            deepLinkUrl: "tramkien://schedule",
+            nextSessionLabel: nil,
+            nextSessionSubject: nil
         )
     }
 }
@@ -226,6 +230,7 @@ struct ThreeDaysColumnPayload: Identifiable {
     let isEmpty: Bool
     let emptyText: String
     let deepLink: String
+    let footerText: String?
 }
 
 struct ThreeDays4x2ViewModel {
@@ -254,7 +259,7 @@ func readSnapshotFromAppGroup() -> SnapshotPayload? {
         return nil
     }
     guard payload.version == 1 else { return nil }
-    let maxAgeMs: Int64 = 14 * 24 * 60 * 60 * 1000
+    let maxAgeMs: Int64 = 180 * 24 * 60 * 60 * 1000
     let nowMs = Int64(Date().timeIntervalSince1970 * 1000)
     if payload.generatedAt > 0 && (nowMs - payload.generatedAt > maxAgeMs) {
         return nil
@@ -357,7 +362,7 @@ func evaluateToday2x2(snapshot: SnapshotPayload?, at date: Date) -> Today2x2View
             .sorted { $0.startMs < $1.startMs }
         if let exam = upcomingExams.first {
             selectedSession = exam
-            statusLabel = "Tiếp theo"
+            statusLabel = "Hôm nay"
         }
     }
 
@@ -367,7 +372,7 @@ func evaluateToday2x2(snapshot: SnapshotPayload?, at date: Date) -> Today2x2View
             .sorted { $0.startMs < $1.startMs }
         if let nextClass = upcomingClasses.first {
             selectedSession = nextClass
-            statusLabel = "Tiếp theo"
+            statusLabel = "Hôm nay"
         }
     }
 
@@ -400,6 +405,45 @@ func evaluateToday2x2(snapshot: SnapshotPayload?, at date: Date) -> Today2x2View
         let sessionDateIso = isoFormatter.string(from: startTimeDate)
         let deepLink = "tramkien://schedule?date=\(sessionDateIso)&sessionId=\(s.id)"
 
+        // Tìm ca tiếp theo sau ca được chọn
+        var nextLabel: String? = nil
+        var nextSubject: String? = nil
+        let afterSessions = todaySessions.filter { $0.startMs >= s.endMs && $0.id != s.id }
+            .sorted { $0.startMs < $1.startMs }
+        let deadlineMs = nowMs + 7 * 86400 * 1000
+        let futureSessions = sessions.filter { $0.startMs > s.endMs && $0.startMs <= deadlineMs && $0.id != s.id }
+            .sorted { $0.startMs < $1.startMs }
+
+        if let next = afterSessions.first ?? futureSessions.first {
+            let nextDate = Date(timeIntervalSince1970: Double(next.startMs) / 1000.0)
+            let nextTimeStr = timeFormatter.string(from: nextDate)
+            let isAfterToday = !calendar.isDate(nextDate, inSameDayAs: date)
+            let isTomorrow = calendar.isDate(nextDate, inSameDayAs: tomorrowDate)
+            if !isAfterToday {
+                nextLabel = "MÔN TIẾP · \(nextTimeStr)"
+            } else if isTomorrow {
+                nextLabel = "NGÀY MAI · \(nextTimeStr)"
+            } else {
+                let nWk = calendar.component(.weekday, from: nextDate)
+                let nWkStr: String = {
+                    switch nWk {
+                    case 2: return "T2"
+                    case 3: return "T3"
+                    case 4: return "T4"
+                    case 5: return "T5"
+                    case 6: return "T6"
+                    case 7: return "T7"
+                    default: return "CN"
+                    }
+                }()
+                nextLabel = "\(nWkStr) · \(nextTimeStr)"
+            }
+            let rawTitle = (next.short?.isEmpty == false) ? next.short! : next.subject
+            let nextTitle = truncatePreserveSuffixSwift(rawTitle, maxLength: 22)
+            let nextRoom = simplifyRoomSwift(next.room)
+            nextSubject = nextRoom.isEmpty ? nextTitle : "\(nextTitle) · \(nextRoom)"
+        }
+
         return Today2x2ViewModel(
             stateType: "sessionActive",
             statusLabel: statusLabel,
@@ -412,7 +456,9 @@ func evaluateToday2x2(snapshot: SnapshotPayload?, at date: Date) -> Today2x2View
             isExam: isExam,
             colorIndex: s.color,
             endEstimated: isEndEstimated,
-            deepLinkUrl: deepLink
+            deepLinkUrl: deepLink,
+            nextSessionLabel: nextLabel,
+            nextSessionSubject: nextSubject
         )
     }
 
@@ -458,7 +504,9 @@ func evaluateToday2x2(snapshot: SnapshotPayload?, at date: Date) -> Today2x2View
         isExam: false,
         colorIndex: 0,
         endEstimated: false,
-        deepLinkUrl: "tramkien://schedule?date=\(todayIso)"
+        deepLinkUrl: "tramkien://schedule?date=\(todayIso)",
+        nextSessionLabel: nil,
+        nextSessionSubject: nil
     )
 }
 
@@ -594,8 +642,10 @@ func evaluateMonthToday4x2(snapshot: SnapshotPayload?, at date: Date, monthOffse
             default: nWkStr = "CN"
             }
             let timeStr = timeFormatter.string(from: nextDate)
-            let nameStr = (next.short?.isEmpty == false) ? next.short! : next.subject
-            nextPreview = "Tiếp theo: \(nWkStr) \(timeStr) \(nameStr)"
+            let roomStr = simplifyRoomSwift(next.room)
+            let roomPart = roomStr.isEmpty ? "" : " · \(roomStr)"
+            let nameStr = next.subject.trimmingCharacters(in: .whitespacesAndNewlines)
+            nextPreview = "Sắp tới: \(nWkStr) \(timeStr)\(roomPart)\n\(nameStr)"
         } else {
             nextPreview = "Không có lịch sắp tới"
         }
@@ -620,21 +670,30 @@ func evaluateMonthToday4x2(snapshot: SnapshotPayload?, at date: Date, monthOffse
     let classes = remainingSessions.filter { $0.kind != "exam" }
 
     var chosen: [SnapshotSessionPayload] = []
-    if exams.count >= 2 {
+    if exams.count >= 3 {
+        chosen = Array(exams.prefix(3))
+    } else if exams.count == 2 {
         chosen = Array(exams.prefix(2))
-    } else if exams.count == 1 {
-        chosen = [exams[0]]
         if let firstClass = classes.first {
             chosen.append(firstClass)
         }
         chosen.sort { $0.startMs < $1.startMs }
+    } else if exams.count == 1 {
+        chosen = [exams[0]] + Array(classes.prefix(2))
+        chosen.sort { $0.startMs < $1.startMs }
     } else {
-        chosen = Array(classes.prefix(2))
+        chosen = Array(classes.prefix(3))
     }
+
+    // Chọn DUY NHẤT 1 ca đang diễn ra (Single Active Session Arbiter)
+    let activeSession = chosen
+        .filter { $0.startMs <= nowMs && nowMs < $0.endMs }
+        .sorted { ($0.kind == "exam" ? 0 : 1, $0.startMs) < ($1.kind == "exam" ? 0 : 1, $1.startMs) }
+        .first
 
     let visibleCards: [MonthTodayCardItemPayload] = chosen.map { s in
         let isExam = s.kind == "exam"
-        let isCurrent = s.startMs <= nowMs && nowMs < s.endMs
+        let isCurrent = (activeSession?.id == s.id)
         let startDate = Date(timeIntervalSince1970: Double(s.startMs) / 1000.0)
         let startStr = timeFormatter.string(from: startDate)
         let roomStr = s.room.isEmpty ? "Chưa có phòng" : s.room
@@ -655,7 +714,26 @@ func evaluateMonthToday4x2(snapshot: SnapshotPayload?, at date: Date, monthOffse
     }
 
     let overflow = remainingSessions.count - chosen.count
-    let overflowLabel = overflow > 0 ? "+\(overflow) môn nữa" : nil
+    let pastCount = todaySessions.count - remainingSessions.count
+    let overflowLabel: String?
+    if overflow > 0 {
+        let overflowSessions = Array(remainingSessions.dropFirst(chosen.count))
+        if let nextS = overflowSessions.first {
+            let nDate = Date(timeIntervalSince1970: Double(nextS.startMs) / 1000.0)
+            let nTime = timeFormatter.string(from: nDate)
+            overflowLabel = (pastCount > 0)
+                ? "+\(overflow) môn nữa lúc \(nTime) · \(pastCount) đã xong"
+                : "+\(overflow) môn nữa lúc \(nTime)"
+        } else {
+            overflowLabel = (pastCount > 0)
+                ? "+\(overflow) môn nữa · \(pastCount) đã xong"
+                : "+\(overflow) môn nữa"
+        }
+    } else if pastCount > 0 {
+        overflowLabel = "Đã xong \(pastCount) môn"
+    } else {
+        overflowLabel = nil
+    }
 
     return MonthToday4x2ViewModel(
         monthTitle: monthTitle,
@@ -713,12 +791,13 @@ func evaluateThreeDays4x2(snapshot: SnapshotPayload?, at date: Date) -> ThreeDay
 
         let isToday = (colIdx == 0)
         let dayStr = String(format: "%02d", day)
+        let monthStr = String(format: "%02d", month)
         let title: String
         if isToday {
-            title = "Hôm nay \(dayStr)"
+            title = "Hôm nay \(dayStr)/\(monthStr)"
         } else {
             let wkStr = (weekdayInt >= 1 && weekdayInt <= 7) ? weekdayNames[weekdayInt] : "T2"
-            title = "\(wkStr) · \(dayStr)"
+            title = "\(wkStr) · \(dayStr)/\(monthStr)"
         }
 
         let dateIso = String(format: "%04d-%02d-%02d", year, month, day)
@@ -742,28 +821,51 @@ func evaluateThreeDays4x2(snapshot: SnapshotPayload?, at date: Date) -> ThreeDay
         let classes = remainingSessions.filter { $0.kind != "exam" }
 
         var chosen: [SnapshotSessionPayload] = []
-        if exams.count >= 2 {
-            chosen = Array(exams.prefix(2))
+        if exams.count >= 4 {
+            chosen = Array(exams.prefix(4))
+        } else if exams.count == 3 {
+            chosen = Array(exams.prefix(3)) + Array(classes.prefix(1))
+            chosen.sort { $0.startMs < $1.startMs }
+        } else if exams.count == 2 {
+            chosen = Array(exams.prefix(2)) + Array(classes.prefix(2))
+            chosen.sort { $0.startMs < $1.startMs }
         } else if exams.count == 1 {
-            chosen = [exams[0]] + Array(classes.prefix(1))
+            chosen = [exams[0]] + Array(classes.prefix(3))
             chosen.sort { $0.startMs < $1.startMs }
         } else {
-            chosen = Array(classes.prefix(2))
+            chosen = Array(classes.prefix(4))
         }
 
         let hiddenCount = remainingSessions.count - chosen.count
         let badgeText = hiddenCount > 0 ? "+\(hiddenCount)" : nil
 
+        let activeSession = isToday ? chosen
+            .filter { $0.startMs <= nowMs && nowMs < $0.endMs }
+            .sorted { ($0.kind == "exam" ? 0 : 1, $0.startMs) < ($1.kind == "exam" ? 0 : 1, $1.startMs) }
+            .first : nil
+
+        let isAdaptiveMode = (chosen.count <= 2)
         let visibleCards = chosen.map { s -> ThreeDaysCardItemPayload in
             let isExam = s.kind == "exam"
-            let isCurrent = isToday && (s.startMs <= nowMs && nowMs < s.endMs)
+            let isCurrent = isToday && (activeSession?.id == s.id)
             let sStartDate = Date(timeIntervalSince1970: Double(s.startMs) / 1000.0)
             let timeStr = timeFormatter.string(from: sStartDate)
             let roomStr = simplifyRoomSwift(s.room)
             let timeRoomLine = roomStr.isEmpty ? timeStr : "\(timeStr) · \(roomStr)"
-            let rawShort = (s.short ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            let rawName = rawShort.isEmpty ? s.subject : rawShort
-            let shortName = truncatePreserveSuffixSwift(rawName, maxLength: 24)
+
+            let shortName: String
+            if isAdaptiveMode {
+                // Adaptive Card (1-2 môn): Ưu tiên hiển thị tên môn đầy đủ (tối đa 48 ký tự ngắt 2 dòng)
+                let rawName = s.subject.trimmingCharacters(in: .whitespacesAndNewlines)
+                let titleWithExam = isExam ? "Thi \(rawName)" : rawName
+                shortName = truncatePreserveSuffixSwift(titleWithExam, maxLength: 48)
+            } else {
+                // Compact Card (3-4 môn): Dùng tên viết tắt siêu gọn 1 dòng (tối đa 24 ký tự)
+                let rawShort = (s.short ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+                let rawName = rawShort.isEmpty ? s.subject : rawShort
+                let titleWithExam = isExam ? "Thi \(rawName)" : rawName
+                shortName = truncatePreserveSuffixSwift(titleWithExam, maxLength: 24)
+            }
 
             let deepLink = "tramkien://schedule?date=\(dateIso)&sessionId=\(s.id)"
 
@@ -780,6 +882,33 @@ func evaluateThreeDays4x2(snapshot: SnapshotPayload?, at date: Date) -> ThreeDay
             )
         }
 
+        let emptyText: String
+        if isToday {
+            if !daySessions.isEmpty {
+                emptyText = "Đã xong lịch hôm nay 🎉\nChúc bạn buổi tối vui vẻ"
+            } else {
+                emptyText = "Hôm nay không có lịch 🎉\nChúc bạn ngày tốt lành!"
+            }
+        } else {
+            emptyText = "Trống"
+        }
+
+        let pastCount = isToday ? daySessions.filter { $0.endMs <= nowMs }.count : 0
+        let lastSession = daySessions.last
+        let lastTimeStr: String = {
+            if let last = lastSession {
+                let d = Date(timeIntervalSince1970: Double(last.endMs) / 1000.0)
+                return timeFormatter.string(from: d)
+            }
+            return ""
+        }()
+
+        let footerText: String? = daySessions.isEmpty ? nil : (
+            isToday
+                ? (pastCount > 0 ? "\(pastCount) môn đã xong" : "Tổng \(daySessions.count) môn")
+                : "Tổng \(daySessions.count) môn"
+        )
+
         columns.append(ThreeDaysColumnPayload(
             dateIso: dateIso,
             title: title,
@@ -788,8 +917,9 @@ func evaluateThreeDays4x2(snapshot: SnapshotPayload?, at date: Date) -> ThreeDay
             hiddenCount: max(0, hiddenCount),
             badgeText: badgeText,
             isEmpty: visibleCards.isEmpty,
-            emptyText: "Trống",
-            deepLink: "tramkien://schedule?date=\(dateIso)"
+            emptyText: emptyText,
+            deepLink: "tramkien://schedule?date=\(dateIso)",
+            footerText: footerText
         ))
     }
 
@@ -804,9 +934,11 @@ func evaluateThreeDays4x2(snapshot: SnapshotPayload?, at date: Date) -> ThreeDay
 
 struct WeeklyDayStripPayload {
     let weekday: String
+    let dateText: String
     let countText: String
     let count: Int
     let isToday: Bool
+    let isPastDay: Bool
 }
 
 struct WeeklySessionRowPayload: Identifiable {
@@ -825,6 +957,7 @@ struct WeeklyDayGroupPayload: Identifiable {
     let id: String
     let headerTitle: String
     let isToday: Bool
+    let isPastDay: Bool
     let sessions: [WeeklySessionRowPayload]
 }
 
@@ -854,12 +987,17 @@ struct Weekly4x4ViewModel {
     let daysStrip: [WeeklyDayStripPayload]
     let items: [WeeklyScheduleListItemPayload]
     let footerText: String?
+    let weekendFooterText: String?
     let totalSessions: Int
+
+    var isAdaptive: Bool {
+        return true
+    }
 
     static func placeholder() -> Weekly4x4ViewModel {
         let weekdayLabels = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"]
         let strip = weekdayLabels.map {
-            WeeklyDayStripPayload(weekday: $0, countText: "\u{00B7}", count: 0, isToday: false)
+            WeeklyDayStripPayload(weekday: $0, dateText: "--/--", countText: "\u{00B7}", count: 0, isToday: false, isPastDay: false)
         }
         return Weekly4x4ViewModel(
             hasSnapshot: false,
@@ -868,6 +1006,7 @@ struct Weekly4x4ViewModel {
             daysStrip: strip,
             items: [],
             footerText: nil,
+            weekendFooterText: nil,
             totalSessions: 0
         )
     }
@@ -911,6 +1050,7 @@ func evaluateWeekly4x4(snapshot: SnapshotPayload?, at date: Date, weekOffset: In
         return Weekly4x4ViewModel.placeholder()
     }
 
+    let startOfTodayMs = Int64(todayStart.timeIntervalSince1970 * 1000)
     let weekTitle = "Tuần \(dayMonthFormatter.string(from: targetMonday)) \u{2013} \(dayMonthFormatter.string(from: targetSunday))"
 
     guard let snapshot = snapshot, snapshot.version == 1 else {
@@ -918,11 +1058,14 @@ func evaluateWeekly4x4(snapshot: SnapshotPayload?, at date: Date, weekOffset: In
             let d = vnCalendar.date(byAdding: .day, value: i, to: targetMonday) ?? targetMonday
             let comp = vnCalendar.dateComponents([.year, .month, .day], from: d)
             let isToday = (comp.year == todayComponents.year && comp.month == todayComponents.month && comp.day == todayComponents.day)
+            let dTimeMs = Int64(d.timeIntervalSince1970 * 1000)
             return WeeklyDayStripPayload(
                 weekday: weekdayLabels[i],
+                dateText: dayMonthFormatter.string(from: d),
                 countText: "\u{00B7}",
                 count: 0,
-                isToday: isToday
+                isToday: isToday,
+                isPastDay: dTimeMs < startOfTodayMs
             )
         }
         return Weekly4x4ViewModel(
@@ -932,6 +1075,7 @@ func evaluateWeekly4x4(snapshot: SnapshotPayload?, at date: Date, weekOffset: In
             daysStrip: strip,
             items: [],
             footerText: nil,
+            weekendFooterText: nil,
             totalSessions: 0
         )
     }
@@ -965,12 +1109,15 @@ func evaluateWeekly4x4(snapshot: SnapshotPayload?, at date: Date, weekOffset: In
         let d = vnCalendar.date(byAdding: .day, value: i, to: targetMonday) ?? targetMonday
         let comp = vnCalendar.dateComponents([.year, .month, .day], from: d)
         let isToday = (comp.year == todayComponents.year && comp.month == todayComponents.month && comp.day == todayComponents.day)
+        let dTimeMs = Int64(d.timeIntervalSince1970 * 1000)
 
         strip.append(WeeklyDayStripPayload(
             weekday: weekdayLabels[i],
+            dateText: dayMonthFormatter.string(from: d),
             countText: count > 0 ? "\(count)" : "\u{00B7}",
             count: count,
-            isToday: isToday
+            isToday: isToday,
+            isPastDay: dTimeMs < startOfTodayMs
         ))
     }
 
@@ -1016,11 +1163,38 @@ func evaluateWeekly4x4(snapshot: SnapshotPayload?, at date: Date, weekOffset: In
     let hiddenCount = totalSessions - chosenIds.count
     let footerText = hiddenCount > 0 ? "+\(hiddenCount) môn nữa" : nil
 
+    let isWeekendTrailingEmpty = sessionsByDay[6].isEmpty
+    let isSatEmpty = sessionsByDay[5].isEmpty
+    let isNoScroll = (hiddenCount == 0) && isWeekendTrailingEmpty
+
+    var weekendFooterText: String? = nil
+    if isNoScroll {
+        weekendFooterText = isSatEmpty ? "T7 \u{2013} CN: không có lịch" : "CN: không có lịch"
+    }
+
     var items: [WeeklyScheduleListItemPayload] = []
     var emptyStart = -1
 
     func flushEmpty(_ currentIdx: Int) {
         if emptyStart != -1 {
+            if currentIdx == 7 && isNoScroll {
+                if emptyStart >= 5 {
+                    emptyStart = -1
+                    return
+                } else {
+                    let startIdx = emptyStart
+                    let endIdx = isSatEmpty ? 4 : 5
+                    if endIdx >= startIdx {
+                        let startWk = weekdayLabels[startIdx]
+                        let endWk = weekdayLabels[endIdx]
+                        let title = (startIdx == endIdx) ? "\(startWk): không có lịch" : "\(startWk) \u{2013} \(endWk): không có lịch"
+                        items.append(.emptyDays(WeeklyMergedEmptyPayload(id: "\(startIdx)_\(endIdx)", displayTitle: title)))
+                    }
+                    emptyStart = -1
+                    return
+                }
+            }
+
             let startIdx = emptyStart
             let endIdx = currentIdx - 1
             let startWk = weekdayLabels[startIdx]
@@ -1045,6 +1219,8 @@ func evaluateWeekly4x4(snapshot: SnapshotPayload?, at date: Date, weekOffset: In
             let d = vnCalendar.date(byAdding: .day, value: i, to: targetMonday) ?? targetMonday
             let comp = vnCalendar.dateComponents([.year, .month, .day], from: d)
             let isToday = (comp.year == todayComponents.year && comp.month == todayComponents.month && comp.day == todayComponents.day)
+            let dTimeMs = Int64(d.timeIntervalSince1970 * 1000)
+            let isPastDay = dTimeMs < startOfTodayMs
             let wkStr = weekdayLabels[i]
             let dateStr = dayMonthFormatter.string(from: d)
             let dateIso = isoFormatter.string(from: d)
@@ -1079,6 +1255,7 @@ func evaluateWeekly4x4(snapshot: SnapshotPayload?, at date: Date, weekOffset: In
                     id: dateIso,
                     headerTitle: headerTitle,
                     isToday: isToday,
+                    isPastDay: isPastDay,
                     sessions: rowPayloads
                 )
 
@@ -1099,6 +1276,7 @@ func evaluateWeekly4x4(snapshot: SnapshotPayload?, at date: Date, weekOffset: In
         daysStrip: strip,
         items: items,
         footerText: footerText,
+        weekendFooterText: weekendFooterText,
         totalSessions: totalSessions
     )
 }
@@ -1521,23 +1699,34 @@ struct ScheduleTimelineProvider: TimelineProvider {
                 return
             }
 
-            let todaySessions = snapshot.sessions.filter {
-                calendar.isDate(Date(timeIntervalSince1970: Double($0.startMs) / 1000.0), inSameDayAs: now)
-            }
-
             var candidateDates: [Date] = [now]
-            for s in todaySessions {
-                if s.startMs > nowMs {
-                    candidateDates.append(Date(timeIntervalSince1970: Double(s.startMs) / 1000.0))
+            // Sinh mốc thời gian trượt cho 3 ngày liên tiếp (hôm nay, ngày mai, ngày kia)
+            for dayOffset in 0..<3 {
+                guard let targetDay = calendar.date(byAdding: .day, value: dayOffset, to: now) else { continue }
+                let startOfDay = calendar.startOfDay(for: targetDay)
+                if startOfDay > now {
+                    candidateDates.append(startOfDay)
                 }
-                if s.endMs > nowMs {
-                    candidateDates.append(Date(timeIntervalSince1970: Double(s.endMs) / 1000.0))
+
+                let daySessions = snapshot.sessions.filter {
+                    calendar.isDate(Date(timeIntervalSince1970: Double($0.startMs) / 1000.0), inSameDayAs: targetDay)
+                }
+
+                for s in daySessions {
+                    let sStart = Date(timeIntervalSince1970: Double(s.startMs) / 1000.0)
+                    let sEnd = Date(timeIntervalSince1970: Double(s.endMs) / 1000.0)
+                    if sStart > now {
+                        candidateDates.append(sStart)
+                    }
+                    if sEnd > now {
+                        candidateDates.append(sEnd)
+                    }
                 }
             }
 
-            let tomorrow = calendar.date(byAdding: .day, value: 1, to: now) ?? now.addingTimeInterval(86400)
-            let startOfTomorrow = calendar.startOfDay(for: tomorrow)
-            candidateDates.append(startOfTomorrow)
+            let dayAfterThird = calendar.date(byAdding: .day, value: 3, to: now) ?? now.addingTimeInterval(3 * 86400)
+            let reloadDate = calendar.startOfDay(for: dayAfterThird)
+            candidateDates.append(reloadDate)
 
             let sortedDates = Array(Set(candidateDates)).sorted()
             var entries: [ScheduleWidgetEntry] = []
@@ -1584,7 +1773,7 @@ struct ScheduleTimelineProvider: TimelineProvider {
                 entries.append(entry)
             }
 
-            completion(Timeline(entries: entries, policy: .after(startOfTomorrow)))
+            completion(Timeline(entries: entries, policy: .after(reloadDate)))
             return
         }
 
@@ -1822,47 +2011,66 @@ struct Today2x2SwiftUIView: View {
                 Spacer().frame(height: 6)
             }
 
-            // 2. Tên môn / Trạng thái trống (cỡ 13, font vừa 500, tối đa 3 dòng)
-            VStack(alignment: .leading, spacing: 4) {
+            // 2. Tên môn / Trạng thái trống (cỡ 15.5 cho môn chính, font semibold)
+            VStack(alignment: .leading, spacing: 3) {
                 Text(viewModel.displayTitle)
-                    .font(.system(size: viewModel.hasSession ? 13 : 12, weight: .medium))
+                    .font(.system(size: viewModel.hasSession ? 15.5 : 13, weight: .semibold))
                     .foregroundColor(textPrimary)
-                    .lineLimit(viewModel.hasSession ? 3 : 2)
-                    .lineSpacing(2)
+                    .lineLimit(viewModel.hasSession ? 2 : 2)
+                    .lineSpacing(1.5)
 
-                // 3. Dòng thông tin phụ: "HH:mm · phòng" (cỡ 11, màu chữ phụ)
+                // 3. Dòng thông tin phụ: "HH:mm · phòng" (cỡ 11.5, màu chữ phụ)
                 if !viewModel.subInfo.isEmpty {
                     Text(viewModel.subInfo)
-                        .font(.system(size: 11, weight: .regular))
+                        .font(.system(size: 11.5, weight: .regular))
                         .foregroundColor(textSecondary)
-                        .lineLimit(2)
+                        .lineLimit(1)
                 }
             }
 
-            Spacer()
-
-            // 4. Thanh tiến độ ca học (cao 4dp, bo góc 2dp, sát đáy)
+            // 4. Thanh tiến độ ca học (cao 3.5dp, bo góc 2dp, ngay dưới môn hiện tại)
             if viewModel.showProgressBar {
+                Spacer().frame(height: 5)
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         RoundedRectangle(cornerRadius: 2)
                             .fill(borderColor)
-                            .frame(height: 4)
+                            .frame(height: 3.5)
                         RoundedRectangle(cornerRadius: 2)
                             .fill(viewModel.isExam ? examTextColor : accentColor)
-                            .frame(width: geo.size.width * CGFloat(min(max(viewModel.progress, 0.0), 1.0)), height: 4)
+                            .frame(width: geo.size.width * CGFloat(min(max(viewModel.progress, 0.0), 1.0)), height: 3.5)
                     }
                 }
-                .frame(height: 4)
-                Spacer().frame(height: 4)
+                .frame(height: 3.5)
+                Spacer().frame(height: 3)
             }
 
-            // 5. Dòng đếm ngược đáy: Cỡ 11, màu phụ ("Còn N phút")
+            // 5. Dòng đếm ngược đáy: Cỡ 10.5, màu phụ ("Còn N phút")
             if let countdown = viewModel.countdownIos, !countdown.isEmpty {
                 Text(countdown)
-                    .font(.system(size: 11, weight: .regular))
+                    .font(.system(size: 10.5, weight: .regular))
                     .foregroundColor(textSecondary)
                     .lineLimit(1)
+            }
+
+            Spacer()
+
+            // 6. Ca tiếp theo (nếu có)
+            if let nLabel = viewModel.nextSessionLabel, let nSubject = viewModel.nextSessionSubject {
+                Rectangle()
+                    .fill(borderColor)
+                    .frame(height: 0.8)
+                    .padding(.vertical, 4)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(nLabel)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundColor(textSecondary)
+                        .lineLimit(1)
+                    Text(nSubject)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(textPrimary)
+                        .lineLimit(1)
+                }
             }
         }
         .padding(12)
@@ -1896,24 +2104,24 @@ struct MonthToday4x2SwiftUIView: View {
         let accentBorder = isDark ? (Color(hex: "#85B7EB") ?? Color.blue) : (Color(hex: "#378ADD") ?? Color.blue)
 
         let lightColors: [(bg: Color, text: Color)] = [
-            (Color(hex: "#E6F1FB") ?? .blue, Color(hex: "#0C447C") ?? .blue),
-            (Color(hex: "#EAF3DE") ?? .green, Color(hex: "#27500A") ?? .green),
-            (Color(hex: "#EEEDFE") ?? .purple, Color(hex: "#3C3489") ?? .purple),
-            (Color(hex: "#FAEEDA") ?? .orange, Color(hex: "#633806") ?? .orange),
-            (Color(hex: "#E1F5EE") ?? .teal, Color(hex: "#085041") ?? .teal),
-            (Color(hex: "#FBEAF0") ?? .pink, Color(hex: "#72243E") ?? .pink),
-            (Color(hex: "#FAECE7") ?? .red, Color(hex: "#712B13") ?? .red),
-            (Color(hex: "#F1EFE8") ?? .gray, Color(hex: "#444441") ?? .gray),
+            (Color(hex: "#EFF6FF") ?? .blue, Color(hex: "#2563EB") ?? .blue),
+            (Color(hex: "#ECFDF5") ?? .green, Color(hex: "#059669") ?? .green),
+            (Color(hex: "#F5F3FF") ?? .purple, Color(hex: "#7C3AED") ?? .purple),
+            (Color(hex: "#F0FDFA") ?? .teal, Color(hex: "#0D9488") ?? .teal),
+            (Color(hex: "#ECFEFF") ?? .teal, Color(hex: "#0891B2") ?? .teal),
+            (Color(hex: "#F0F9FF") ?? .blue, Color(hex: "#0284C7") ?? .blue),
+            (Color(hex: "#F0F9FF") ?? .blue, Color(hex: "#0369A1") ?? .blue),
+            (Color(hex: "#EEF2FF") ?? .indigo, Color(hex: "#4F46E5") ?? .indigo),
         ]
         let darkColors: [(bg: Color, text: Color)] = [
-            (Color(hex: "#0C447C") ?? .blue, Color(hex: "#B5D4F4") ?? .blue),
-            (Color(hex: "#27500A") ?? .green, Color(hex: "#C0DD97") ?? .green),
-            (Color(hex: "#3C3489") ?? .purple, Color(hex: "#CECBF6") ?? .purple),
-            (Color(hex: "#633806") ?? .orange, Color(hex: "#FAC775") ?? .orange),
-            (Color(hex: "#085041") ?? .teal, Color(hex: "#9FE1CB") ?? .teal),
-            (Color(hex: "#72243E") ?? .pink, Color(hex: "#F4C0D1") ?? .pink),
-            (Color(hex: "#712B13") ?? .red, Color(hex: "#F5C4B3") ?? .red),
-            (Color(hex: "#444441") ?? .gray, Color(hex: "#D3D1C7") ?? .gray),
+            (Color(hex: "#1E3A8A") ?? .blue, Color(hex: "#60A5FA") ?? .blue),
+            (Color(hex: "#064E3B") ?? .green, Color(hex: "#34D399") ?? .green),
+            (Color(hex: "#4C1D95") ?? .purple, Color(hex: "#A78BFA") ?? .purple),
+            (Color(hex: "#134E4A") ?? .teal, Color(hex: "#2DD4BF") ?? .teal),
+            (Color(hex: "#164E63") ?? .teal, Color(hex: "#22D3EE") ?? .teal),
+            (Color(hex: "#0C4A6E") ?? .blue, Color(hex: "#38BDF8") ?? .blue),
+            (Color(hex: "#0C4A6E") ?? .blue, Color(hex: "#38BDF8") ?? .blue),
+            (Color(hex: "#312E81") ?? .indigo, Color(hex: "#818CF8") ?? .indigo),
         ]
 
         HStack(alignment: .top, spacing: 10) {
@@ -1947,9 +2155,9 @@ struct MonthToday4x2SwiftUIView: View {
                                         VStack(spacing: 1) {
                                             if cell.isToday {
                                                 Text("\(cell.day)")
-                                                    .font(.system(size: 10, weight: .medium))
+                                                    .font(.system(size: 9.5, weight: .semibold))
                                                     .foregroundColor(accentOn)
-                                                    .frame(width: 14, height: 14)
+                                                    .frame(width: 16, height: 16)
                                                     .background(Circle().fill(accentColor))
                                                 if cell.hasExam {
                                                     Circle()
@@ -1960,9 +2168,9 @@ struct MonthToday4x2SwiftUIView: View {
                                                 }
                                             } else {
                                                 Text("\(cell.day)")
-                                                    .font(.system(size: 10, weight: (cell.hasClasses || cell.hasExam) ? .medium : .regular))
+                                                    .font(.system(size: 9.5, weight: (cell.hasClasses || cell.hasExam) ? .medium : .regular))
                                                     .foregroundColor((cell.hasClasses || cell.hasExam) ? textPrimary : textSecondary)
-                                                    .frame(height: 14)
+                                                    .frame(height: 16)
                                                 if cell.hasExam {
                                                     Circle()
                                                         .fill(examColor)
@@ -1980,7 +2188,7 @@ struct MonthToday4x2SwiftUIView: View {
                                     }
                                 } else {
                                     VStack(spacing: 1) {
-                                        Spacer().frame(height: 14)
+                                        Spacer().frame(height: 16)
                                         Spacer().frame(height: 3)
                                     }
                                     .frame(maxWidth: .infinity)
@@ -2043,7 +2251,7 @@ struct MonthToday4x2SwiftUIView: View {
                                 .cornerRadius(8)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8)
-                                        .stroke(card.isCurrent ? accentBorder : Color.clear, lineWidth: 1)
+                                        .stroke(card.isCurrent ? (card.isExam ? (Color(hex: "#EF4444") ?? Color.red) : accentBorder) : Color.clear, lineWidth: 1)
                                 )
                             }
                         }
@@ -2066,6 +2274,7 @@ struct MonthToday4x2SwiftUIView: View {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(borderColor, lineWidth: 0.5)
         )
+        .widgetURL(URL(string: "tramkien://schedule"))
     }
 }
 
@@ -2083,28 +2292,38 @@ struct ThreeDays4x2SwiftUIView: View {
         let textSecondary = isDark ? (Color(hex: "#B4B2A9") ?? Color.gray) : (Color(hex: "#5F5E5A") ?? Color.gray)
         let textDimmed = Color(hex: "#888780") ?? Color.gray
         let accentBorder = isDark ? (Color(hex: "#85B7EB") ?? Color.blue) : (Color(hex: "#378ADD") ?? Color.blue)
-        let examBg = isDark ? (Color(hex: "#791F1F") ?? Color.red) : (Color(hex: "#FCEBEB") ?? Color.red)
-        let examText = isDark ? (Color(hex: "#F7C1C1") ?? Color.red) : (Color(hex: "#791F1F") ?? Color.red)
+        let lightExamColors: [(bg: Color, text: Color)] = [
+            (Color(hex: "#FEE2E2") ?? .red, Color(hex: "#DC2626") ?? .red),   // Đỏ tươi
+            (Color(hex: "#FEF3C7") ?? .orange, Color(hex: "#D97706") ?? .orange), // Cam hổ phách
+            (Color(hex: "#FFE4E6") ?? .pink, Color(hex: "#E11D48") ?? .pink),     // Hồng đỏ
+            (Color(hex: "#FFEDD5") ?? .orange, Color(hex: "#EA580C") ?? .orange), // San hô
+        ]
+        let darkExamColors: [(bg: Color, text: Color)] = [
+            (Color(hex: "#7F1D1D") ?? .red, Color(hex: "#FCA5A5") ?? .red),
+            (Color(hex: "#78350F") ?? .orange, Color(hex: "#FCD34D") ?? .orange),
+            (Color(hex: "#881337") ?? .pink, Color(hex: "#FDA4AF") ?? .pink),
+            (Color(hex: "#7C2D12") ?? .orange, Color(hex: "#FDBA74") ?? .orange),
+        ]
 
         let lightColors: [(bg: Color, text: Color)] = [
-            (Color(hex: "#E6F1FB") ?? .blue, Color(hex: "#0C447C") ?? .blue),
-            (Color(hex: "#EAF3DE") ?? .green, Color(hex: "#27500A") ?? .green),
-            (Color(hex: "#EEEDFE") ?? .purple, Color(hex: "#3C3489") ?? .purple),
-            (Color(hex: "#FAEEDA") ?? .orange, Color(hex: "#633806") ?? .orange),
-            (Color(hex: "#E1F5EE") ?? .teal, Color(hex: "#085041") ?? .teal),
-            (Color(hex: "#FBEAF0") ?? .pink, Color(hex: "#72243E") ?? .pink),
-            (Color(hex: "#FAECE7") ?? .red, Color(hex: "#712B13") ?? .red),
-            (Color(hex: "#F1EFE8") ?? .gray, Color(hex: "#444441") ?? .gray),
+            (Color(hex: "#EFF6FF") ?? .blue, Color(hex: "#2563EB") ?? .blue),
+            (Color(hex: "#ECFDF5") ?? .green, Color(hex: "#059669") ?? .green),
+            (Color(hex: "#F5F3FF") ?? .purple, Color(hex: "#7C3AED") ?? .purple),
+            (Color(hex: "#F0FDFA") ?? .teal, Color(hex: "#0D9488") ?? .teal),
+            (Color(hex: "#ECFEFF") ?? .teal, Color(hex: "#0891B2") ?? .teal),
+            (Color(hex: "#F0F9FF") ?? .blue, Color(hex: "#0284C7") ?? .blue),
+            (Color(hex: "#F0F9FF") ?? .blue, Color(hex: "#0369A1") ?? .blue),
+            (Color(hex: "#EEF2FF") ?? .indigo, Color(hex: "#4F46E5") ?? .indigo),
         ]
         let darkColors: [(bg: Color, text: Color)] = [
-            (Color(hex: "#0C447C") ?? .blue, Color(hex: "#B5D4F4") ?? .blue),
-            (Color(hex: "#27500A") ?? .green, Color(hex: "#C0DD97") ?? .green),
-            (Color(hex: "#3C3489") ?? .purple, Color(hex: "#CECBF6") ?? .purple),
-            (Color(hex: "#633806") ?? .orange, Color(hex: "#FAC775") ?? .orange),
-            (Color(hex: "#085041") ?? .teal, Color(hex: "#9FE1CB") ?? .teal),
-            (Color(hex: "#72243E") ?? .pink, Color(hex: "#F4C0D1") ?? .pink),
-            (Color(hex: "#712B13") ?? .red, Color(hex: "#F5C4B3") ?? .red),
-            (Color(hex: "#444441") ?? .gray, Color(hex: "#D3D1C7") ?? .gray),
+            (Color(hex: "#1E3A8A") ?? .blue, Color(hex: "#60A5FA") ?? .blue),
+            (Color(hex: "#064E3B") ?? .green, Color(hex: "#34D399") ?? .green),
+            (Color(hex: "#4C1D95") ?? .purple, Color(hex: "#A78BFA") ?? .purple),
+            (Color(hex: "#134E4A") ?? .teal, Color(hex: "#2DD4BF") ?? .teal),
+            (Color(hex: "#164E63") ?? .teal, Color(hex: "#22D3EE") ?? .teal),
+            (Color(hex: "#0C4A6E") ?? .blue, Color(hex: "#38BDF8") ?? .blue),
+            (Color(hex: "#0C4A6E") ?? .blue, Color(hex: "#38BDF8") ?? .blue),
+            (Color(hex: "#312E81") ?? .indigo, Color(hex: "#818CF8") ?? .indigo),
         ]
 
         Group {
@@ -2134,21 +2353,24 @@ struct ThreeDays4x2SwiftUIView: View {
                                 }
                             }
 
-                            // Thân cột: Trống hoặc tối đa 2 thẻ môn
+                            // Thân cột: Trống hoặc tối đa 4 thẻ môn
                             if col.isEmpty {
                                 VStack {
+                                    Spacer()
                                     Text(col.emptyText)
                                         .font(.system(size: 11, weight: .regular))
                                         .foregroundColor(textDimmed)
-                                        .padding(.top, 8)
+                                        .multilineTextAlignment(.center)
                                     Spacer()
                                 }
-                                .frame(maxWidth: .infinity, alignment: .top)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                             } else {
-                                VStack(spacing: 4) {
+                                VStack(spacing: 3) {
                                     ForEach(col.visibleCards) { card in
-                                        let cardBg: Color = card.isExam ? examBg : (isDark ? darkColors[card.colorIndex % 8].bg : lightColors[card.colorIndex % 8].bg)
-                                        let textColor: Color = card.isExam ? examText : (isDark ? darkColors[card.colorIndex % 8].text : lightColors[card.colorIndex % 8].text)
+                                        let examPalette = isDark ? darkExamColors : lightExamColors
+                                        let safeExamIdx = card.colorIndex % examPalette.count
+                                        let cardBg: Color = card.isExam ? examPalette[safeExamIdx].bg : (isDark ? darkColors[card.colorIndex % 8].bg : lightColors[card.colorIndex % 8].bg)
+                                        let textColor: Color = card.isExam ? examPalette[safeExamIdx].text : (isDark ? darkColors[card.colorIndex % 8].text : lightColors[card.colorIndex % 8].text)
 
                                         Link(destination: URL(string: card.deepLink) ?? URL(string: "tramkien://schedule")!) {
                                             VStack(alignment: .leading, spacing: 1) {
@@ -2158,24 +2380,31 @@ struct ThreeDays4x2SwiftUIView: View {
                                                     .foregroundColor(textColor)
                                                     .lineLimit(1)
 
-                                                // Dòng 2: shortName 1 dòng
+                                                // Dòng 2: Tên môn (hỗ trợ 2 dòng khi Adaptive Card)
                                                 Text(card.shortName)
                                                     .font(.system(size: 11, weight: .regular))
                                                     .foregroundColor(textColor)
-                                                    .lineLimit(1)
+                                                    .lineLimit(2)
                                             }
                                             .frame(maxWidth: .infinity, alignment: .leading)
                                             .padding(.horizontal, 6)
-                                            .padding(.vertical, 4)
+                                            .padding(.vertical, 3)
                                             .background(cardBg)
                                             .cornerRadius(8)
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 8)
-                                                    .stroke(card.isCurrent ? accentBorder : Color.clear, lineWidth: card.isCurrent ? 1.0 : 0.0)
+                                                    .stroke(card.isCurrent ? (card.isExam ? (Color(hex: "#EF4444") ?? Color.red) : accentBorder) : Color.clear, lineWidth: card.isCurrent ? 1.0 : 0.0)
                                             )
                                         }
                                     }
                                     Spacer(minLength: 0)
+                                    if let footer = col.footerText {
+                                        Text(footer)
+                                            .font(.system(size: 9.5, weight: .medium))
+                                            .foregroundColor(textDimmed)
+                                            .lineLimit(2)
+                                            .padding(.top, 2)
+                                    }
                                 }
                             }
                         }
@@ -2192,6 +2421,7 @@ struct ThreeDays4x2SwiftUIView: View {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(borderColor, lineWidth: 0.5)
         )
+        .widgetURL(URL(string: "tramkien://schedule"))
     }
 }
 
@@ -2213,66 +2443,69 @@ struct Weekly4x4SwiftUIView: View {
         let examColor = isDark ? (Color(hex: "#F7C1C1") ?? Color.red) : (Color(hex: "#791F1F") ?? Color.red)
 
         let lightColors: [(bg: Color, text: Color)] = [
-            (Color(hex: "#E6F1FB") ?? .blue, Color(hex: "#0C447C") ?? .blue),
-            (Color(hex: "#EAF3DE") ?? .green, Color(hex: "#27500A") ?? .green),
-            (Color(hex: "#EEEDFE") ?? .purple, Color(hex: "#3C3489") ?? .purple),
-            (Color(hex: "#FAEEDA") ?? .orange, Color(hex: "#633806") ?? .orange),
-            (Color(hex: "#E1F5EE") ?? .teal, Color(hex: "#085041") ?? .teal),
-            (Color(hex: "#FBEAF0") ?? .pink, Color(hex: "#72243E") ?? .pink),
-            (Color(hex: "#FAECE7") ?? .red, Color(hex: "#712B13") ?? .red),
-            (Color(hex: "#F1EFE8") ?? .gray, Color(hex: "#444441") ?? .gray),
+            (Color(hex: "#EFF6FF") ?? .blue, Color(hex: "#2563EB") ?? .blue),
+            (Color(hex: "#ECFDF5") ?? .green, Color(hex: "#059669") ?? .green),
+            (Color(hex: "#F5F3FF") ?? .purple, Color(hex: "#7C3AED") ?? .purple),
+            (Color(hex: "#F0FDFA") ?? .teal, Color(hex: "#0D9488") ?? .teal),
+            (Color(hex: "#ECFEFF") ?? .teal, Color(hex: "#0891B2") ?? .teal),
+            (Color(hex: "#F0F9FF") ?? .blue, Color(hex: "#0284C7") ?? .blue),
+            (Color(hex: "#F0F9FF") ?? .blue, Color(hex: "#0369A1") ?? .blue),
+            (Color(hex: "#EEF2FF") ?? .indigo, Color(hex: "#4F46E5") ?? .indigo),
         ]
         let darkColors: [(bg: Color, text: Color)] = [
-            (Color(hex: "#0C447C") ?? .blue, Color(hex: "#B5D4F4") ?? .blue),
-            (Color(hex: "#27500A") ?? .green, Color(hex: "#C0DD97") ?? .green),
-            (Color(hex: "#3C3489") ?? .purple, Color(hex: "#CECBF6") ?? .purple),
-            (Color(hex: "#633806") ?? .orange, Color(hex: "#FAC775") ?? .orange),
-            (Color(hex: "#085041") ?? .teal, Color(hex: "#9FE1CB") ?? .teal),
-            (Color(hex: "#72243E") ?? .pink, Color(hex: "#F4C0D1") ?? .pink),
-            (Color(hex: "#712B13") ?? .red, Color(hex: "#F5C4B3") ?? .red),
-            (Color(hex: "#444441") ?? .gray, Color(hex: "#D3D1C7") ?? .gray),
+            (Color(hex: "#1E3A8A") ?? .blue, Color(hex: "#60A5FA") ?? .blue),
+            (Color(hex: "#064E3B") ?? .green, Color(hex: "#34D399") ?? .green),
+            (Color(hex: "#4C1D95") ?? .purple, Color(hex: "#A78BFA") ?? .purple),
+            (Color(hex: "#134E4A") ?? .teal, Color(hex: "#2DD4BF") ?? .teal),
+            (Color(hex: "#164E63") ?? .teal, Color(hex: "#22D3EE") ?? .teal),
+            (Color(hex: "#0C4A6E") ?? .blue, Color(hex: "#38BDF8") ?? .blue),
+            (Color(hex: "#0C4A6E") ?? .blue, Color(hex: "#38BDF8") ?? .blue),
+            (Color(hex: "#312E81") ?? .indigo, Color(hex: "#818CF8") ?? .indigo),
         ]
 
         VStack(alignment: .leading, spacing: 6) {
-            // 1. Dòng tiêu đề: "Tuần dd/MM – dd/MM" kèm nút ‹ ›
+            // 1. Dòng tiêu đề: "Tuần dd/MM – dd/MM"
             HStack {
-                Text("‹")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(textSecondary)
-                    .frame(width: 24, height: 20)
                 Spacer()
                 Text(viewModel.title)
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(textPrimary)
                     .lineLimit(1)
                 Spacer()
-                Text("›")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(textSecondary)
-                    .frame(width: 24, height: 20)
             }
 
             // 2. Dải 7 ngày
             HStack(spacing: 0) {
                 ForEach(0..<viewModel.daysStrip.count, id: \.self) { i in
                     let day = viewModel.daysStrip[i]
+                    let dayLabelColor: Color = {
+                        if day.isToday { return accentColor }
+                        if day.isPastDay { return textDimmed }
+                        return textSecondary
+                    }()
+                    let dateColor: Color = {
+                        if day.isToday { return accentOn }
+                        if day.isPastDay { return textDimmed }
+                        return textPrimary
+                    }()
+
                     VStack(spacing: 4) {
                         Text(day.weekday)
                             .font(.system(size: 11, weight: day.isToday ? .semibold : .regular))
-                            .foregroundColor(day.isToday ? accentColor : textSecondary)
+                            .foregroundColor(dayLabelColor)
 
                         if day.isToday {
-                            Text(day.countText)
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(accentOn)
-                                .padding(.horizontal, 7)
+                            Text(day.dateText)
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundColor(dateColor)
+                                .padding(.horizontal, 4)
                                 .padding(.vertical, 2)
                                 .background(Capsule().fill(accentColor))
                         } else {
-                            Text(day.countText)
-                                .font(.system(size: 11, weight: .regular))
-                                .foregroundColor(day.count > 0 ? textPrimary : textDimmed)
-                                .padding(.horizontal, 7)
+                            Text(day.dateText)
+                                .font(.system(size: 10, weight: .regular))
+                                .foregroundColor(dateColor)
+                                .padding(.horizontal, 4)
                                 .padding(.vertical, 2)
                         }
                     }
@@ -2295,17 +2528,23 @@ struct Weekly4x4SwiftUIView: View {
                 }
                 Spacer()
             } else {
-                VStack(alignment: .leading, spacing: 2) {
+                let isAdaptive = viewModel.isAdaptive
+                VStack(alignment: .leading, spacing: isAdaptive ? 4 : 2) {
                     ForEach(viewModel.items) { item in
                         switch item {
                         case .header(let group):
+                            let headerColor: Color = {
+                                if group.isPastDay { return textDimmed }
+                                if group.isToday { return accentColor }
+                                return textPrimary
+                            }()
                             Text(group.headerTitle)
-                                .font(.system(size: 11, weight: .semibold))
-                                .foregroundColor(group.isToday ? accentColor : textPrimary)
-                                .padding(.top, 4)
+                                .font(.system(size: isAdaptive ? 12.5 : 11, weight: .semibold))
+                                .foregroundColor(headerColor)
+                                .padding(.top, isAdaptive ? 8 : 4)
                         case .session(let s):
                             let barColor: Color = {
-                                if s.isToday && s.isPast {
+                                if s.isPast {
                                     return isDark ? (Color(hex: "#444441") ?? .gray) : (Color(hex: "#D3D1C7") ?? .gray)
                                 } else if s.isExam {
                                     return Color(hex: "#E24B4A") ?? .red
@@ -2316,7 +2555,7 @@ struct Weekly4x4SwiftUIView: View {
                                 }
                             }()
                             let titleColor: Color = {
-                                if s.isToday && s.isPast {
+                                if s.isPast {
                                     return textDimmed
                                 } else if s.isExam {
                                     return examColor
@@ -2325,18 +2564,18 @@ struct Weekly4x4SwiftUIView: View {
                                 }
                             }()
 
-                            HStack(alignment: .center, spacing: 6) {
+                            HStack(alignment: .center, spacing: isAdaptive ? 8 : 6) {
                                 RoundedRectangle(cornerRadius: 2)
                                     .fill(barColor)
-                                    .frame(width: 3, height: 14)
+                                    .frame(width: isAdaptive ? 3.5 : 3, height: isAdaptive ? 20 : 14)
 
                                 Text(s.timeStr)
-                                    .font(.system(size: 11, weight: .regular))
-                                    .foregroundColor((s.isToday && s.isPast) ? textDimmed : textSecondary)
-                                    .frame(width: 34, alignment: .leading)
+                                    .font(.system(size: isAdaptive ? 12 : 11, weight: .medium))
+                                    .foregroundColor(s.isPast ? textDimmed : textSecondary)
+                                    .frame(width: isAdaptive ? 42 : 34, alignment: .leading)
 
                                 Text(s.displayTitle)
-                                    .font(.system(size: 11, weight: s.isExam ? .semibold : .regular))
+                                    .font(.system(size: isAdaptive ? 13.5 : 11, weight: s.isExam ? .semibold : .medium))
                                     .foregroundColor(titleColor)
                                     .lineLimit(1)
                                     .truncationMode(.tail)
@@ -2345,18 +2584,29 @@ struct Weekly4x4SwiftUIView: View {
 
                                 if !s.roomStr.isEmpty {
                                     Text(s.roomStr)
-                                        .font(.system(size: 11, weight: .regular))
-                                        .foregroundColor((s.isToday && s.isPast) ? textDimmed : textSecondary)
+                                        .font(.system(size: isAdaptive ? 12 : 11, weight: .regular))
+                                        .foregroundColor(s.isPast ? textDimmed : textSecondary)
                                 }
                             }
-                            .frame(height: 19)
+                            .frame(height: isAdaptive ? 28 : 19)
                         case .emptyDays(let empty):
                             Text(empty.displayTitle)
-                                .font(.system(size: 11, weight: .regular))
+                                .font(.system(size: isAdaptive ? 12 : 11, weight: .regular))
                                 .italic()
                                 .foregroundColor(textDimmed)
-                                .padding(.top, 2)
+                                .padding(.top, isAdaptive ? 4 : 2)
                         }
+                    }
+                }
+
+                if let weekendFooter = viewModel.weekendFooterText {
+                    Spacer(minLength: 0)
+                    HStack {
+                        Text(weekendFooter)
+                            .font(.system(size: 11, weight: .regular))
+                            .italic()
+                            .foregroundColor(textDimmed)
+                        Spacer()
                     }
                 }
 
@@ -2380,6 +2630,7 @@ struct Weekly4x4SwiftUIView: View {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(borderColor, lineWidth: 0.5)
         )
+        .widgetURL(URL(string: "tramkien://schedule"))
     }
 }
 

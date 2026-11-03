@@ -27,10 +27,34 @@
                 android:layout_height="wrap_content"
                 android:textSize="11sp"
                 android:fontFamily="sans-serif-medium"
-                android:textColor="@color/widget_accent"
+                android:textColor="@color/widget_text_secondary"
                 android:includeFontPadding="false"
                 android:maxLines="1"
                 android:ellipsize="end" />
+
+            <TextView
+                android:id="@+id/widget_status_label_accent"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/widget_accent"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:visibility="gone" />
+
+            <TextView
+                android:id="@+id/widget_status_label_exam"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="11sp"
+                android:fontFamily="sans-serif-medium"
+                android:textColor="@color/widget_exam_text"
+                android:includeFontPadding="false"
+                android:maxLines="1"
+                android:ellipsize="end"
+                android:visibility="gone" />
 
             <!-- Session Content Area -->
             <LinearLayout
@@ -38,33 +62,71 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:layout_marginTop="6dp">
+                android:layout_marginTop="5dp">
 
-                <!-- 2. Tên môn học (cỡ 13, font vừa 500, tối đa 3 dòng, cắt bằng "…") -->
+                <!-- 2. Tên môn học (cỡ 15.5, font vừa 500, tối đa 2 dòng) -->
                 <TextView
                     android:id="@+id/widget_subject_name"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="13sp"
+                    android:textSize="15.5sp"
                     android:fontFamily="sans-serif-medium"
                     android:textColor="@color/widget_text_primary"
-                    android:maxLines="3"
+                    android:maxLines="2"
                     android:ellipsize="end"
-                    android:lineSpacingExtra="2dp"
+                    android:lineSpacingExtra="1.5dp"
                     android:includeFontPadding="false" />
 
-                <!-- 3. Dòng thông tin phụ: "HH:mm · phòng" (cỡ 11, màu chữ phụ) -->
+                <!-- 3. Dòng thông tin phụ: "HH:mm · phòng" (cỡ 11.5, màu chữ phụ) -->
                 <TextView
                     android:id="@+id/widget_sub_info"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textSize="11sp"
+                    android:layout_marginTop="3.5dp"
+                    android:textSize="11.5sp"
                     android:fontFamily="sans-serif"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
                     android:ellipsize="end"
                     android:includeFontPadding="false" />
+
+                <!-- 4. Thanh tiến độ ca học (cao 3.5dp, ngay dưới môn hiện tại) -->
+                <ProgressBar
+                    android:id="@+id/widget_progress_bar"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="3.5dp"
+                    android:layout_marginTop="6dp"
+                    android:progressDrawable="@drawable/widget_progress_bar_horizontal"
+                    android:max="100"
+                    android:progress="0"
+                    android:visibility="gone" />
+
+                <!-- Thanh tiến độ ca thi (màu đỏ thi) -->
+                <ProgressBar
+                    android:id="@+id/widget_progress_bar_exam"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="3.5dp"
+                    android:layout_marginTop="6dp"
+                    android:progressDrawable="@drawable/widget_progress_bar_exam_horizontal"
+                    android:max="100"
+                    android:progress="0"
+                    android:visibility="gone" />
+
+                <!-- Dòng đếm ngược: "Đến HH:mm" -->
+                <TextView
+                    android:id="@+id/widget_countdown"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="3dp"
+                    android:textSize="10.5sp"
+                    android:fontFamily="sans-serif"
+                    android:textColor="@color/widget_text_secondary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:includeFontPadding="false"
+                    android:visibility="gone" />
             </LinearLayout>
 
             <!-- Empty State Container (Mục 3.6) -->
@@ -80,7 +142,7 @@
                     android:id="@+id/widget_empty_title"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="12sp"
+                    android:textSize="13sp"
                     android:fontFamily="sans-serif-medium"
                     android:textColor="@color/widget_text_primary"
                     android:maxLines="2"
@@ -100,54 +162,49 @@
                     android:includeFontPadding="false" />
             </LinearLayout>
 
-            <!-- Spacer để đẩy thanh tiến độ và đếm ngược xuống sát đáy -->
+            <!-- Spacer để đẩy khối kế tiếp xuống nửa dưới -->
             <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="0dp"
                 android:layout_weight="1" />
 
-            <!-- Bottom Section: Thanh tiến độ & Dòng đếm ngược đáy -->
+            <!-- Khối ca kế tiếp (Next Session Block) -->
             <LinearLayout
-                android:id="@+id/widget_bottom_section"
+                android:id="@+id/widget_next_container"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:visibility="gone">
 
-                <!-- 4. Thanh tiến độ ca học (cao 4dp, bo góc 2dp, sát đáy) -->
-                <ProgressBar
-                    android:id="@+id/widget_progress_bar"
-                    style="?android:attr/progressBarStyleHorizontal"
+                <ImageView
+                    android:id="@+id/widget_next_divider"
                     android:layout_width="match_parent"
-                    android:layout_height="4dp"
-                    android:progressDrawable="@drawable/widget_progress_bar_horizontal"
-                    android:max="100"
-                    android:progress="0"
-                    android:visibility="gone" />
+                    android:layout_height="0.8dp"
+                    android:background="@color/widget_border"
+                    android:layout_marginBottom="4dp" />
 
-                <!-- Thanh tiến độ ca thi (màu đỏ thi) -->
-                <ProgressBar
-                    android:id="@+id/widget_progress_bar_exam"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="4dp"
-                    android:progressDrawable="@drawable/widget_progress_bar_exam_horizontal"
-                    android:max="100"
-                    android:progress="0"
-                    android:visibility="gone" />
-
-                <!-- 5. Dòng đếm ngược đáy: Cỡ 11, màu phụ ("Đến HH:mm") -->
                 <TextView
-                    android:id="@+id/widget_countdown"
+                    android:id="@+id/widget_next_label"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:textSize="11sp"
-                    android:fontFamily="sans-serif"
+                    android:textSize="10sp"
+                    android:fontFamily="sans-serif-medium"
                     android:textColor="@color/widget_text_secondary"
                     android:maxLines="1"
                     android:ellipsize="end"
-                    android:includeFontPadding="false"
-                    android:visibility="gone" />
+                    android:includeFontPadding="false" />
+
+                <TextView
+                    android:id="@+id/widget_next_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="1dp"
+                    android:textSize="12sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:textColor="@color/widget_text_primary"
+                    android:maxLines="1"
+                    android:ellipsize="end"
+                    android:includeFontPadding="false" />
             </LinearLayout>
 
         </LinearLayout>

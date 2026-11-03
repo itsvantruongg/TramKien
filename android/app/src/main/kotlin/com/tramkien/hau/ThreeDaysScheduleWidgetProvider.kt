@@ -2,12 +2,14 @@ package com.tramkien.hau
 
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.app.UiModeManager
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -104,12 +106,50 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
             val endEstimated: Boolean
         )
 
+        fun isSystemDarkMode(context: Context): Boolean {
+            val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
+            if (uiModeManager != null) {
+                if (uiModeManager.nightMode == UiModeManager.MODE_NIGHT_YES) return true
+                if (uiModeManager.nightMode == UiModeManager.MODE_NIGHT_NO) return false
+            }
+            val systemNight = (Resources.getSystem().configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            if (systemNight) return true
+
+            return (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        }
+
+        fun getThemedContext(context: Context): Context {
+            val isDark = isSystemDarkMode(context)
+            val config = Configuration(context.resources.configuration)
+            config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
+                (if (isDark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO)
+            return context.createConfigurationContext(config)
+        }
+
+        fun setViewTextColorRes(views: RemoteViews, viewId: Int, colorResId: Int, context: Context) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                views.setColor(viewId, "setTextColor", colorResId)
+            } else {
+                val themedContext = getThemedContext(context)
+                @Suppress("DEPRECATION")
+                val color = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    themedContext.getColor(colorResId)
+                } else {
+                    themedContext.resources.getColor(colorResId)
+                }
+                views.setTextColor(viewId, color)
+            }
+        }
+
         fun updateAppWidget(
             context: Context,
             appWidgetManager: AppWidgetManager,
             appWidgetId: Int
         ) {
-            val isDark = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            val isDark = isSystemDarkMode(context)
+            val textPrimary = if (isDark) Color.parseColor("#FFFFFF") else Color.parseColor("#1F1F1E")
+            val textSecondary = if (isDark) Color.parseColor("#D3D1C7") else Color.parseColor("#5F5E5A")
+            val textDimmed = if (isDark) Color.parseColor("#A8A69E") else Color.parseColor("#888780")
             val views = RemoteViews(context.packageName, R.layout.widget_schedule_three_days)
 
             val vnTz = TimeZone.getTimeZone(VN_TIMEZONE_ID)
@@ -158,6 +198,15 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
                 val colCard2TimeRooms = intArrayOf(R.id.col_1_card_2_time_room, R.id.col_2_card_2_time_room, R.id.col_3_card_2_time_room)
                 val colCard2Titles = intArrayOf(R.id.col_1_card_2_title, R.id.col_2_card_2_title, R.id.col_3_card_2_title)
 
+                val colCard3Layouts = intArrayOf(R.id.col_1_card_3, R.id.col_2_card_3, R.id.col_3_card_3)
+                val colCard3TimeRooms = intArrayOf(R.id.col_1_card_3_time_room, R.id.col_2_card_3_time_room, R.id.col_3_card_3_time_room)
+                val colCard3Titles = intArrayOf(R.id.col_1_card_3_title, R.id.col_2_card_3_title, R.id.col_3_card_3_title)
+
+                val colCard4Layouts = intArrayOf(R.id.col_1_card_4, R.id.col_2_card_4, R.id.col_3_card_4)
+                val colCard4TimeRooms = intArrayOf(R.id.col_1_card_4_time_room, R.id.col_2_card_4_time_room, R.id.col_3_card_4_time_room)
+                val colCard4Titles = intArrayOf(R.id.col_1_card_4_title, R.id.col_2_card_4_title, R.id.col_3_card_4_title)
+                val colFooters = intArrayOf(R.id.col_1_footer, R.id.col_2_footer, R.id.col_3_footer)
+
                 for (colIdx in 0..2) {
                     val calDay = Calendar.getInstance(vnTz).apply {
                         timeInMillis = nowMs
@@ -170,11 +219,12 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
                     val isTodayCol = (colIdx == 0)
 
                     val dayStr = String.format(Locale.US, "%02d", targetDay)
+                    val monthStr = String.format(Locale.US, "%02d", targetMonth)
                     val title = if (isTodayCol) {
-                        "Hôm nay $dayStr"
+                        "Hôm nay $dayStr/$monthStr"
                     } else {
                         val weekdayAbbr = getVietnameseWeekdayAbbr(calDay.timeInMillis)
-                        "$weekdayAbbr · $dayStr"
+                        "$weekdayAbbr · $dayStr/$monthStr"
                     }
 
                     views.setTextViewText(colTitles[colIdx], title)
@@ -204,6 +254,10 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
                         calSession.get(Calendar.DAY_OF_MONTH) == targetDay
                     }.sortedBy { it.startMs }
 
+                    val pastCount = if (isTodayCol) {
+                        daySessions.count { it.endMs <= nowMs }
+                    } else 0
+
                     // Với cột hôm nay: Bỏ qua môn đã kết thúc (past: endMs <= nowMs)
                     val remainingSessions = if (isTodayCol) {
                         daySessions.filter { it.endMs > nowMs }
@@ -212,21 +266,31 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
                     }
 
                     // QUY TẮC ƯU TIÊN LỊCH THI (AC-11):
-                    // Lịch thi mang nền đỏ và LUÔN LUÔN ĐƯỢC ƯU TIÊN VÀO VÙNG HIỂN THỊ (chiếm 1 trong 2 thẻ).
+                    // Lịch thi mang nền đỏ và LUÔNG LUÔN ĐƯỢC ƯU TIÊN VÀO VÙNG HIỂN THỊ (tối đa 4 thẻ).
                     val exams = remainingSessions.filter { it.kind == "exam" }
                     val classes = remainingSessions.filter { it.kind != "exam" }
 
                     val chosenSessions: List<SessionData> = when {
-                        exams.size >= 2 -> exams.take(2)
-                        exams.size == 1 -> {
-                            val combined = mutableListOf(exams[0])
-                            if (classes.isNotEmpty()) {
-                                combined.add(classes[0])
-                            }
+                        exams.size >= 4 -> exams.take(4)
+                        exams.size == 3 -> {
+                            val combined = mutableListOf(exams[0], exams[1], exams[2])
+                            if (classes.isNotEmpty()) combined.add(classes[0])
                             combined.sortBy { it.startMs }
                             combined
                         }
-                        else -> classes.take(2)
+                        exams.size == 2 -> {
+                            val combined = mutableListOf(exams[0], exams[1])
+                            combined.addAll(classes.take(2))
+                            combined.sortBy { it.startMs }
+                            combined
+                        }
+                        exams.size == 1 -> {
+                            val combined = mutableListOf(exams[0])
+                            combined.addAll(classes.take(3))
+                            combined.sortBy { it.startMs }
+                            combined
+                        }
+                        else -> classes.take(4)
                     }
 
                     // Kỷ luật ẩn hiện "+N": Chỉ hiển thị khi N > 0, tuyệt đối không hiển thị +0
@@ -239,12 +303,32 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
                     }
 
                     if (chosenSessions.isEmpty()) {
-                        // Cột trống -> Hiển thị "Trống"
+                        // Cột trống -> Hiển thị lời chúc / thông báo hoàn thành thân thiện
+                        val emptyText = if (isTodayCol) {
+                            if (daySessions.isNotEmpty()) {
+                                "Đã xong lịch hôm nay 🎉\nChúc bạn buổi tối vui vẻ"
+                            } else {
+                                "Hôm nay không có lịch học 🎉\nChúc bạn ngày mới tốt lành!"
+                            }
+                        } else {
+                            "Trống"
+                        }
+                        views.setTextViewText(colEmpties[colIdx], emptyText)
                         views.setViewVisibility(colEmpties[colIdx], View.VISIBLE)
                         views.setViewVisibility(colCardsList[colIdx], View.GONE)
+                        views.setViewVisibility(colFooters[colIdx], View.GONE)
                     } else {
                         views.setViewVisibility(colEmpties[colIdx], View.GONE)
                         views.setViewVisibility(colCardsList[colIdx], View.VISIBLE)
+
+                        val activeSession = if (isTodayCol) {
+                            chosenSessions
+                                .filter { it.startMs <= nowMs && nowMs < it.endMs }
+                                .sortedWith(compareByDescending<SessionData> { it.kind == "exam" }.thenBy { it.startMs })
+                                .firstOrNull()
+                        } else null
+
+                        val isAdaptiveMode = (chosenSessions.size <= 2)
 
                         // Thẻ 1
                         if (chosenSessions.isNotEmpty()) {
@@ -260,7 +344,9 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
                                 timeFormat,
                                 isDark,
                                 appWidgetId,
-                                (colIdx * 2) + 1
+                                (colIdx * 4) + 1,
+                                chosenSessions[0].id == activeSession?.id,
+                                isAdaptiveMode
                             )
                             views.setViewVisibility(colCard1Layouts[colIdx], View.VISIBLE)
                         } else {
@@ -281,11 +367,73 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
                                 timeFormat,
                                 isDark,
                                 appWidgetId,
-                                (colIdx * 2) + 2
+                                (colIdx * 4) + 2,
+                                chosenSessions[1].id == activeSession?.id,
+                                isAdaptiveMode
                             )
                             views.setViewVisibility(colCard2Layouts[colIdx], View.VISIBLE)
                         } else {
                             views.setViewVisibility(colCard2Layouts[colIdx], View.GONE)
+                        }
+
+                        // Thẻ 3
+                        if (chosenSessions.size >= 3) {
+                            bindThreeDaysCard(
+                                context,
+                                views,
+                                colCard3Layouts[colIdx],
+                                colCard3TimeRooms[colIdx],
+                                colCard3Titles[colIdx],
+                                chosenSessions[2],
+                                nowMs,
+                                isTodayCol,
+                                timeFormat,
+                                isDark,
+                                appWidgetId,
+                                (colIdx * 4) + 3,
+                                chosenSessions[2].id == activeSession?.id,
+                                false
+                            )
+                            views.setViewVisibility(colCard3Layouts[colIdx], View.VISIBLE)
+                        } else {
+                            views.setViewVisibility(colCard3Layouts[colIdx], View.GONE)
+                        }
+
+                        // Thẻ 4
+                        if (chosenSessions.size >= 4) {
+                            bindThreeDaysCard(
+                                context,
+                                views,
+                                colCard4Layouts[colIdx],
+                                colCard4TimeRooms[colIdx],
+                                colCard4Titles[colIdx],
+                                chosenSessions[3],
+                                nowMs,
+                                isTodayCol,
+                                timeFormat,
+                                isDark,
+                                appWidgetId,
+                                (colIdx * 4) + 4,
+                                chosenSessions[3].id == activeSession?.id,
+                                false
+                            )
+                            views.setViewVisibility(colCard4Layouts[colIdx], View.VISIBLE)
+                        } else {
+                            views.setViewVisibility(colCard4Layouts[colIdx], View.GONE)
+                        }
+
+                        // Footer trạng thái dưới đáy: môn đã xong (hôm nay) / tổng số môn (ngày kế tiếp)
+                        val footerText = if (isTodayCol) {
+                            if (pastCount > 0) "$pastCount môn đã xong" else "Tổng ${daySessions.size} môn"
+                        } else {
+                            "Tổng ${daySessions.size} môn"
+                        }
+
+                        if (footerText.isNotEmpty()) {
+                            views.setTextViewText(colFooters[colIdx], footerText)
+                            views.setViewVisibility(colFooters[colIdx], View.VISIBLE)
+                        } else {
+                            views.setViewVisibility(colFooters[colIdx], View.GONE)
                         }
                     }
                 }
@@ -307,47 +455,42 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
             timeFormat: SimpleDateFormat,
             isDark: Boolean,
             appWidgetId: Int,
-            requestOffset: Int
+            requestOffset: Int,
+            isCurrent: Boolean,
+            isAdaptive: Boolean = false
         ) {
             val isExam = session.kind == "exam"
-            val isCurrent = isToday && (session.startMs <= nowMs && nowMs < session.endMs)
 
             val startStr = timeFormat.format(Date(session.startMs))
             val roomStr = simplifyRoom(session.room)
 
             val timeRoomLine = if (roomStr.isNotEmpty()) "$startStr · $roomStr" else startStr
-            val rawShortName = if (session.shortName.trim().isNotEmpty()) session.shortName.trim() else session.subject.trim()
-            val shortName = truncatePreserveSuffix(rawShortName, 24)
+            val displayTitle: String
+            if (isAdaptive) {
+                // Adaptive Card (1-2 môn): Ưu tiên hiển thị tên môn đầy đủ (tối đa 48 ký tự ngắt 2 dòng)
+                val rawTitle = if (session.subject.trim().isNotEmpty()) session.subject.trim() else session.shortName.trim()
+                val titleWithExam = if (isExam) "Thi $rawTitle" else rawTitle
+                displayTitle = truncatePreserveSuffix(titleWithExam, 48)
+            } else {
+                // Compact Card (3-4 môn): Dùng tên viết tắt siêu gọn 1 dòng (tối đa 24 ký tự)
+                val rawShortName = if (session.shortName.trim().isNotEmpty()) session.shortName.trim() else session.subject.trim()
+                val titleWithExam = if (isExam) "Thi $rawShortName" else rawShortName
+                displayTitle = truncatePreserveSuffix(titleWithExam, 24)
+            }
 
             views.setTextViewText(timeRoomId, timeRoomLine)
-            views.setTextViewText(titleId, shortName)
+            views.setTextViewText(titleId, displayTitle)
 
             // Nền & màu chữ theo token
             if (isExam) {
                 val bgRes = if (isCurrent) R.drawable.widget_card_rounded_8dp_exam_current else R.drawable.widget_card_rounded_8dp_exam
                 views.setInt(cardLayoutId, "setBackgroundResource", bgRes)
-                val examColor = if (isDark) Color.parseColor("#F7C1C1") else Color.parseColor("#791F1F")
-                views.setTextColor(timeRoomId, examColor)
-                views.setTextColor(titleId, examColor)
             } else {
                 val safeColorIdx = session.color.coerceIn(0, 7)
                 val bgResName = if (isCurrent) "widget_card_subject_${safeColorIdx}_current" else "widget_card_subject_$safeColorIdx"
                 val bgRes = context.resources.getIdentifier(bgResName, "drawable", context.packageName)
                 if (bgRes != 0) {
                     views.setInt(cardLayoutId, "setBackgroundResource", bgRes)
-                }
-
-                val textColorResName = "widget_subject_${safeColorIdx}_text"
-                val textColorRes = context.resources.getIdentifier(textColorResName, "color", context.packageName)
-                if (textColorRes != 0) {
-                    val colorVal = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                        context.getColor(textColorRes)
-                    } else {
-                        @Suppress("DEPRECATION")
-                        context.resources.getColor(textColorRes)
-                    }
-                    views.setTextColor(timeRoomId, colorVal)
-                    views.setTextColor(titleId, colorVal)
                 }
             }
 
@@ -431,7 +574,7 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
                 val obj = JSONObject(jsonStr)
                 if (obj.optInt("version", 0) != 1) return null
                 val genAt = obj.optLong("generatedAt", 0L)
-                val maxAgeMs = 14L * 24 * 60 * 60 * 1000
+                val maxAgeMs = 180L * 24 * 60 * 60 * 1000
                 if (genAt > 0 && (System.currentTimeMillis() - genAt > maxAgeMs)) return null
                 obj
             } catch (e: Exception) {
@@ -515,9 +658,9 @@ class ThreeDaysScheduleWidgetProvider : AppWidgetProvider() {
 
             try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC, nextWakeMs, pendingIntent)
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextWakeMs, pendingIntent)
                 } else {
-                    alarmManager.set(AlarmManager.RTC, nextWakeMs, pendingIntent)
+                    alarmManager.set(AlarmManager.RTC_WAKEUP, nextWakeMs, pendingIntent)
                 }
             } catch (e: Exception) {
                 // Ignore security exceptions

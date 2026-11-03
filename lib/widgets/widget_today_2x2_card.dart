@@ -19,36 +19,36 @@ class WidgetDesignTokens {
   static const Color darkBg = Color(0xFF262624);
   static const Color darkBorder = Color(0xFF3D3D3A);
   static const Color darkTextPrimary = Color(0xFFF1EFE8);
-  static const Color darkTextSecondary = Color(0xFFB4B2A9);
-  static const Color darkTextDimmed = Color(0xFF888780);
+  static const Color darkTextSecondary = Color(0xFFD3D1C7);
+  static const Color darkTextDimmed = Color(0xFFA8A69E);
   static const Color darkAccent = Color(0xFF85B7EB);
   static const Color darkAccentBorder = Color(0xFF85B7EB);
   static const Color darkAccentOn = Color(0xFF042C53);
   static const Color darkExamBg = Color(0xFF791F1F);
-  static const Color darkExamText = Color(0xFFF7C1C1);
+  static const Color darkExamText = Color(0xFFFCA5A5);
 
-  // 8 Môn học Token (Light: Bg / Text)
+  // 8 Môn học Token (Light: Bg / Text) - 100% Cool Tones (Phân định triệt để với Lịch Thi màu ấm)
   static const List<({Color bg, Color text})> lightSubjectColors = [
-    (bg: Color(0xFFE6F1FB), text: Color(0xFF0C447C)), // 0: Xanh dương
-    (bg: Color(0xFFEAF3DE), text: Color(0xFF27500A)), // 1: Xanh lá
-    (bg: Color(0xFFEEEDFE), text: Color(0xFF3C3489)), // 2: Tím
-    (bg: Color(0xFFFAEEDA), text: Color(0xFF633806)), // 3: Hổ phách
-    (bg: Color(0xFFE1F5EE), text: Color(0xFF085041)), // 4: Xanh ngọc
-    (bg: Color(0xFFFBEAF0), text: Color(0xFF72243E)), // 5: Hồng
-    (bg: Color(0xFFFAECE7), text: Color(0xFF712B13)), // 6: San hô
-    (bg: Color(0xFFF1EFE8), text: Color(0xFF444441)), // 7: Xám
+    (bg: Color(0xFFEFF6FF), text: Color(0xFF2563EB)), // 0: Blue - Xanh lam
+    (bg: Color(0xFFECFDF5), text: Color(0xFF059669)), // 1: Emerald - Xanh ngọc lục bảo
+    (bg: Color(0xFFF5F3FF), text: Color(0xFF7C3AED)), // 2: Purple - Tím lạnh
+    (bg: Color(0xFFF0FDFA), text: Color(0xFF0D9488)), // 3: Teal - Xanh ngọc biển
+    (bg: Color(0xFFECFEFF), text: Color(0xFF0891B2)), // 4: Cyan - Xanh mòng két
+    (bg: Color(0xFFF0F9FF), text: Color(0xFF0284C7)), // 5: Sky - Xanh da trời
+    (bg: Color(0xFFF0F9FF), text: Color(0xFF0369A1)), // 6: Ocean Blue - Xanh biển
+    (bg: Color(0xFFEEF2FF), text: Color(0xFF4F46E5)), // 7: Indigo - Chàm
   ];
 
-  // 8 Môn học Token (Dark: Bg / Text)
+  // 8 Môn học Token (Dark: Bg / Text) - 100% Cool Tones (High Contrast Pastels)
   static const List<({Color bg, Color text})> darkSubjectColors = [
-    (bg: Color(0xFF0C447C), text: Color(0xFFB5D4F4)), // 0: Xanh dương
-    (bg: Color(0xFF27500A), text: Color(0xFFC0DD97)), // 1: Xanh lá
-    (bg: Color(0xFF3C3489), text: Color(0xFFCECBF6)), // 2: Tím
-    (bg: Color(0xFF633806), text: Color(0xFFFAC775)), // 3: Hổ phách
-    (bg: Color(0xFF085041), text: Color(0xFF9FE1CB)), // 4: Xanh ngọc
-    (bg: Color(0xFF72243E), text: Color(0xFFF4C0D1)), // 5: Hồng
-    (bg: Color(0xFF712B13), text: Color(0xFFF5C4B3)), // 6: San hô
-    (bg: Color(0xFF444441), text: Color(0xFFD3D1C7)), // 7: Xám
+    (bg: Color(0xFF1E3A8A), text: Color(0xFF93C5FD)), // 0: Blue
+    (bg: Color(0xFF064E3B), text: Color(0xFF6EE7B7)), // 1: Emerald
+    (bg: Color(0xFF4C1D95), text: Color(0xFFC4B5FD)), // 2: Purple
+    (bg: Color(0xFF134E4A), text: Color(0xFF5EEAD4)), // 3: Teal
+    (bg: Color(0xFF164E63), text: Color(0xFF67E8F9)), // 4: Cyan
+    (bg: Color(0xFF0C4A6E), text: Color(0xFF7DD3FC)), // 5: Sky
+    (bg: Color(0xFF075985), text: Color(0xFF7DD3FC)), // 6: Ocean Blue light
+    (bg: Color(0xFF312E81), text: Color(0xFFA5B4FC)), // 7: Indigo
   ];
 }
 

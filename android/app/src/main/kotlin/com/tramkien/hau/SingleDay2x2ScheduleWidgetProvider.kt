@@ -7,7 +7,9 @@ import android.appwidget.AppWidgetProvider
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
+import android.app.UiModeManager
 import android.content.res.Configuration
+import android.content.res.Resources
 import android.graphics.Color
 import android.net.Uri
 import android.os.Build
@@ -99,6 +101,41 @@ class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
             val endEstimated: Boolean
         )
 
+        fun isSystemDarkMode(context: Context): Boolean {
+            val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
+            if (uiModeManager != null) {
+                if (uiModeManager.nightMode == UiModeManager.MODE_NIGHT_YES) return true
+                if (uiModeManager.nightMode == UiModeManager.MODE_NIGHT_NO) return false
+            }
+            val systemNight = (Resources.getSystem().configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            if (systemNight) return true
+
+            return (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+        }
+
+        fun getThemedContext(context: Context): Context {
+            val isDark = isSystemDarkMode(context)
+            val config = Configuration(context.resources.configuration)
+            config.uiMode = (config.uiMode and Configuration.UI_MODE_NIGHT_MASK.inv()) or
+                (if (isDark) Configuration.UI_MODE_NIGHT_YES else Configuration.UI_MODE_NIGHT_NO)
+            return context.createConfigurationContext(config)
+        }
+
+        fun setViewTextColorRes(views: RemoteViews, viewId: Int, colorResId: Int, context: Context) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                views.setColor(viewId, "setTextColor", colorResId)
+            } else {
+                val themedContext = getThemedContext(context)
+                @Suppress("DEPRECATION")
+                val color = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    themedContext.getColor(colorResId)
+                } else {
+                    themedContext.resources.getColor(colorResId)
+                }
+                views.setTextColor(viewId, color)
+            }
+        }
+
         fun updateAppWidget(
             context: Context,
             appWidgetManager: AppWidgetManager,
@@ -110,13 +147,14 @@ class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
             val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault()).apply { timeZone = vnTz }
             val dateFormatIso = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).apply { timeZone = vnTz }
 
-            val isDark = (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) == Configuration.UI_MODE_NIGHT_YES
+            val isDark = isSystemDarkMode(context)
 
             // Màu Token chuẩn Mục 1.4 & 1.5
             val accentColor = if (isDark) Color.parseColor("#85B7EB") else Color.parseColor("#185FA5")
-            val examColor = if (isDark) Color.parseColor("#F7C1C1") else Color.parseColor("#791F1F")
-            val textPrimary = if (isDark) Color.parseColor("#F1EFE8") else Color.parseColor("#1F1F1E")
-            val textSecondary = if (isDark) Color.parseColor("#B4B2A9") else Color.parseColor("#5F5E5A")
+            val examColor = if (isDark) Color.parseColor("#FCA5A5") else Color.parseColor("#791F1F")
+            val textPrimary = if (isDark) Color.parseColor("#FFFFFF") else Color.parseColor("#1F1F1E")
+            val textSecondary = if (isDark) Color.parseColor("#D3D1C7") else Color.parseColor("#5F5E5A")
+            val textDimmed = if (isDark) Color.parseColor("#A8A69E") else Color.parseColor("#888780")
 
             val snapshotObj = readSnapshotJson(context)
             if (snapshotObj == null || snapshotObj.optInt("version", 0) != 1) {
@@ -168,8 +206,8 @@ class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
                     .sortedBy { it.startMs }
                 if (upcomingExams.isNotEmpty()) {
                     selectedSession = upcomingExams.first()
-                    statusLabel = "Tiếp theo"
-                    statusColor = textSecondary
+                    statusLabel = "Lịch thi"
+                    statusColor = examColor
                 }
             }
 
@@ -179,7 +217,7 @@ class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
                     .sortedBy { it.startMs }
                 if (upcomingClasses.isNotEmpty()) {
                     selectedSession = upcomingClasses.first()
-                    statusLabel = "Tiếp theo"
+                    statusLabel = "Hôm nay"
                     statusColor = textSecondary
                 }
             }
@@ -195,23 +233,41 @@ class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
                 // Hiển thị môn học đã chọn
                 views.setViewVisibility(R.id.widget_empty_container, View.GONE)
                 views.setViewVisibility(R.id.widget_session_content, View.VISIBLE)
-                views.setViewVisibility(R.id.widget_status_label, View.VISIBLE)
-
-                views.setTextViewText(R.id.widget_status_label, statusLabel)
-                views.setTextColor(R.id.widget_status_label, statusColor)
+                when {
+                    selectedSession.kind == "exam" && (statusLabel == "Đang thi" || statusLabel == "Lịch thi" || statusLabel == "Sắp thi") -> {
+                        views.setViewVisibility(R.id.widget_status_label, View.GONE)
+                        views.setViewVisibility(R.id.widget_status_label_accent, View.GONE)
+                        views.setViewVisibility(R.id.widget_status_label_exam, View.VISIBLE)
+                        views.setTextViewText(R.id.widget_status_label_exam, statusLabel)
+                    }
+                    statusLabel == "Đang học" -> {
+                        views.setViewVisibility(R.id.widget_status_label, View.GONE)
+                        views.setViewVisibility(R.id.widget_status_label_accent, View.VISIBLE)
+                        views.setViewVisibility(R.id.widget_status_label_exam, View.GONE)
+                        views.setTextViewText(R.id.widget_status_label_accent, statusLabel)
+                    }
+                    else -> {
+                        views.setViewVisibility(R.id.widget_status_label, View.VISIBLE)
+                        views.setViewVisibility(R.id.widget_status_label_accent, View.GONE)
+                        views.setViewVisibility(R.id.widget_status_label_exam, View.GONE)
+                        views.setTextViewText(R.id.widget_status_label, statusLabel)
+                    }
+                }
 
                 val displayTitle = truncatePreserveSuffix(selectedSession.subject, 40)
                 views.setTextViewText(R.id.widget_subject_name, displayTitle)
-                views.setTextColor(R.id.widget_subject_name, textPrimary)
 
                 val startTimeStr = timeFormat.format(Date(selectedSession.startMs))
-                val subInfo = if (selectedSession.room.trim().isNotEmpty()) {
+                val subInfo = if (selectedSession.kind == "exam") {
+                    val roomStr = if (selectedSession.room.trim().isNotEmpty()) " · ${selectedSession.room.trim()}" else ""
+                    val seatStr = if (!selectedSession.seat.isNullOrBlank()) " · SBD: ${selectedSession.seat.trim()}" else ""
+                    "$startTimeStr$roomStr$seatStr"
+                } else if (selectedSession.room.trim().isNotEmpty()) {
                     "$startTimeStr · ${selectedSession.room.trim()}"
                 } else {
                     startTimeStr
                 }
                 views.setTextViewText(R.id.widget_sub_info, subInfo)
-                views.setTextColor(R.id.widget_sub_info, textSecondary)
 
                 // Xử lý thanh tiến độ và đếm ngược (chỉ hiện khi đang học/thi và !endEstimated)
                 val isCurrent = selectedSession.startMs <= nowMs && nowMs < selectedSession.endMs
@@ -235,7 +291,6 @@ class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
 
                     val endTimeStr = timeFormat.format(Date(selectedSession.endMs))
                     views.setTextViewText(R.id.widget_countdown, "Đến $endTimeStr")
-                    views.setTextColor(R.id.widget_countdown, textSecondary)
                 } else {
                     views.setViewVisibility(R.id.widget_progress_bar, View.GONE)
                     views.setViewVisibility(R.id.widget_progress_bar_exam, View.GONE)
@@ -245,6 +300,35 @@ class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
                 val dateIso = dateFormatIso.format(Date(selectedSession.startMs))
                 val deepLink = "tramkien://schedule?date=$dateIso&sessionId=${selectedSession.id}"
                 setOnClickPendingIntent(context, views, deepLink, appWidgetId)
+
+                // Tìm ca tiếp theo sau selectedSession (ưu tiên trong ngày, nếu không thì trong 7 ngày tới)
+                val nextSession = todaySessions.filter { it.startMs >= selectedSession.endMs && it.id != selectedSession.id }
+                    .sortedBy { it.startMs }.firstOrNull()
+                    ?: findNextSessionWithin7Days(sessions, selectedSession.endMs)
+
+                if (nextSession != null) {
+                    views.setViewVisibility(R.id.widget_next_container, View.VISIBLE)
+                    val nextTimeStr = timeFormat.format(Date(nextSession.startMs))
+                    val isAfterToday = !isSameDay(nextSession.startMs, calNow, vnTz)
+                    val isTomorrow = isSameDay(nextSession.startMs, calTomorrow, vnTz)
+                    val nextLabelText = when {
+                        !isAfterToday -> "MÔN TIẾP · $nextTimeStr"
+                        isTomorrow -> "NGÀY MAI · $nextTimeStr"
+                        else -> {
+                            val nextWk = formatWeekdayAbbr(nextSession.startMs, vnTz)
+                            "$nextWk · $nextTimeStr"
+                        }
+                    }
+                    views.setTextViewText(R.id.widget_next_label, nextLabelText)
+
+                    val nextRawTitle = if (nextSession.shortName.isNotEmpty()) nextSession.shortName else nextSession.subject
+                    val nextTitle = truncatePreserveSuffix(nextRawTitle, 22)
+                    val nextRoom = WeeklyScheduleWidgetProvider.simplifyRoom(nextSession.room)
+                    val nextFullText = if (nextRoom.isNotEmpty()) "$nextTitle · $nextRoom" else nextTitle
+                    views.setTextViewText(R.id.widget_next_title, nextFullText)
+                } else {
+                    views.setViewVisibility(R.id.widget_next_container, View.GONE)
+                }
             } else {
                 // 5. Trạng thái trống (Mục 3.6)
                 val nextSessionWithin7Days = findNextSessionWithin7Days(sessions, nowMs)
@@ -297,19 +381,20 @@ class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
             deepLinkUri: String
         ) {
             views.setViewVisibility(R.id.widget_status_label, View.GONE)
+            views.setViewVisibility(R.id.widget_status_label_accent, View.GONE)
+            views.setViewVisibility(R.id.widget_status_label_exam, View.GONE)
             views.setViewVisibility(R.id.widget_session_content, View.GONE)
             views.setViewVisibility(R.id.widget_progress_bar, View.GONE)
             views.setViewVisibility(R.id.widget_progress_bar_exam, View.GONE)
             views.setViewVisibility(R.id.widget_countdown, View.GONE)
+            views.setViewVisibility(R.id.widget_next_container, View.GONE)
 
             views.setViewVisibility(R.id.widget_empty_container, View.VISIBLE)
             views.setTextViewText(R.id.widget_empty_title, title)
-            views.setTextColor(R.id.widget_empty_title, textPrimary)
 
             if (subtitle.isNotEmpty()) {
                 views.setViewVisibility(R.id.widget_empty_subtitle, View.VISIBLE)
                 views.setTextViewText(R.id.widget_empty_subtitle, subtitle)
-                views.setTextColor(R.id.widget_empty_subtitle, textSecondary)
             } else {
                 views.setViewVisibility(R.id.widget_empty_subtitle, View.GONE)
             }
@@ -392,7 +477,7 @@ class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
                 val obj = JSONObject(jsonStr)
                 if (obj.optInt("version", 0) != 1) return null
                 val genAt = obj.optLong("generatedAt", 0L)
-                val maxAgeMs = 14L * 24 * 60 * 60 * 1000
+                val maxAgeMs = 180L * 24 * 60 * 60 * 1000
                 if (genAt > 0 && (System.currentTimeMillis() - genAt > maxAgeMs)) return null
                 obj
             } catch (e: Exception) {

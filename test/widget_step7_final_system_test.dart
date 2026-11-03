@@ -108,11 +108,11 @@ void main() {
         expect(read, isNull);
       });
 
-      test('Xử lý file quá cũ (> 14 ngày): phát hiện isStale và fallback an toàn', () async {
-        final fifteenDaysAgo = DateTime.now().subtract(const Duration(days: 15));
+      test('Xử lý file quá cũ (> 180 ngày): phát hiện isStale và fallback an toàn', () async {
+        final staleDaysAgo = DateTime.now().subtract(const Duration(days: 185));
         final oldSnapshot = WidgetScheduleSnapshot(
           version: 1,
-          generatedAt: fifteenDaysAgo.millisecondsSinceEpoch,
+          generatedAt: staleDaysAgo.millisecondsSinceEpoch,
           tz: 'Asia/Ho_Chi_Minh',
           sessions: [],
         );
@@ -581,7 +581,7 @@ void main() {
         final now = DateTime(2026, 10, 28, 10, 5);
 
         final m4x2 = WidgetMonthTodaySelector.select(snapshot: snapshot, now: now);
-        expect(m4x2.todaySchedule.visibleCards.length, 2);
+        expect(m4x2.todaySchedule.visibleCards.length, 3);
         final examInCards = m4x2.todaySchedule.visibleCards
             .any((c) => c.isExam && c.session.subjectName == 'Lịch thi Cuối kỳ');
         expect(examInCards, isTrue, reason: 'Lịch thi chưa diễn ra không được bị ẩn vào +N');

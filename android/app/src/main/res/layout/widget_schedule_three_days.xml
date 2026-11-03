@@ -79,16 +79,18 @@
                 android:layout_weight="1"
                 android:layout_marginTop="6dp">
 
-                <!-- Nhãn cột trống: "Trống" -->
+                <!-- Nhãn cột trống / thông báo hoàn thành -->
                 <TextView
                     android:id="@+id/col_1_empty"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="top"
+                    android:gravity="center"
                     android:fontFamily="sans-serif"
                     android:text="Trống"
-                    android:textColor="@color/widget_text_dimmed"
+                    android:textColor="@color/widget_text_secondary"
                     android:textSize="11sp"
+                    android:maxLines="4"
+                    android:lineSpacingExtra="2dp"
                     android:visibility="gone" />
 
                 <!-- Danh sách tối đa 2 thẻ môn -->
@@ -106,8 +108,8 @@
                         android:orientation="vertical"
                         android:paddingLeft="6dp"
                         android:paddingRight="6dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
                         android:visibility="gone">
 
                         <TextView
@@ -118,7 +120,8 @@
                             android:fontFamily="sans-serif-medium"
                             android:includeFontPadding="false"
                             android:maxLines="1"
-                            android:textSize="11sp" />
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_text_secondary" />
 
                         <TextView
                             android:id="@+id/col_1_card_1_title"
@@ -128,8 +131,9 @@
                             android:ellipsize="end"
                             android:fontFamily="sans-serif"
                             android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:textSize="11sp" />
+                            android:maxLines="2"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_card_title" />
                     </LinearLayout>
 
                     <!-- Thẻ 2 -->
@@ -137,12 +141,12 @@
                         android:id="@+id/col_1_card_2"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="3dp"
                         android:orientation="vertical"
                         android:paddingLeft="6dp"
                         android:paddingRight="6dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
                         android:visibility="gone">
 
                         <TextView
@@ -153,7 +157,8 @@
                             android:fontFamily="sans-serif-medium"
                             android:includeFontPadding="false"
                             android:maxLines="1"
-                            android:textSize="11sp" />
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_text_secondary" />
 
                         <TextView
                             android:id="@+id/col_1_card_2_title"
@@ -163,9 +168,104 @@
                             android:ellipsize="end"
                             android:fontFamily="sans-serif"
                             android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:textSize="11sp" />
+                            android:maxLines="2"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_card_title" />
                     </LinearLayout>
+
+                    <!-- Thẻ 3 -->
+                    <LinearLayout
+                        android:id="@+id/col_1_card_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:orientation="vertical"
+                        android:paddingLeft="6dp"
+                        android:paddingRight="6dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/col_1_card_3_time_room"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_text_secondary" />
+
+                        <TextView
+                            android:id="@+id/col_1_card_3_title"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="1dp"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif"
+                            android:includeFontPadding="false"
+                            android:maxLines="2"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_card_title" />
+                    </LinearLayout>
+
+                    <!-- Thẻ 4 -->
+                    <LinearLayout
+                        android:id="@+id/col_1_card_4"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:orientation="vertical"
+                        android:paddingLeft="6dp"
+                        android:paddingRight="6dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/col_1_card_4_time_room"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_text_secondary" />
+
+                        <TextView
+                            android:id="@+id/col_1_card_4_title"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="1dp"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif"
+                            android:includeFontPadding="false"
+                            android:maxLines="2"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_card_title" />
+                    </LinearLayout>
+
+                    <!-- Spacer đẩy footer xuống sát đáy cột (Pinned Bottom) -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <!-- Footer cột Hôm nay: môn ẩn / ca cuối / đã hoàn thành -->
+                    <TextView
+                        android:id="@+id/col_1_footer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:includeFontPadding="false"
+                        android:lineSpacingExtra="1dp"
+                        android:maxLines="2"
+                        android:textColor="@color/widget_text_secondary"
+                        android:textSize="9.5sp"
+                        android:visibility="gone" />
                 </LinearLayout>
             </FrameLayout>
         </LinearLayout>
@@ -224,11 +324,13 @@
                     android:id="@+id/col_2_empty"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="top"
+                    android:gravity="center"
                     android:fontFamily="sans-serif"
                     android:text="Trống"
-                    android:textColor="@color/widget_text_dimmed"
+                    android:textColor="@color/widget_text_secondary"
                     android:textSize="11sp"
+                    android:maxLines="4"
+                    android:lineSpacingExtra="2dp"
                     android:visibility="gone" />
 
                 <LinearLayout
@@ -244,8 +346,8 @@
                         android:orientation="vertical"
                         android:paddingLeft="6dp"
                         android:paddingRight="6dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
                         android:visibility="gone">
 
                         <TextView
@@ -256,7 +358,8 @@
                             android:fontFamily="sans-serif-medium"
                             android:includeFontPadding="false"
                             android:maxLines="1"
-                            android:textSize="11sp" />
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_text_secondary" />
 
                         <TextView
                             android:id="@+id/col_2_card_1_title"
@@ -266,20 +369,21 @@
                             android:ellipsize="end"
                             android:fontFamily="sans-serif"
                             android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:textSize="11sp" />
+                            android:maxLines="2"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_card_title" />
                     </LinearLayout>
 
                     <LinearLayout
                         android:id="@+id/col_2_card_2"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="3dp"
                         android:orientation="vertical"
                         android:paddingLeft="6dp"
                         android:paddingRight="6dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
                         android:visibility="gone">
 
                         <TextView
@@ -290,7 +394,8 @@
                             android:fontFamily="sans-serif-medium"
                             android:includeFontPadding="false"
                             android:maxLines="1"
-                            android:textSize="11sp" />
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_text_secondary" />
 
                         <TextView
                             android:id="@+id/col_2_card_2_title"
@@ -300,9 +405,104 @@
                             android:ellipsize="end"
                             android:fontFamily="sans-serif"
                             android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:textSize="11sp" />
+                            android:maxLines="2"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_card_title" />
                     </LinearLayout>
+
+                    <!-- Thẻ 3 -->
+                    <LinearLayout
+                        android:id="@+id/col_2_card_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:orientation="vertical"
+                        android:paddingLeft="6dp"
+                        android:paddingRight="6dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/col_2_card_3_time_room"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_text_secondary" />
+
+                        <TextView
+                            android:id="@+id/col_2_card_3_title"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="1dp"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif"
+                            android:includeFontPadding="false"
+                            android:maxLines="2"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_card_title" />
+                    </LinearLayout>
+
+                    <!-- Thẻ 4 -->
+                    <LinearLayout
+                        android:id="@+id/col_2_card_4"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:orientation="vertical"
+                        android:paddingLeft="6dp"
+                        android:paddingRight="6dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/col_2_card_4_time_room"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_text_secondary" />
+
+                        <TextView
+                            android:id="@+id/col_2_card_4_title"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="1dp"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif"
+                            android:includeFontPadding="false"
+                            android:maxLines="2"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_card_title" />
+                    </LinearLayout>
+
+                    <!-- Spacer đẩy footer xuống sát đáy cột (Pinned Bottom) -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <!-- Footer cột 2 -->
+                    <TextView
+                        android:id="@+id/col_2_footer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:includeFontPadding="false"
+                        android:lineSpacingExtra="1dp"
+                        android:maxLines="2"
+                        android:textColor="@color/widget_text_secondary"
+                        android:textSize="9.5sp"
+                        android:visibility="gone" />
                 </LinearLayout>
             </FrameLayout>
         </LinearLayout>
@@ -361,11 +561,13 @@
                     android:id="@+id/col_3_empty"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
-                    android:gravity="top"
+                    android:gravity="center"
                     android:fontFamily="sans-serif"
                     android:text="Trống"
-                    android:textColor="@color/widget_text_dimmed"
+                    android:textColor="@color/widget_text_secondary"
                     android:textSize="11sp"
+                    android:maxLines="4"
+                    android:lineSpacingExtra="2dp"
                     android:visibility="gone" />
 
                 <LinearLayout
@@ -381,8 +583,8 @@
                         android:orientation="vertical"
                         android:paddingLeft="6dp"
                         android:paddingRight="6dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
                         android:visibility="gone">
 
                         <TextView
@@ -393,7 +595,8 @@
                             android:fontFamily="sans-serif-medium"
                             android:includeFontPadding="false"
                             android:maxLines="1"
-                            android:textSize="11sp" />
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_text_secondary" />
 
                         <TextView
                             android:id="@+id/col_3_card_1_title"
@@ -403,20 +606,21 @@
                             android:ellipsize="end"
                             android:fontFamily="sans-serif"
                             android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:textSize="11sp" />
+                            android:maxLines="2"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_card_title" />
                     </LinearLayout>
 
                     <LinearLayout
                         android:id="@+id/col_3_card_2"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
+                        android:layout_marginTop="3dp"
                         android:orientation="vertical"
                         android:paddingLeft="6dp"
                         android:paddingRight="6dp"
-                        android:paddingTop="4dp"
-                        android:paddingBottom="4dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
                         android:visibility="gone">
 
                         <TextView
@@ -427,7 +631,8 @@
                             android:fontFamily="sans-serif-medium"
                             android:includeFontPadding="false"
                             android:maxLines="1"
-                            android:textSize="11sp" />
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_text_secondary" />
 
                         <TextView
                             android:id="@+id/col_3_card_2_title"
@@ -437,9 +642,104 @@
                             android:ellipsize="end"
                             android:fontFamily="sans-serif"
                             android:includeFontPadding="false"
-                            android:maxLines="1"
-                            android:textSize="11sp" />
+                            android:maxLines="2"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_card_title" />
                     </LinearLayout>
+
+                    <!-- Thẻ 3 -->
+                    <LinearLayout
+                        android:id="@+id/col_3_card_3"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:orientation="vertical"
+                        android:paddingLeft="6dp"
+                        android:paddingRight="6dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/col_3_card_3_time_room"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_text_secondary" />
+
+                        <TextView
+                            android:id="@+id/col_3_card_3_title"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="1dp"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif"
+                            android:includeFontPadding="false"
+                            android:maxLines="2"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_card_title" />
+                    </LinearLayout>
+
+                    <!-- Thẻ 4 -->
+                    <LinearLayout
+                        android:id="@+id/col_3_card_4"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="3dp"
+                        android:orientation="vertical"
+                        android:paddingLeft="6dp"
+                        android:paddingRight="6dp"
+                        android:paddingTop="3dp"
+                        android:paddingBottom="3dp"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:id="@+id/col_3_card_4_time_room"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif-medium"
+                            android:includeFontPadding="false"
+                            android:maxLines="1"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_text_secondary" />
+
+                        <TextView
+                            android:id="@+id/col_3_card_4_title"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="1dp"
+                            android:ellipsize="end"
+                            android:fontFamily="sans-serif"
+                            android:includeFontPadding="false"
+                            android:maxLines="2"
+                            android:textSize="10.5sp"
+                            android:textColor="@color/widget_card_title" />
+                    </LinearLayout>
+
+                    <!-- Spacer đẩy footer xuống sát đáy cột (Pinned Bottom) -->
+                    <FrameLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1" />
+
+                    <!-- Footer cột 3 -->
+                    <TextView
+                        android:id="@+id/col_3_footer"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:fontFamily="sans-serif-medium"
+                        android:includeFontPadding="false"
+                        android:lineSpacingExtra="1dp"
+                        android:maxLines="2"
+                        android:textColor="@color/widget_text_secondary"
+                        android:textSize="9.5sp"
+                        android:visibility="gone" />
                 </LinearLayout>
             </FrameLayout>
         </LinearLayout>
