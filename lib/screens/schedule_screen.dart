@@ -99,21 +99,28 @@ class _ScheduleScreenState extends State<ScheduleScreen>
               ? Container(
                   margin: const EdgeInsets.fromLTRB(16, 4, 16, 4),
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8.5),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryFixed.withOpacity(0.55),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        AppTheme.primary.withOpacity(0.08),
+                        AppTheme.primaryFixed.withOpacity(0.45),
+                      ],
+                    ),
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                      color: AppTheme.primary.withOpacity(0.2),
-                      width: 0.8,
+                      color: AppTheme.primary.withOpacity(0.25),
+                      width: 0.9,
                     ),
                   ),
                   child: Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.all(7),
+                        padding: const EdgeInsets.all(7.5),
                         decoration: BoxDecoration(
-                          color: AppTheme.primary.withOpacity(0.12),
+                          color: AppTheme.primary.withOpacity(0.14),
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -128,20 +135,47 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              'Đưa lịch học ra màn hình chính',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontFamily: 'Manrope',
-                                fontSize: 12.5,
-                                fontWeight: FontWeight.w700,
-                                color: AppTheme.onSurface,
-                              ),
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    'Đưa lịch ra màn hình chính',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: TextStyle(
+                                      fontFamily: 'Manrope',
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppTheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 5, vertical: 1.5),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primary,
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                  child: const Text(
+                                    'MỚI',
+                                    style: TextStyle(
+                                      fontFamily: 'Manrope',
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      letterSpacing: 0.4,
+                                      height: 1.1,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 2),
+                            const SizedBox(height: 2.5),
                             Text(
-                              'Nhấn giữ màn hình chính và thêm tiện ích Trạm Kiến',
+                              'Nhấn giữ màn hình để thêm Widget',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
@@ -153,6 +187,7 @@ class _ScheduleScreenState extends State<ScheduleScreen>
                           ],
                         ),
                       ),
+                      const SizedBox(width: 6),
                       IconButton(
                         icon: const Icon(Icons.close_rounded, size: 18),
                         color: AppTheme.outline,

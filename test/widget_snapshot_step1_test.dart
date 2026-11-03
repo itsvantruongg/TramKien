@@ -201,6 +201,33 @@ void main() {
       );
     });
 
+    test('Ưu tiên 3: Acronym thông minh chuyển từ nối "và", "Và", "VÀ", "&" thành " & "', () {
+      expect(
+        WidgetHashUtils.generateShortName(
+          subjectName: 'Kho dữ liệu và khai phá dữ liệu',
+        ),
+        'KDL & KPDL',
+      );
+      expect(
+        WidgetHashUtils.generateShortName(
+          subjectName: 'Kho dữ liệu Và khai phá dữ liệu',
+        ),
+        'KDL & KPDL',
+      );
+      expect(
+        WidgetHashUtils.generateShortName(
+          subjectName: 'KHO DỮ LIỆU VÀ KHAI PHÁ DỮ LIỆU',
+        ),
+        'KDL & KPDL',
+      );
+      expect(
+        WidgetHashUtils.generateShortName(
+          subjectName: 'Kho dữ liệu & khai phá dữ liệu 2',
+        ),
+        'KDL & KPDL 2',
+      );
+    });
+
     test('Bảo tồn hậu tố phân biệt khi cắt giữa (Ellipsis Preservation)', () {
       // Môn có hậu tố số "2" -> Cắt ở giữa bảo tồn số 2
       const longWithSuffix = 'Cấu trúc dữ liệu và giải thuật 2';

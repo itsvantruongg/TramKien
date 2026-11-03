@@ -130,6 +130,41 @@ struct Today2x2ViewModel {
     let deepLinkUrl: String
     let nextSessionLabel: String?
     let nextSessionSubject: String?
+    let isNextExam: Bool
+
+    init(
+        stateType: String,
+        statusLabel: String,
+        subjectName: String,
+        displayTitle: String,
+        subInfo: String,
+        showProgressBar: Bool,
+        progress: Double,
+        countdownIos: String?,
+        isExam: Bool,
+        colorIndex: Int,
+        endEstimated: Bool,
+        deepLinkUrl: String,
+        nextSessionLabel: String? = nil,
+        nextSessionSubject: String? = nil,
+        isNextExam: Bool = false
+    ) {
+        self.stateType = stateType
+        self.statusLabel = statusLabel
+        self.subjectName = subjectName
+        self.displayTitle = displayTitle
+        self.subInfo = subInfo
+        self.showProgressBar = showProgressBar
+        self.progress = progress
+        self.countdownIos = countdownIos
+        self.isExam = isExam
+        self.colorIndex = colorIndex
+        self.endEstimated = endEstimated
+        self.deepLinkUrl = deepLinkUrl
+        self.nextSessionLabel = nextSessionLabel
+        self.nextSessionSubject = nextSessionSubject
+        self.isNextExam = isNextExam
+    }
 
     var hasSession: Bool {
         return stateType == "sessionActive"
@@ -150,7 +185,8 @@ struct Today2x2ViewModel {
             endEstimated: false,
             deepLinkUrl: "tramkien://schedule",
             nextSessionLabel: nil,
-            nextSessionSubject: nil
+            nextSessionSubject: nil,
+            isNextExam: false
         )
     }
 }
@@ -187,6 +223,7 @@ struct MonthToday4x2ViewModel {
     let headerRight: String
     let visibleCards: [MonthTodayCardItemPayload]
     let overflowLabel: String?
+    let pastCountLabel: String?
     let emptyTitle: String?
     let emptySubtitle: String?
 
@@ -199,6 +236,7 @@ struct MonthToday4x2ViewModel {
             headerRight: "0 môn",
             visibleCards: [],
             overflowLabel: nil,
+            pastCountLabel: nil,
             emptyTitle: "Đăng nhập để xem lịch",
             emptySubtitle: ""
         )
@@ -356,23 +394,18 @@ func evaluateToday2x2(snapshot: SnapshotPayload?, at date: Date) -> Today2x2View
         statusLabel = (active.kind == "exam") ? "Đang thi" : "Đang học"
     }
 
-    // 2. Lịch thi sắp tới trong ngày (kind == "exam" và upcoming)
+    // 2. Môn sắp tới gần nhất trong ngày (theo startMs, nếu trùng giờ thì ưu tiên môn thi)
     if selectedSession == nil {
-        let upcomingExams = todaySessions.filter { $0.kind == "exam" && $0.startMs > nowMs }
-            .sorted { $0.startMs < $1.startMs }
-        if let exam = upcomingExams.first {
-            selectedSession = exam
-            statusLabel = "Hôm nay"
-        }
-    }
-
-    // 3. Môn sắp tới gần nhất trong ngày (kind == "class" và upcoming)
-    if selectedSession == nil {
-        let upcomingClasses = todaySessions.filter { $0.kind == "class" && $0.startMs > nowMs }
-            .sorted { $0.startMs < $1.startMs }
-        if let nextClass = upcomingClasses.first {
-            selectedSession = nextClass
-            statusLabel = "Hôm nay"
+        let upcomingSessions = todaySessions.filter { $0.startMs > nowMs }
+            .sorted { a, b in
+                if a.startMs != b.startMs { return a.startMs < b.startMs }
+                if a.kind == "exam" && b.kind != "exam" { return true }
+                if b.kind == "exam" && a.kind != "exam" { return false }
+                return false
+            }
+        if let next = upcomingSessions.first {
+            selectedSession = next
+            statusLabel = (next.kind == "exam") ? "Lịch thi" : "Hôm nay"
         }
     }
 
@@ -414,13 +447,15 @@ func evaluateToday2x2(snapshot: SnapshotPayload?, at date: Date) -> Today2x2View
         let futureSessions = sessions.filter { $0.startMs > s.endMs && $0.startMs <= deadlineMs && $0.id != s.id }
             .sorted { $0.startMs < $1.startMs }
 
+        var isNextExam = false
         if let next = afterSessions.first ?? futureSessions.first {
+            isNextExam = (next.kind == "exam")
             let nextDate = Date(timeIntervalSince1970: Double(next.startMs) / 1000.0)
             let nextTimeStr = timeFormatter.string(from: nextDate)
             let isAfterToday = !calendar.isDate(nextDate, inSameDayAs: date)
             let isTomorrow = calendar.isDate(nextDate, inSameDayAs: tomorrowDate)
             if !isAfterToday {
-                nextLabel = "MÔN TIẾP · \(nextTimeStr)"
+                nextLabel = "TIẾP THEO · \(nextTimeStr)"
             } else if isTomorrow {
                 nextLabel = "NGÀY MAI · \(nextTimeStr)"
             } else {
@@ -441,7 +476,8 @@ func evaluateToday2x2(snapshot: SnapshotPayload?, at date: Date) -> Today2x2View
             let rawTitle = (next.short?.isEmpty == false) ? next.short! : next.subject
             let nextTitle = truncatePreserveSuffixSwift(rawTitle, maxLength: 22)
             let nextRoom = simplifyRoomSwift(next.room)
-            nextSubject = nextRoom.isEmpty ? nextTitle : "\(nextTitle) · \(nextRoom)"
+            let prefix = (isNextExam && !nextTitle.lowercased().hasPrefix("thi")) ? "Thi " : ""
+            nextSubject = nextRoom.isEmpty ? "\(prefix)\(nextTitle)" : "\(prefix)\(nextTitle) · \(nextRoom)"
         }
 
         return Today2x2ViewModel(
@@ -458,7 +494,8 @@ func evaluateToday2x2(snapshot: SnapshotPayload?, at date: Date) -> Today2x2View
             endEstimated: isEndEstimated,
             deepLinkUrl: deepLink,
             nextSessionLabel: nextLabel,
-            nextSessionSubject: nextSubject
+            nextSessionSubject: nextSubject,
+            isNextExam: isNextExam
         )
     }
 
@@ -610,6 +647,7 @@ func evaluateMonthToday4x2(snapshot: SnapshotPayload?, at date: Date, monthOffse
             headerRight: "0 môn",
             visibleCards: [],
             overflowLabel: nil,
+            pastCountLabel: nil,
             emptyTitle: "Đăng nhập để xem lịch",
             emptySubtitle: ""
         )
@@ -660,6 +698,7 @@ func evaluateMonthToday4x2(snapshot: SnapshotPayload?, at date: Date, monthOffse
             headerRight: headerRight,
             visibleCards: [],
             overflowLabel: nil,
+            pastCountLabel: nil,
             emptyTitle: emptyTitle,
             emptySubtitle: nextPreview
         )
@@ -721,19 +760,15 @@ func evaluateMonthToday4x2(snapshot: SnapshotPayload?, at date: Date, monthOffse
         if let nextS = overflowSessions.first {
             let nDate = Date(timeIntervalSince1970: Double(nextS.startMs) / 1000.0)
             let nTime = timeFormatter.string(from: nDate)
-            overflowLabel = (pastCount > 0)
-                ? "+\(overflow) môn nữa lúc \(nTime) · \(pastCount) đã xong"
-                : "+\(overflow) môn nữa lúc \(nTime)"
+            overflowLabel = "+\(overflow) môn nữa lúc \(nTime)"
         } else {
-            overflowLabel = (pastCount > 0)
-                ? "+\(overflow) môn nữa · \(pastCount) đã xong"
-                : "+\(overflow) môn nữa"
+            overflowLabel = "+\(overflow) môn nữa"
         }
-    } else if pastCount > 0 {
-        overflowLabel = "Đã xong \(pastCount) môn"
     } else {
         overflowLabel = nil
     }
+
+    let pastCountLabel: String? = (pastCount > 0) ? "\(pastCount) môn đã xong" : nil
 
     return MonthToday4x2ViewModel(
         monthTitle: monthTitle,
@@ -743,6 +778,7 @@ func evaluateMonthToday4x2(snapshot: SnapshotPayload?, at date: Date, monthOffse
         headerRight: headerRight,
         visibleCards: visibleCards,
         overflowLabel: overflowLabel,
+        pastCountLabel: pastCountLabel,
         emptyTitle: nil,
         emptySubtitle: nil
     )
@@ -1167,39 +1203,18 @@ func evaluateWeekly4x4(snapshot: SnapshotPayload?, at date: Date, weekOffset: In
     let isSatEmpty = sessionsByDay[5].isEmpty
     let isNoScroll = (hiddenCount == 0) && isWeekendTrailingEmpty
 
-    var weekendFooterText: String? = nil
-    if isNoScroll {
-        weekendFooterText = isSatEmpty ? "T7 \u{2013} CN: không có lịch" : "CN: không có lịch"
-    }
+    let weekendFooterText: String? = nil
 
     var items: [WeeklyScheduleListItemPayload] = []
     var emptyStart = -1
 
     func flushEmpty(_ currentIdx: Int) {
         if emptyStart != -1 {
-            if currentIdx == 7 && isNoScroll {
-                if emptyStart >= 5 {
-                    emptyStart = -1
-                    return
-                } else {
-                    let startIdx = emptyStart
-                    let endIdx = isSatEmpty ? 4 : 5
-                    if endIdx >= startIdx {
-                        let startWk = weekdayLabels[startIdx]
-                        let endWk = weekdayLabels[endIdx]
-                        let title = (startIdx == endIdx) ? "\(startWk): không có lịch" : "\(startWk) \u{2013} \(endWk): không có lịch"
-                        items.append(.emptyDays(WeeklyMergedEmptyPayload(id: "\(startIdx)_\(endIdx)", displayTitle: title)))
-                    }
-                    emptyStart = -1
-                    return
-                }
-            }
-
             let startIdx = emptyStart
             let endIdx = currentIdx - 1
             let startWk = weekdayLabels[startIdx]
             let endWk = weekdayLabels[endIdx]
-            let title = (startIdx == endIdx) ? "\(startWk): không có lịch" : "\(startWk) \u{2013} \(endWk): không có lịch"
+            let title = (startIdx == endIdx) ? "\(startWk): Không có lịch" : "\(startWk) \u{2013} \(endWk): Không có lịch"
             items.append(.emptyDays(WeeklyMergedEmptyPayload(id: "\(startIdx)_\(endIdx)", displayTitle: title)))
             emptyStart = -1
         }
@@ -1993,7 +2008,7 @@ struct Today2x2SwiftUIView: View {
         let examTextColor = isDark ? (Color(hex: "#F7C1C1") ?? Color.red) : (Color(hex: "#791F1F") ?? Color.red)
 
         let labelColor: Color = {
-            if viewModel.statusLabel == "Đang thi" {
+            if viewModel.statusLabel == "Đang thi" || viewModel.statusLabel == "Lịch thi" {
                 return examTextColor
             } else if viewModel.statusLabel == "Đang học" {
                 return accentColor
@@ -2068,7 +2083,7 @@ struct Today2x2SwiftUIView: View {
                         .lineLimit(1)
                     Text(nSubject)
                         .font(.system(size: 12, weight: .medium))
-                        .foregroundColor(textPrimary)
+                        .foregroundColor(viewModel.isNextExam ? examTextColor : textPrimary)
                         .lineLimit(1)
                 }
             }
@@ -2097,6 +2112,7 @@ struct MonthToday4x2SwiftUIView: View {
         let borderColor = isDark ? (Color(hex: "#3D3D3A") ?? Color.gray) : (Color(hex: "#E5E5E5") ?? Color.gray)
         let textPrimary = isDark ? (Color(hex: "#F1EFE8") ?? Color.white) : (Color(hex: "#1F1F1E") ?? Color.black)
         let textSecondary = isDark ? (Color(hex: "#B4B2A9") ?? Color.gray) : (Color(hex: "#5F5E5A") ?? Color.gray)
+        let textDimmed = Color(hex: "#888780") ?? Color.gray
         let accentColor = isDark ? (Color(hex: "#85B7EB") ?? Color.blue) : (Color(hex: "#185FA5") ?? Color.blue)
         let accentOn = isDark ? (Color(hex: "#042C53") ?? Color.black) : Color.white
         let examColor = isDark ? (Color(hex: "#F7C1C1") ?? Color.red) : (Color(hex: "#791F1F") ?? Color.red)
@@ -2257,10 +2273,21 @@ struct MonthToday4x2SwiftUIView: View {
                         }
                     }
                     Spacer()
-                    if let overflow = viewModel.overflowLabel {
-                        Text(overflow)
-                            .font(.system(size: 11, weight: .regular))
-                            .foregroundColor(textSecondary)
+                    if viewModel.overflowLabel != nil || viewModel.pastCountLabel != nil {
+                        VStack(alignment: .leading, spacing: 2) {
+                            if let overflow = viewModel.overflowLabel {
+                                Text(overflow)
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(textSecondary)
+                                    .lineLimit(1)
+                            }
+                            if let past = viewModel.pastCountLabel {
+                                Text(past)
+                                    .font(.system(size: 10, weight: .regular))
+                                    .foregroundColor(textDimmed)
+                                    .lineLimit(1)
+                            }
+                        }
                     }
                 }
             }
@@ -2533,11 +2560,7 @@ struct Weekly4x4SwiftUIView: View {
                     ForEach(viewModel.items) { item in
                         switch item {
                         case .header(let group):
-                            let headerColor: Color = {
-                                if group.isPastDay { return textDimmed }
-                                if group.isToday { return accentColor }
-                                return textPrimary
-                            }()
+                            let headerColor: Color = group.isToday ? accentColor : textPrimary
                             Text(group.headerTitle)
                                 .font(.system(size: isAdaptive ? 12.5 : 11, weight: .semibold))
                                 .foregroundColor(headerColor)
@@ -2590,23 +2613,22 @@ struct Weekly4x4SwiftUIView: View {
                             }
                             .frame(height: isAdaptive ? 28 : 19)
                         case .emptyDays(let empty):
-                            Text(empty.displayTitle)
-                                .font(.system(size: isAdaptive ? 12 : 11, weight: .regular))
-                                .italic()
-                                .foregroundColor(textDimmed)
-                                .padding(.top, isAdaptive ? 4 : 2)
+                            let parts = empty.displayTitle.components(separatedBy: ":")
+                            let dayLabel = parts.first?.trimmingCharacters(in: .whitespaces) ?? ""
+                            let statusLabel = parts.count > 1 ? parts.dropFirst().joined(separator: ":").trimmingCharacters(in: .whitespaces) : "Không có lịch"
+                            let dayColWidth: CGFloat = isAdaptive ? 53.5 : 43.0
+                            HStack(alignment: .center, spacing: isAdaptive ? 8 : 6) {
+                                Text(dayLabel)
+                                    .font(.system(size: isAdaptive ? 12 : 11, weight: .regular))
+                                    .foregroundColor(textSecondary)
+                                    .frame(width: dayColWidth, alignment: .leading)
+                                Text(statusLabel)
+                                    .font(.system(size: isAdaptive ? 13.5 : 11, weight: .regular))
+                                    .foregroundColor(textDimmed)
+                                Spacer()
+                            }
+                            .frame(height: isAdaptive ? 28 : 19)
                         }
-                    }
-                }
-
-                if let weekendFooter = viewModel.weekendFooterText {
-                    Spacer(minLength: 0)
-                    HStack {
-                        Text(weekendFooter)
-                            .font(.system(size: 11, weight: .regular))
-                            .italic()
-                            .foregroundColor(textDimmed)
-                        Spacer()
                     }
                 }
 

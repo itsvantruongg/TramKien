@@ -367,8 +367,11 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
                     views.setTextViewText(countId, dateStr)
 
                     if (isPastDay) {
-                        views.setTextColor(labelId, textDimmed)
-                        views.setTextColor(countId, textDimmed)
+                        setViewTextColorRes(views, labelId, R.color.widget_text_dimmed, context)
+                        setViewTextColorRes(views, countId, R.color.widget_text_dimmed, context)
+                    } else {
+                        setViewTextColorRes(views, labelId, R.color.widget_text_secondary, context)
+                        setViewTextColorRes(views, countId, R.color.widget_text_primary, context)
                     }
                 }
 
@@ -396,13 +399,8 @@ class WeeklyScheduleWidgetProvider : AppWidgetProvider() {
             val isSatEmpty = sessionsByDay[5].isEmpty()
             val isNoScroll = computeIsNoScroll(sessionsByDay, minHeightDp)
 
-            if (isNoScroll) {
-                val footerStr = if (isSatEmpty) "T7 \u2013 CN: không có lịch" else "CN: không có lịch"
-                views.setTextViewText(R.id.widget_weekly_footer_empty, footerStr)
-                views.setViewVisibility(R.id.widget_weekly_footer_empty, View.VISIBLE)
-            } else {
-                views.setViewVisibility(R.id.widget_weekly_footer_empty, View.GONE)
-            }
+            // Footer ngày trống cuối tuần: Không ép riêng dưới đáy nữa, để hiển thị tự nhiên trong ListView
+            views.setViewVisibility(R.id.widget_weekly_footer_empty, View.GONE)
 
             // Gán RemoteAdapter cho ListView cuộn được (Uri kèm timestamp để bypass cache của Launcher)
             val serviceIntent = Intent(context, WeeklyRemoteViewsService::class.java).apply {
@@ -591,7 +589,12 @@ class WeeklyRemoteViewsFactory(
             val colorIndex: Int,
             val dateIso: String
         ) : ListItem()
-        data class MergedEmptyDays(val title: String, val dateIso: String) : ListItem()
+        data class MergedEmptyDays(
+            val title: String,
+            val dateIso: String,
+            val dayLabel: String = "",
+            val statusLabel: String = "Không có lịch"
+        ) : ListItem()
     }
 
     private val items = mutableListOf<ListItem>()
@@ -698,42 +701,16 @@ class WeeklyRemoteViewsFactory(
 
         fun flushEmpty(currentIdx: Int) {
             if (emptyStart != -1) {
-                if (currentIdx == 7 && isNoScroll) {
-                    if (emptyStart >= 5) {
-                        emptyStart = -1
-                        return
-                    } else {
-                        val startIdx = emptyStart
-                        val endIdx = if (isSatEmpty) 4 else 5
-                        if (endIdx >= startIdx) {
-                            val startWk = WeeklyScheduleWidgetProvider.WEEKDAY_LABELS[startIdx]
-                            val endWk = WeeklyScheduleWidgetProvider.WEEKDAY_LABELS[endIdx]
-                            val title = if (startIdx == endIdx) {
-                                "$startWk: không có lịch"
-                            } else {
-                                "$startWk \u2013 $endWk: không có lịch"
-                            }
-                            val eCal = targetMondayCal.clone() as Calendar
-                            eCal.add(Calendar.DAY_OF_MONTH, startIdx)
-                            items.add(ListItem.MergedEmptyDays(title, isoFormat.format(eCal.time)))
-                        }
-                        emptyStart = -1
-                        return
-                    }
-                }
-
                 val startIdx = emptyStart
                 val endIdx = currentIdx - 1
                 val startWk = WeeklyScheduleWidgetProvider.WEEKDAY_LABELS[startIdx]
                 val endWk = WeeklyScheduleWidgetProvider.WEEKDAY_LABELS[endIdx]
-                val title = if (startIdx == endIdx) {
-                    "$startWk: không có lịch"
-                } else {
-                    "$startWk \u2013 $endWk: không có lịch"
-                }
+                val dayLabel = if (startIdx == endIdx) startWk else "$startWk \u2013 $endWk"
+                val statusLabel = "Không có lịch"
+                val title = "$dayLabel: $statusLabel"
                 val eCal = targetMondayCal.clone() as Calendar
                 eCal.add(Calendar.DAY_OF_MONTH, startIdx)
-                items.add(ListItem.MergedEmptyDays(title, isoFormat.format(eCal.time)))
+                items.add(ListItem.MergedEmptyDays(title, isoFormat.format(eCal.time), dayLabel, statusLabel))
                 emptyStart = -1
             }
         }
@@ -812,11 +789,9 @@ class WeeklyRemoteViewsFactory(
                 val rv = RemoteViews(context.packageName, layoutId)
                 rv.setTextViewText(R.id.item_header_text, item.title)
                 if (item.isToday) {
-                    val todayColor = if (isDark) Color.parseColor("#85B7EB") else Color.parseColor("#185FA5")
-                    rv.setTextColor(R.id.item_header_text, todayColor)
-                } else if (item.isPastDay) {
-                    val dimColor = if (isDark) Color.parseColor("#A8A69E") else Color.parseColor("#888780")
-                    rv.setTextColor(R.id.item_header_text, dimColor)
+                    WeeklyScheduleWidgetProvider.setViewTextColorRes(rv, R.id.item_header_text, R.color.widget_accent, context)
+                } else {
+                    WeeklyScheduleWidgetProvider.setViewTextColorRes(rv, R.id.item_header_text, R.color.widget_text_primary, context)
                 }
 
                 val fillIntent = Intent().apply {
@@ -832,34 +807,28 @@ class WeeklyRemoteViewsFactory(
                 rv.setTextViewText(R.id.item_session_title, item.displayTitle)
                 rv.setTextViewText(R.id.item_session_room, item.roomStr)
 
-                // Cài đặt màu vạch và chữ
+                // Cài đặt màu vạch và chữ bằng Resource ID động
                 if (item.isPast) {
                     // Môn đã kết thúc: thanh màu xám, toàn hàng chuyển màu mờ
                     val grayBar = if (isDark) Color.parseColor("#444441") else Color.parseColor("#D3D1C7")
                     rv.setInt(R.id.item_color_bar, "setColorFilter", grayBar)
-                    val dimColor = if (isDark) Color.parseColor("#A8A69E") else Color.parseColor("#888780")
-                    val subColor = if (isDark) Color.parseColor("#D3D1C7") else Color.parseColor("#888780")
-                    rv.setTextColor(R.id.item_session_time, subColor)
-                    rv.setTextColor(R.id.item_session_title, dimColor)
-                    rv.setTextColor(R.id.item_session_room, subColor)
+                    WeeklyScheduleWidgetProvider.setViewTextColorRes(rv, R.id.item_session_time, R.color.widget_text_dimmed, context)
+                    WeeklyScheduleWidgetProvider.setViewTextColorRes(rv, R.id.item_session_title, R.color.widget_text_dimmed, context)
+                    WeeklyScheduleWidgetProvider.setViewTextColorRes(rv, R.id.item_session_room, R.color.widget_text_dimmed, context)
                 } else if (item.isExam) {
                     // Môn thi chưa kết thúc: Vạch màu đỏ, chữ đỏ
                     rv.setInt(R.id.item_color_bar, "setColorFilter", Color.parseColor("#EF4444"))
-                    val examTitleColor = if (isDark) Color.parseColor("#FCA5A5") else Color.parseColor("#791F1F")
-                    val subColor = if (isDark) Color.parseColor("#D3D1C7") else Color.parseColor("#5F5E5A")
-                    rv.setTextColor(R.id.item_session_time, subColor)
-                    rv.setTextColor(R.id.item_session_title, examTitleColor)
-                    rv.setTextColor(R.id.item_session_room, subColor)
+                    WeeklyScheduleWidgetProvider.setViewTextColorRes(rv, R.id.item_session_time, R.color.widget_text_secondary, context)
+                    WeeklyScheduleWidgetProvider.setViewTextColorRes(rv, R.id.item_session_title, R.color.widget_exam_text, context)
+                    WeeklyScheduleWidgetProvider.setViewTextColorRes(rv, R.id.item_session_room, R.color.widget_text_secondary, context)
                 } else {
                     // Môn học thường chưa kết thúc: Vạch màu theo colorIndex, reset màu text chống tái sử dụng view rác
                     val palette = if (isDark) subjectColorsDark else subjectColorsLight
                     val safeIdx = item.colorIndex.coerceIn(0, 7)
                     rv.setInt(R.id.item_color_bar, "setColorFilter", palette[safeIdx])
-                    val titleColor = if (isDark) Color.parseColor("#F1EFE8") else Color.parseColor("#1F1F1E")
-                    val subColor = if (isDark) Color.parseColor("#D3D1C7") else Color.parseColor("#5F5E5A")
-                    rv.setTextColor(R.id.item_session_title, titleColor)
-                    rv.setTextColor(R.id.item_session_time, subColor)
-                    rv.setTextColor(R.id.item_session_room, subColor)
+                    WeeklyScheduleWidgetProvider.setViewTextColorRes(rv, R.id.item_session_title, R.color.widget_text_primary, context)
+                    WeeklyScheduleWidgetProvider.setViewTextColorRes(rv, R.id.item_session_time, R.color.widget_text_secondary, context)
+                    WeeklyScheduleWidgetProvider.setViewTextColorRes(rv, R.id.item_session_room, R.color.widget_text_secondary, context)
                 }
 
                 val fillIntent = Intent().apply {
@@ -871,7 +840,10 @@ class WeeklyRemoteViewsFactory(
             is ListItem.MergedEmptyDays -> {
                 val layoutId = R.layout.widget_weekly_item_empty_adaptive
                 val rv = RemoteViews(context.packageName, layoutId)
-                rv.setTextViewText(R.id.item_empty_text, item.title)
+                rv.setTextViewText(R.id.item_empty_day, item.dayLabel)
+                rv.setTextViewText(R.id.item_empty_text, item.statusLabel)
+                WeeklyScheduleWidgetProvider.setViewTextColorRes(rv, R.id.item_empty_day, R.color.widget_text_secondary, context)
+                WeeklyScheduleWidgetProvider.setViewTextColorRes(rv, R.id.item_empty_text, R.color.widget_text_dimmed, context)
                 val fillIntent = Intent().apply {
                     data = Uri.parse("tramkien://schedule?date=${item.dateIso}")
                 }

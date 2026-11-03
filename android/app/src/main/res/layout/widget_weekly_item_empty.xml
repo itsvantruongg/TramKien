@@ -2,15 +2,28 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_weekly_item_root"
     android:layout_width="match_parent"
-    android:layout_height="19dp"
+    android:layout_height="28dp"
     android:gravity="center_vertical"
     android:orientation="horizontal">
 
+    <!-- Cột 1: Thứ/Ngày trống (ví dụ T7 – CN) bắt đầu từ mép trái, rộng 47dp + 4dp margin để cột 2 bắt đầu tại mốc 51dp thẳng hàng tên môn học -->
+    <TextView
+        android:id="@+id/item_empty_day"
+        android:layout_width="47dp"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="4dp"
+        android:textSize="11.5sp"
+        android:fontFamily="sans-serif-medium"
+        android:textColor="@color/widget_text_secondary"
+        android:singleLine="true" />
+
+    <!-- Cột 2: "không có lịch" thẳng hàng tuyệt đối với cột Tên môn (13.5sp) -->
     <TextView
         android:id="@+id/item_empty_text"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:textSize="11sp"
+        android:layout_weight="1"
+        android:textSize="13.5sp"
         android:fontFamily="sans-serif-medium"
         android:textColor="@color/widget_text_dimmed"
         android:singleLine="true" />

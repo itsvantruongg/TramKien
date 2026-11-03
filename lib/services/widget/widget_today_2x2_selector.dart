@@ -115,47 +115,32 @@ class WidgetToday2x2Selector {
       );
     }
 
-    // 2. Lịch thi sắp tới trong ngày (kind == "exam" và upcoming)
-    final upcomingExams = todaySessions
-        .where((s) => s.kind == SessionKind.examSession && s.calculateStatus(now) == SessionStatus.upcoming)
+    // 2. Môn sắp tới gần nhất trong ngày (theo dòng thời gian startMs, nếu trùng giờ thì ưu tiên môn thi)
+    final upcomingSessions = todaySessions
+        .where((s) => s.calculateStatus(now) == SessionStatus.upcoming)
         .toList();
-    if (upcomingExams.isNotEmpty) {
-      upcomingExams.sort((a, b) => a.startMs.compareTo(b.startMs));
-      final exam = upcomingExams.first;
+    if (upcomingSessions.isNotEmpty) {
+      upcomingSessions.sort((a, b) {
+        final cmp = a.startMs.compareTo(b.startMs);
+        if (cmp != 0) return cmp;
+        if (a.kind == SessionKind.examSession && b.kind != SessionKind.examSession) return -1;
+        if (b.kind == SessionKind.examSession && a.kind != SessionKind.examSession) return 1;
+        return 0;
+      });
+      final nextSession = upcomingSessions.first;
+      final isExam = nextSession.kind == SessionKind.examSession;
       return Today2x2Data(
         stateType: Today2x2StateType.sessionActive,
         statusLabel: 'Tiếp theo',
-        subjectName: exam.subjectName,
-        displayTitle: _formatSubjectTitle(exam.subjectName),
-        subInfo: _formatSubInfo(exam),
+        subjectName: nextSession.subjectName,
+        displayTitle: _formatSubjectTitle(nextSession.subjectName),
+        subInfo: _formatSubInfo(nextSession),
         showProgressBar: false,
-        isExam: true,
-        colorIndex: exam.colorIndex,
-        endEstimated: exam.endEstimated,
-        session: exam,
-        deepLinkUri: _buildDeepLink(exam),
-      );
-    }
-
-    // 3. Môn sắp tới gần nhất trong ngày (kind == "class" và upcoming)
-    final upcomingClasses = todaySessions
-        .where((s) => s.kind == SessionKind.classSession && s.calculateStatus(now) == SessionStatus.upcoming)
-        .toList();
-    if (upcomingClasses.isNotEmpty) {
-      upcomingClasses.sort((a, b) => a.startMs.compareTo(b.startMs));
-      final nextClass = upcomingClasses.first;
-      return Today2x2Data(
-        stateType: Today2x2StateType.sessionActive,
-        statusLabel: 'Tiếp theo',
-        subjectName: nextClass.subjectName,
-        displayTitle: _formatSubjectTitle(nextClass.subjectName),
-        subInfo: _formatSubInfo(nextClass),
-        showProgressBar: false,
-        isExam: false,
-        colorIndex: nextClass.colorIndex,
-        endEstimated: nextClass.endEstimated,
-        session: nextClass,
-        deepLinkUri: _buildDeepLink(nextClass),
+        isExam: isExam,
+        colorIndex: nextSession.colorIndex,
+        endEstimated: nextSession.endEstimated,
+        session: nextSession,
+        deepLinkUri: _buildDeepLink(nextSession),
       );
     }
 

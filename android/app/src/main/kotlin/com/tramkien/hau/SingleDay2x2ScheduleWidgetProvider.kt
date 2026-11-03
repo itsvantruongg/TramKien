@@ -200,25 +200,19 @@ class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
                 }
             }
 
-            // 2. Lịch thi sắp tới trong ngày (kind == "exam" và upcoming)
+            // 2. Môn sắp tới gần nhất trong ngày (theo dòng thời gian startMs, nếu trùng giờ thì ưu tiên môn thi)
             if (selectedSession == null) {
-                val upcomingExams = todaySessions.filter { it.kind == "exam" && it.startMs > nowMs }
-                    .sortedBy { it.startMs }
-                if (upcomingExams.isNotEmpty()) {
-                    selectedSession = upcomingExams.first()
-                    statusLabel = "Lịch thi"
-                    statusColor = examColor
-                }
-            }
-
-            // 3. Môn sắp tới gần nhất trong ngày (kind == "class" và upcoming)
-            if (selectedSession == null) {
-                val upcomingClasses = todaySessions.filter { it.kind == "class" && it.startMs > nowMs }
-                    .sortedBy { it.startMs }
-                if (upcomingClasses.isNotEmpty()) {
-                    selectedSession = upcomingClasses.first()
-                    statusLabel = "Hôm nay"
-                    statusColor = textSecondary
+                val upcomingSessions = todaySessions.filter { it.startMs > nowMs }
+                    .sortedWith(compareBy({ it.startMs }, { if (it.kind == "exam") 0 else 1 }))
+                if (upcomingSessions.isNotEmpty()) {
+                    selectedSession = upcomingSessions.first()
+                    if (selectedSession.kind == "exam") {
+                        statusLabel = "Lịch thi"
+                        statusColor = examColor
+                    } else {
+                        statusLabel = "Hôm nay"
+                        statusColor = textSecondary
+                    }
                 }
             }
 
@@ -311,8 +305,9 @@ class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
                     val nextTimeStr = timeFormat.format(Date(nextSession.startMs))
                     val isAfterToday = !isSameDay(nextSession.startMs, calNow, vnTz)
                     val isTomorrow = isSameDay(nextSession.startMs, calTomorrow, vnTz)
+                    val isNextExam = (nextSession.kind == "exam")
                     val nextLabelText = when {
-                        !isAfterToday -> "MÔN TIẾP · $nextTimeStr"
+                        !isAfterToday -> "TIẾP THEO · $nextTimeStr"
                         isTomorrow -> "NGÀY MAI · $nextTimeStr"
                         else -> {
                             val nextWk = formatWeekdayAbbr(nextSession.startMs, vnTz)
@@ -320,12 +315,16 @@ class SingleDay2x2ScheduleWidgetProvider : AppWidgetProvider() {
                         }
                     }
                     views.setTextViewText(R.id.widget_next_label, nextLabelText)
+                    setViewTextColorRes(views, R.id.widget_next_label, R.color.widget_text_secondary, context)
 
                     val nextRawTitle = if (nextSession.shortName.isNotEmpty()) nextSession.shortName else nextSession.subject
                     val nextTitle = truncatePreserveSuffix(nextRawTitle, 22)
                     val nextRoom = WeeklyScheduleWidgetProvider.simplifyRoom(nextSession.room)
-                    val nextFullText = if (nextRoom.isNotEmpty()) "$nextTitle · $nextRoom" else nextTitle
+                    val prefix = if (isNextExam && !nextTitle.startsWith("Thi", ignoreCase = true)) "Thi " else ""
+                    val nextFullText = if (nextRoom.isNotEmpty()) "$prefix$nextTitle · $nextRoom" else "$prefix$nextTitle"
                     views.setTextViewText(R.id.widget_next_title, nextFullText)
+                    val nextTitleColor = if (isNextExam) R.color.widget_exam_text else R.color.widget_text_primary
+                    setViewTextColorRes(views, R.id.widget_next_title, nextTitleColor, context)
                 } else {
                     views.setViewVisibility(R.id.widget_next_container, View.GONE)
                 }

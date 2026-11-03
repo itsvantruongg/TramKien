@@ -79,7 +79,8 @@ class WidgetHashUtils {
     if (trimmedSubject.isEmpty) return '';
 
     // 2. Tra bảng viết tắt chuẩn HAU
-    final normalized = trimmedSubject.toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
+    final normalized =
+        trimmedSubject.toLowerCase().replaceAll(RegExp(r'\s+'), ' ');
     if (hauStandardAbbreviations.containsKey(normalized)) {
       return hauStandardAbbreviations[normalized]!;
     }
@@ -95,7 +96,7 @@ class WidgetHashUtils {
     // Nếu tên môn dài (> 12 ký tự), tạo acronym
     if (trimmedSubject.length > 12) {
       final acronym = _buildAcronymWithSuffix(trimmedSubject);
-      if (acronym.isNotEmpty && acronym.length <= 15) {
+      if (acronym.isNotEmpty && acronym.length <= 18) {
         return acronym;
       }
     }
@@ -115,10 +116,12 @@ class WidgetHashUtils {
     return trimmedSubject;
   }
 
-  /// Trích xuất chữ cái đầu mỗi từ viết hoa, bảo tồn số / chữ số La Mã ở cuối
+  /// Trích xuất chữ cái đầu mỗi từ viết hoa, bảo tồn số / chữ số La Mã ở cuối.
+  /// Nếu tên môn có từ nối "và", "Và", "VÀ" hoặc "&", chuyển thành " & " để tách vế rõ ràng (ví dụ: KDL & KPDL).
   static String _buildAcronymWithSuffix(String name) {
     // Tách phần hậu tố phân biệt nếu có (ví dụ " 2", " II", " A")
-    final suffixMatch = RegExp(r'\s+([0-9]+|[IVXLCDM]+|[A-Za-z])$').firstMatch(name);
+    final suffixMatch =
+        RegExp(r'\s+([0-9]+|[IVXLCDM]+|[A-Za-z])$').firstMatch(name);
     String core = name;
     String suffix = '';
     if (suffixMatch != null) {
@@ -126,19 +129,34 @@ class WidgetHashUtils {
       core = name.substring(0, suffixMatch.start);
     }
 
-    final words = core.split(RegExp(r'[\s\-_]+')).where((w) => w.isNotEmpty).toList();
+    final words =
+        core.split(RegExp(r'[\s\-_]+')).where((w) => w.isNotEmpty).toList();
     if (words.length <= 1) return name;
 
     final buffer = StringBuffer();
     for (final w in words) {
-      final firstChar = w[0].toUpperCase();
-      buffer.write(firstChar);
+      final lower = w.toLowerCase();
+      if (lower == 'và' || w == '&') {
+        if (buffer.isNotEmpty && !buffer.toString().endsWith(' & ')) {
+          buffer.write(' & ');
+        }
+      } else {
+        final firstChar = w[0].toUpperCase();
+        buffer.write(firstChar);
+      }
     }
 
-    if (suffix.isNotEmpty) {
-      buffer.write(suffix);
+    var result = buffer.toString().trim();
+    if (result.endsWith('&')) {
+      result = result.substring(0, result.length - 1).trim();
     }
-    return buffer.toString();
+
+    if (result.isEmpty) return name;
+
+    if (suffix.isNotEmpty) {
+      result += suffix;
+    }
+    return result;
   }
 
   /// Quy tắc cắt tên dài bảo tồn hậu tố (Ellipsis Preservation - Mục 2.3 & AC-09)
@@ -147,7 +165,8 @@ class WidgetHashUtils {
   static String truncatePreserveSuffix(String name, {int maxLength = 24}) =>
       formatWithEllipsisPreservation(name, maxLength: maxLength);
 
-  static String formatWithEllipsisPreservation(String name, {int maxLength = 24}) {
+  static String formatWithEllipsisPreservation(String name,
+      {int maxLength = 24}) {
     final trimmed = name.trim();
     if (trimmed.length <= maxLength) return trimmed;
 

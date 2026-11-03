@@ -289,7 +289,7 @@ class WidgetWeekly4x4Card extends StatelessWidget {
     );
   }
 
-  /// Tiêu đề nhóm ngày (cỡ 11, vừa): "Hôm nay · Thứ dd/MM", "Thứ dd/MM"...
+  /// Tiêu đề nhóm ngày (cỡ 12.5, vừa): "Hôm nay · Thứ dd/MM", "Thứ dd/MM"...
   Widget _buildDayHeaderRow(BuildContext context, WeeklyDayGroup group) {
     final textPrimary = isDarkMode
         ? WidgetDesignTokens.darkTextPrimary
@@ -299,12 +299,12 @@ class WidgetWeekly4x4Card extends StatelessWidget {
         : WidgetDesignTokens.lightAccent;
 
     return Padding(
-      padding: const EdgeInsets.only(top: 6, bottom: 2),
+      padding: const EdgeInsets.only(top: 10, bottom: 4),
       child: Text(
         group.headerTitle,
         style: TextStyle(
           color: group.isToday ? accentColor : textPrimary,
-          fontSize: 11,
+          fontSize: 12.5,
           fontWeight: FontWeight.w600,
           fontFamily: 'sans-serif-medium',
         ),
@@ -312,7 +312,7 @@ class WidgetWeekly4x4Card extends StatelessWidget {
     );
   }
 
-  /// Hàng môn học cao 19dp
+  /// Hàng môn học cao 28dp (to rõ, thoáng đãng)
   Widget _buildSessionRow(BuildContext context, WeeklySessionItem item) {
     final textPrimary = isDarkMode
         ? WidgetDesignTokens.darkTextPrimary
@@ -324,7 +324,7 @@ class WidgetWeekly4x4Card extends StatelessWidget {
         ? WidgetDesignTokens.darkTextDimmed
         : WidgetDesignTokens.lightTextDimmed;
 
-    // Màu thanh chỉ báo 3x14dp
+    // Màu thanh chỉ báo 3.5x20dp
     final Color barColor;
     // Màu chữ tên môn và phòng
     final Color rowTextColor;
@@ -355,44 +355,44 @@ class WidgetWeekly4x4Card extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: () => onSessionTap?.call(item),
       child: Container(
-        height: 19,
-        padding: const EdgeInsets.symmetric(vertical: 1),
+        height: 28,
+        padding: const EdgeInsets.symmetric(vertical: 2),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Thanh màu 3x14dp bo 2dp
+            // Thanh màu 3.5x20dp bo 2dp
             Container(
-              width: 3,
-              height: 14,
+              width: 3.5,
+              height: 20,
               decoration: BoxDecoration(
                 color: barColor,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
 
-            // Giờ bắt đầu "HH:mm" (rộng 34dp, màu phụ)
+            // Giờ bắt đầu "HH:mm" (rộng 42dp, cỡ 12, màu phụ)
             SizedBox(
-              width: 34,
+              width: 42,
               child: Text(
                 item.timeStr,
                 style: TextStyle(
                   color: timeColor,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w400,
                   fontFamily: 'sans-serif-medium',
                 ),
               ),
             ),
-            const SizedBox(width: 4),
+            const SizedBox(width: 6),
 
-            // Tên môn (cắt "…")
+            // Tên môn (cỡ 13.5, cắt "…")
             Expanded(
               child: Text(
                 item.displayTitle,
                 style: TextStyle(
                   color: rowTextColor,
-                  fontSize: 11,
+                  fontSize: 13.5,
                   fontWeight: item.isExam ? FontWeight.w600 : FontWeight.w400,
                   fontFamily: 'sans-serif-medium',
                 ),
@@ -400,16 +400,16 @@ class WidgetWeekly4x4Card extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 6),
+            const SizedBox(width: 8),
 
-            // Phòng căn phải (cỡ 11, phụ)
+            // Phòng căn phải (cỡ 12, phụ)
             if (item.roomStr.isNotEmpty)
               Text(
                 item.roomStr,
                 textAlign: TextAlign.right,
                 style: TextStyle(
                   color: (item.isToday && item.isPast) ? textDimmed : textSecondary,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.w400,
                   fontFamily: 'sans-serif-medium',
                 ),
@@ -420,23 +420,64 @@ class WidgetWeekly4x4Card extends StatelessWidget {
     );
   }
 
-  /// Dòng gộp các ngày trống liên tiếp (Ví dụ "T7 – CN: không có lịch")
+  /// Dòng gộp các ngày trống liên tiếp (ví dụ "T7 – CN: không có lịch") chia 2 cột thẳng hàng
   Widget _buildMergedEmptyDaysRow(BuildContext context, WeeklyMergedEmptyDays item) {
+    final textSecondary = isDarkMode
+        ? WidgetDesignTokens.darkTextSecondary
+        : WidgetDesignTokens.lightTextSecondary;
     final textDimmed = isDarkMode
         ? WidgetDesignTokens.darkTextDimmed
         : WidgetDesignTokens.lightTextDimmed;
 
-    return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 2),
-      child: Text(
-        item.displayTitle,
-        style: TextStyle(
-          color: textDimmed,
-          fontSize: 11,
-          fontWeight: FontWeight.w400,
-          fontFamily: 'sans-serif-medium',
-          fontStyle: FontStyle.italic,
-        ),
+    final parts = item.displayTitle.split(':');
+    final dayLabel = parts[0].trim();
+    final statusLabel = parts.length > 1 ? parts.sublist(1).join(':').trim() : 'Không có lịch';
+
+    return Container(
+      height: 28,
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Stack(
+        alignment: Alignment.centerLeft,
+        children: [
+          Opacity(
+            opacity: 0,
+            child: Text(item.displayTitle, style: const TextStyle(fontSize: 1)),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Cột 1: Thứ/Ngày trống (bắt đầu sát lề trái, rộng 53.5dp + 6dp để cột 2 bắt đầu đúng mốc 59.5dp thẳng cột tên môn)
+              SizedBox(
+                width: 53.5,
+                child: Text(
+                  dayLabel,
+                  style: TextStyle(
+                    color: textSecondary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    fontFamily: 'sans-serif-medium',
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+
+              // Cột 2: "Không có lịch" (bắt đầu tại mốc 59.5dp, cỡ chữ 13.5 đồng bộ với tên môn học)
+              Expanded(
+                child: Text(
+                  statusLabel,
+                  style: TextStyle(
+                    color: textDimmed,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w400,
+                    fontFamily: 'sans-serif-medium',
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
