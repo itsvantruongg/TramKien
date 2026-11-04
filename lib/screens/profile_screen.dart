@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import '../providers/app_provider.dart';
 import '../widgets/shared_widgets.dart';
@@ -8,6 +10,7 @@ import 'curriculum_screen.dart';
 import 'feedback_screen.dart';
 import 'terms_screen.dart';
 import '../services/local_notification_service.dart';
+import '../services/background_sync_service.dart';
 import 'debug_sync_screen.dart';
 
 // ════════════════════════════════════════════════════════════
@@ -73,6 +76,11 @@ class ProfileScreen extends StatelessWidget {
                               padding: EdgeInsets.zero,
                               child: Column(children: [
                                 _NotificationToggle(mssv: p.currentMssv ?? ''),
+                                const Divider(
+                                    height: 1,
+                                    color: AppTheme.surfaceContainerHigh),
+                                _BackgroundSyncToggle(
+                                    mssv: p.currentMssv ?? ''),
                                 const Divider(
                                     height: 1,
                                     color: AppTheme.surfaceContainerHigh),
@@ -269,7 +277,8 @@ class _NotificationToggleState extends State<_NotificationToggle> {
         final lichHoc = p.scheduleProvider.lichHoc;
         final lichThi = p.scheduleProvider.lichThi;
         final scheduleFuture = (lichHoc.isNotEmpty || lichThi.isNotEmpty)
-            ? LocalNotificationService.scheduleClasses(widget.mssv, lichHoc, lichThi)
+            ? LocalNotificationService.scheduleClasses(
+                widget.mssv, lichHoc, lichThi)
             : p.syncSchedule(forceRefresh: false);
 
         scheduleFuture.then((_) {
@@ -332,6 +341,126 @@ class _NotificationToggleState extends State<_NotificationToggle> {
           value: enabled,
           onChanged: (widget.mssv.isNotEmpty && !_processing) ? _toggle : null,
           activeThumbColor: AppTheme.primary,
+        ),
+      ]),
+    );
+  }
+}
+
+class _BackgroundSyncToggle extends StatefulWidget {
+  final String mssv;
+  const _BackgroundSyncToggle({required this.mssv});
+
+  @override
+  State<_BackgroundSyncToggle> createState() => _BackgroundSyncToggleState();
+}
+
+class _BackgroundSyncToggleState extends State<_BackgroundSyncToggle> {
+  bool _enabled = false;
+  bool _loading = true;
+  bool _processing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadState();
+  }
+
+  Future<void> _loadState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = 'bg_alarm_sync_enabled_${widget.mssv}';
+    final val = prefs.getBool(key) ?? false;
+    if (mounted) {
+      setState(() {
+        _enabled = val;
+        _loading = false;
+      });
+    }
+  }
+
+  Future<void> _toggle(bool val) async {
+    if (!mounted || _processing) return;
+    setState(() => _processing = true);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'bg_alarm_sync_enabled_${widget.mssv}';
+
+      if (val) {
+        await prefs.setBool(key, true);
+        await BackgroundSyncService.schedulePeriodicSync(force: true);
+        if (!mounted) return;
+        setState(() {
+          _enabled = true;
+          _processing = false;
+        });
+
+        final msg = Platform.isAndroid
+            ? 'Đã bật đồng bộ nền tự động lúc 09:00, 15:00 và 21:00!'
+            : 'Đã bật đồng bộ nền tự động. Vui lòng không vuốt tắt app để ML hoạt động tốt nhất!';
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(msg),
+          duration: const Duration(seconds: 3),
+        ));
+      } else {
+        await prefs.setBool(key, false);
+        await BackgroundSyncService.cancelAll();
+        if (!mounted) return;
+        setState(() {
+          _enabled = false;
+          _processing = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Đã tắt đồng bộ nền tự động.'),
+          duration: Duration(seconds: 2),
+        ));
+      }
+    } catch (e) {
+      if (mounted) setState(() => _processing = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const SizedBox.shrink();
+
+    final subtext = Platform.isAndroid
+        ? 'Tự động đồng bộ lúc 09:00, 15:00 và 21:00'
+        : 'Tự động cập nhật ngầm theo thói quen sử dụng (không vuốt tắt app)';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: AppTheme.secondary.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(Icons.alarm_on_outlined,
+              size: 20, color: AppTheme.secondary),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Đồng bộ nền tự động',
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600, color: AppTheme.onSurface)),
+              Text(subtext,
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelSmall
+                      ?.copyWith(color: AppTheme.outlineVariant)),
+            ],
+          ),
+        ),
+        Switch(
+          value: _enabled,
+          onChanged: (widget.mssv.isNotEmpty && !_processing) ? _toggle : null,
+          activeThumbColor: AppTheme.secondary,
         ),
       ]),
     );

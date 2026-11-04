@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 
@@ -33,6 +35,14 @@ Future<void> main() async {
   // Safe Analytics & Crashlytics initialization
   await AnalyticsService.initialize();
   await AppInfoService.getAppVersion();
+
+  if (Platform.isAndroid) {
+    try {
+      await AndroidAlarmManager.initialize();
+    } catch (e) {
+      debugPrint('⚠️ AndroidAlarmManager.initialize error: $e');
+    }
+  }
 
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: AppTheme.surface,

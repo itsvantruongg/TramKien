@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:workmanager/workmanager.dart' as wm;
 import 'package:background_fetch/background_fetch.dart' as bf;
+import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart' as aam;
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
@@ -22,9 +23,45 @@ const kBgSyncTaskName = 'tramkien_bg_sync';
 const kBgSyncTaskUniqueName = 'tramkien_periodic_sync';
 const kBgFetchTaskId = 'com.tramkien.bgsync';
 
+/// Alarm IDs cho 3 khung giờ vàng (09:00, 15:00, 21:00) và debug test
+const kAlarmId0900 = 900;
+const kAlarmId1500 = 1500;
+const kAlarmId2100 = 2100;
+const kAlarmIdTest = 9999;
+
+/// Checkpoint State Machine keys & constants
+const String kBgSyncStageKey = 'bg_sync_stage_status';
+const String kBgSyncStageTimeKey = 'bg_sync_stage_timestamp';
+const String kStageNone = 'NONE';
+const String kStageCp1Done = 'CP1_DONE'; // Đã xong Lịch thi
+const String kStageCp2Done = 'CP2_DONE'; // Đã xong Lịch thi + Điểm
+const String kStageCp3Done = 'CP3_DONE'; // Đã xong Lịch thi + Điểm + Lịch học
+const int kBgStageTtlHours = 12; // Mốc dở dang chỉ có hiệu lực trong 12 tiếng
+
 /// [DEBUG ONLY] Flag inject lỗi giả lập mất mạng — CHỈ bật khi mssv=='admin' && kDebugMode
 /// Được set bởi DebugSyncScreen qua SharedPreferences key 'debug_fault_inject'
 bool _debugFaultInjectActive = false;
+
+// ──────────────────────────────────────────────────────────────
+//  ANDROID: AlarmManager entry-point (top-level, @pragma required)
+// ──────────────────────────────────────────────────────────────
+
+@pragma('vm:entry-point')
+void alarmSyncCallback(int id) async {
+  final invokedAt = DateTime.now().toIso8601String();
+  debugPrint('⏰ [Android Alarm] Alarm ID #$id reo | OS invoked at: $invokedAt');
+
+  // Tự động lên lịch Exact oneShotAt cho mốc này vào ngày tiếp theo (window = 0)
+  if (id == kAlarmId0900 || id == kAlarmId1500 || id == kAlarmId2100) {
+    try {
+      await BackgroundSyncService.scheduleSingleAlarm(id, nextDay: true);
+    } catch (e) {
+      debugPrint('⚠️ [Android Alarm] Lỗi tự động đặt lịch ngày tiếp theo cho #$id: $e');
+    }
+  }
+
+  await _runSyncLogic();
+}
 
 // ──────────────────────────────────────────────────────────────
 //  ANDROID: Workmanager entry-point (top-level, @pragma required)
@@ -33,12 +70,20 @@ bool _debugFaultInjectActive = false;
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   wm.Workmanager().executeTask((taskName, inputData) async {
-    // B8/Doze: ghi timestamp mỗi lần OS thực sự gọi vào job
-    // So sánh với 'bg_last_attempted_at' để phát hiện delay do Doze/pin yếu
     final invokedAt = DateTime.now().toIso8601String();
     debugPrint('⚙️ [Android BG] Task: $taskName | OS invoked at: $invokedAt');
-    await _runSyncLogic();
-    return true;
+
+    // Legacy periodic task bị hủy bỏ vĩnh viễn: hủy và return true để WorkManager dọn sạch, không RETRY
+    if (taskName == kBgSyncTaskUniqueName || taskName == kBgSyncTaskName) {
+      debugPrint('🛑 [Android BG] Legacy periodic task bị hủy bỏ vĩnh viễn -> dọn dẹp và kết thúc.');
+      try {
+        await wm.Workmanager().cancelByUniqueName(kBgSyncTaskUniqueName);
+      } catch (_) {}
+      return true;
+    }
+
+    final success = await _runSyncLogic();
+    return success;
   });
 }
 
@@ -67,7 +112,7 @@ void backgroundFetchHeadlessTask(bf.HeadlessTask task) async {
 //  Logic đồng bộ dùng chung cho cả 2 platform
 // ──────────────────────────────────────────────────────────────
 
-Future<void> _runSyncLogic() async {
+Future<bool> _runSyncLogic() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   await prefs.reload();
@@ -75,7 +120,7 @@ Future<void> _runSyncLogic() async {
   if (BackgroundSyncService.isSyncing) {
     debugPrint(
         '⚙️ [BG] Task đã đang chạy ở isolate hiện tại, bỏ qua (isSyncing flag).');
-    return;
+    return false;
   }
 
   // ── Đọc MSSV sơ bộ từ SharedPreferences chỉ để check Admin & lấy lock ban đầu
@@ -87,11 +132,15 @@ Future<void> _runSyncLogic() async {
   if (!acquired) {
     debugPrint(
         '⚙️ [BG] Persistent lock đang active ở isolate/process khác, bỏ qua lần gọi này.');
-    return;
+    return false;
   }
 
   BackgroundSyncService._setSyncing(true);
   debugPrint('⚙️ [BG] Task bắt đầu chạy...');
+  final taskStartMs = DateTime.now().millisecondsSinceEpoch;
+  const kBgTotalMaxBudgetMs = 24000; // 24s — toàn bộ phiên (bao gồm cả Đăng nhập, Lịch học sâu & Lưu DB)
+  bool budgetOk() =>
+      DateTime.now().millisecondsSinceEpoch - taskStartMs < kBgTotalMaxBudgetMs;
 
   try {
     // Ghi timestamp nỗ lực thực thi (B8 - theo dõi deferment)
@@ -132,7 +181,7 @@ Future<void> _runSyncLogic() async {
         debugPrint(
             '⚙️ [BG][Step1-Credentials] Secure Storage rỗng → dừng sync '
             '(consent "Đồng bộ nền" chưa được cấp hoặc đã xóa)');
-        return; // KHÔNG đọc SharedPreferences
+        return false; // KHÔNG đọc SharedPreferences
       }
       bgMssv = creds.mssv;
       pw = creds.pw;
@@ -148,18 +197,18 @@ Future<void> _runSyncLogic() async {
     } catch (e) {
       debugPrint(
           '⚠️ [BG][Step2-Init] Lỗi khởi tạo DB & Notification Services: $e');
-      return;
+      return false;
     }
 
     // 3. Kiểm tra mạng
     try {
       if (!await _checkNetwork()) {
         debugPrint('⚙️ [BG][Step3-NetworkCheck] Offline – bỏ qua sync');
-        return;
+        return false;
       }
     } catch (e) {
       debugPrint('⚠️ [BG][Step3-NetworkCheck] Lỗi kiểm tra kết nối mạng: $e');
-      return;
+      return false;
     }
 
     // 4. Login lấy session mới (Bug 8: phân loại dựa trên HTTP 302 message từ API)
@@ -172,7 +221,8 @@ Future<void> _runSyncLogic() async {
     }
 
     try {
-      final loginError = await HauApiService.login(bgMssv, pw);
+      final loginError = await HauApiService.login(bgMssv, pw)
+          .timeout(const Duration(milliseconds: 4000));
       if (loginError == null) {
         // Thành công → reset bộ đếm fail
         await prefs.remove(_kFailCountKey);
@@ -198,7 +248,7 @@ Future<void> _runSyncLogic() async {
           );
           await prefs.remove(_kFailCountKey);
         }
-        return;
+        return false;
       }
     } catch (e) {
       // Exception Dart (SocketException, TimeoutException) — tăng đếm nhưng không hủy ngay
@@ -216,7 +266,7 @@ Future<void> _runSyncLogic() async {
         );
         await prefs.remove(_kFailCountKey);
       }
-      return;
+      return false;
     }
 
     // 5. Xác định học kỳ hoạt động & Máy trạng thái nhận diện kỳ mới (State Machine)
@@ -304,26 +354,47 @@ Future<void> _runSyncLogic() async {
       debugPrint('⚠️ [BG][Step5-PrevSnapshot] Lỗi lấy snapshot dữ liệu cũ: $e');
     }
 
-    // 6. Sync dữ liệu — Bug 2 & Bug 3: Checkpoint tuần tự theo thứ tự ưu tiên tuyệt đối
-    // Thứ tự: Lịch thi (1) -> Điểm số (2) -> Lịch học (3 - TTL 7 ngày) -> Học phí (4 - TTL 7 ngày)
-    const kBgTotalBudgetMs = 22000; // 22s — đủ dưới ngưỡng OS kill
-    final budgetStart = DateTime.now().millisecondsSinceEpoch;
+    // Đọc trạng thái State Machine hiện tại
+    String currentStage = prefs.getString(kBgSyncStageKey) ?? kStageNone;
+    final stageTimeStr = prefs.getString(kBgSyncStageTimeKey);
+    if (stageTimeStr != null && currentStage != kStageNone) {
+      final stageTime = DateTime.tryParse(stageTimeStr);
+      if (stageTime != null && DateTime.now().difference(stageTime).inHours >= kBgStageTtlHours) {
+        debugPrint('⏰ [State-Machine] Mốc stage $currentStage đã cũ (>12h) -> Tự động reset về NONE');
+        currentStage = kStageNone;
+        await prefs.remove(kBgSyncStageKey);
+        await prefs.remove(kBgSyncStageTimeKey);
+      } else {
+        debugPrint('🏷️ [State-Machine] Tiếp nối từ mốc đã lưu: $currentStage');
+      }
+    }
 
-    bool budgetOk() =>
-        DateTime.now().millisecondsSinceEpoch - budgetStart < kBgTotalBudgetMs;
+    // 6. Sync dữ liệu — Checkpoint tuần tự theo thứ tự ưu tiên tuyệt đối
+    // Thứ tự: Lịch thi (1 - 2.5s) -> Điểm số (2 - 5.5s) -> Lịch học (3 - 3.5s, TTL 7 ngày) -> Học phí (4 - 2.5s, TTL 7 ngày)
+    // Tổng ngân sách toàn bộ phiên khống chế 18s từ lúc bắt đầu task
 
-    // Checkpoint 1: Lịch thi HK hiện tại (Ưu tiên 1 - Chạy mọi chu kỳ 6h)
-    if (budgetOk()) {
+    // Checkpoint 1: Lịch thi HK hiện tại (Ưu tiên 1 - Chạy mọi chu kỳ)
+    final cp1AlreadyDone = currentStage == kStageCp1Done || currentStage == kStageCp2Done || currentStage == kStageCp3Done;
+    if (cp1AlreadyDone) {
+      debugPrint('⏭️ [State-Machine] CP1 (Lịch thi) đã hoàn tất ở mốc trước -> BỎ QUA (0s, 0 req)');
+    } else if (budgetOk()) {
       try {
+        final cp1Start = DateTime.now().millisecondsSinceEpoch;
         debugPrint(
             '🌐 [BG][CP1-Thi] Fetch lịch thi HK$currentHocKy $currentNamHocStr...');
         final r = await ScheduleApi.fetchLichThiWithStatus(
           hocKy: currentHocKy,
           namHoc: currentNamHoc,
-        ).timeout(const Duration(seconds: 4));
+        ).timeout(const Duration(milliseconds: 3000));
+        final cp1Elapsed = DateTime.now().millisecondsSinceEpoch - cp1Start;
         debugPrint(
-            '📝 [BG][CP1-Thi] ${r.items.length} lịch thi, success=${r.success}');
+            '📝 [BG][CP1-Thi] ${r.items.length} lịch thi, success=${r.success} (${cp1Elapsed}ms)');
         await ScheduleDb.saveLichThi(r.items, softDeleteAfter: r.success);
+        if (r.success) {
+          currentStage = kStageCp1Done;
+          await prefs.setString(kBgSyncStageKey, kStageCp1Done);
+          await prefs.setString(kBgSyncStageTimeKey, DateTime.now().toIso8601String());
+        }
       } catch (e) {
         debugPrint('⚠️ [BG][CP1-Thi] Lỗi/timeout lịch thi: $e → giữ DB cũ');
       }
@@ -331,13 +402,21 @@ Future<void> _runSyncLogic() async {
       debugPrint('⚠️ [BG][CP1-Thi] Budget hết — bỏ qua lịch thi');
     }
 
-    // Checkpoint 2: Điểm 2 kỳ gần nhất (Ưu tiên 2 - Chạy mọi chu kỳ 6h)
-    if (budgetOk()) {
+    // Checkpoint 2: Điểm 2 kỳ gần nhất (Ưu tiên 2 - Chạy mọi chu kỳ)
+    final cp2AlreadyDone = currentStage == kStageCp2Done || currentStage == kStageCp3Done;
+    if (cp2AlreadyDone) {
+      debugPrint('⏭️ [State-Machine] CP2 (Bảng điểm) đã hoàn tất ở mốc trước -> BỎ QUA (0s, 0 req)');
+    } else if (budgetOk()) {
       try {
+        final cp2Start = DateTime.now().millisecondsSinceEpoch;
         debugPrint('🌐 [BG][CP2-Diem] Fetch điểm 2 kỳ gần nhất...');
         await GradeApi.fetchDiemRecentSemester(mssv: bgMssv)
-            .timeout(const Duration(seconds: 6));
-        debugPrint('📊 [BG][CP2-Diem] Fetch điểm hoàn tất');
+            .timeout(const Duration(milliseconds: 7000));
+        final cp2Elapsed = DateTime.now().millisecondsSinceEpoch - cp2Start;
+        debugPrint('📊 [BG][CP2-Diem] Fetch điểm hoàn tất (${cp2Elapsed}ms)');
+        currentStage = kStageCp2Done;
+        await prefs.setString(kBgSyncStageKey, kStageCp2Done);
+        await prefs.setString(kBgSyncStageTimeKey, DateTime.now().toIso8601String());
       } catch (e) {
         debugPrint('⚠️ [BG][CP2-Diem] Lỗi/timeout điểm: $e → giữ DB cũ');
       }
@@ -354,23 +433,30 @@ Future<void> _runSyncLogic() async {
       if (!isNewSemesterDetected && !isLichHocStale) {
         debugPrint(
             '📚 [BG][CP3-LichHoc] Lịch học còn hạn trong 7 ngày → bỏ qua fetch mạng (0s, 0 req)');
+      } else if (currentStage == kStageCp3Done) {
+        debugPrint('⏭️ [State-Machine] CP3 (Lịch học) đã hoàn tất ở mốc trước -> BỎ QUA (0s, 0 req)');
       } else {
         try {
+          final cp3Start = DateTime.now().millisecondsSinceEpoch;
           debugPrint(
               '🌐 [BG][CP3-LichHoc] Fetch lịch học HK$currentHocKy $currentNamHocStr (Early-Stop)...');
           final r = await ScheduleApi.fetchLichHocAllDotsWithStatus(
             hocKy: currentHocKy,
             namHoc: currentNamHoc,
             mssv: bgMssv,
-          ).timeout(const Duration(seconds: 10));
+          ).timeout(const Duration(milliseconds: 7000));
+          final cp3Elapsed = DateTime.now().millisecondsSinceEpoch - cp3Start;
           debugPrint(
-              '📚 [BG][CP3-LichHoc] ${r.items.length} môn, complete=${r.complete}');
+              '📚 [BG][CP3-LichHoc] ${r.items.length} môn, complete=${r.complete} (${cp3Elapsed}ms)');
           await ScheduleDb.saveLichHoc(r.items, softDeleteAfter: r.complete);
           if (r.complete) {
             await DatabaseService.updateCacheMeta(
               'lich_hoc_hk${currentHocKy}_$currentNamHoc',
               'synced',
             );
+            currentStage = kStageCp3Done;
+            await prefs.setString(kBgSyncStageKey, kStageCp3Done);
+            await prefs.setString(kBgSyncStageTimeKey, DateTime.now().toIso8601String());
           }
         } catch (e) {
           debugPrint('⚠️ [BG][CP3-LichHoc] Lỗi/timeout lịch học: $e → giữ DB cũ');
@@ -391,14 +477,16 @@ Future<void> _runSyncLogic() async {
             '💰 [BG][CP4-HocPhi] Học phí còn hạn trong 7 ngày → bỏ qua fetch mạng (0s, 0 req)');
       } else {
         final elapsed =
-            DateTime.now().millisecondsSinceEpoch - budgetStart;
-        final remaining = (kBgTotalBudgetMs - elapsed).clamp(3000, 8000);
+            DateTime.now().millisecondsSinceEpoch - taskStartMs;
+        final remaining = (kBgTotalMaxBudgetMs - elapsed).clamp(2000, 3500);
         try {
+          final cp4Start = DateTime.now().millisecondsSinceEpoch;
           debugPrint(
               '🌐 [BG][CP4-HocPhi] Fetch học phí (budget còn ${remaining}ms)...');
           await FinanceApi.fetchAndSaveHocPhi()
               .timeout(Duration(milliseconds: remaining));
-          debugPrint('💰 [BG][CP4-HocPhi] Fetch học phí hoàn tất');
+          final cp4Elapsed = DateTime.now().millisecondsSinceEpoch - cp4Start;
+          debugPrint('💰 [BG][CP4-HocPhi] Fetch học phí hoàn tất (${cp4Elapsed}ms)');
           await DatabaseService.updateCacheMeta('hoc_phi_all', 'synced');
         } catch (e) {
           debugPrint('⚠️ [BG][CP4-HocPhi] Lỗi/timeout học phí: $e → giữ DB cũ');
@@ -590,9 +678,16 @@ Future<void> _runSyncLogic() async {
       debugPrint('⚠️ [BG][Step11-WidgetSnapshot] Lỗi sinh snapshot: $e');
     }
 
-    debugPrint('⚙️ [BG] Sync hoàn tất thành công!');
+    // Xóa mốc dở dang vì toàn bộ chu kỳ đã hoàn thành 100%
+    await prefs.remove(kBgSyncStageKey);
+    await prefs.remove(kBgSyncStageTimeKey);
+    final totalElapsedMs = DateTime.now().millisecondsSinceEpoch - taskStartMs;
+    debugPrint('⚙️ [BG] Sync hoàn tất thành công! Tổng thời gian: ${totalElapsedMs}ms (${(totalElapsedMs / 1000).toStringAsFixed(2)}s / ${(kBgTotalMaxBudgetMs / 1000).toStringAsFixed(1)}s budget)');
+    debugPrint('🧹 [State-Machine] Chu kỳ hoàn tất 100% -> Đã dọn sạch mốc dở dang');
+    return true;
   } catch (e) {
     debugPrint('❌ [BG] Lỗi không mong muốn trong task: $e');
+    return false;
   } finally {
     BackgroundSyncService._setSyncing(false);
     await SyncMutex.releaseLock(activeSyncMssv);
@@ -733,8 +828,10 @@ class SyncMutex {
           final existingUntil =
               parts.length >= 2 ? (int.tryParse(parts[1]) ?? 0) : 0;
           final now = DateTime.now().millisecondsSinceEpoch;
+          final diff = existingUntil - now;
 
-          if (now < existingUntil) {
+          // Nếu lock còn hạn VÀ độ chênh lệch <= timeout (chống kẹt khi nhảy ngược thời gian)
+          if (now < existingUntil && diff <= timeout.inMilliseconds) {
             return false; // Phím khóa đang hoạt động ở isolate/process khác
           }
 
@@ -837,44 +934,139 @@ class BackgroundSyncService {
     }
   }
 
+  static int _hourForId(int id) {
+    switch (id) {
+      case kAlarmId0900:
+        return 9;
+      case kAlarmId1500:
+        return 15;
+      case kAlarmId2100:
+        return 21;
+      default:
+        return 9;
+    }
+  }
+
+  /// Đặt 1 mốc báo thức chính xác bằng oneShotAt (setExactAndAllowWhileIdle, window = 0)
+  static Future<void> scheduleSingleAlarm(int id, {bool nextDay = false}) async {
+    final now = DateTime.now();
+    final hour = _hourForId(id);
+    DateTime scheduledDate = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      0,
+    );
+
+    if (nextDay || scheduledDate.isBefore(now)) {
+      scheduledDate = scheduledDate.add(const Duration(days: 1));
+    }
+
+    try {
+      await aam.AndroidAlarmManager.oneShotAt(
+        scheduledDate,
+        id,
+        alarmSyncCallback,
+        exact: true,
+        wakeup: true,
+        allowWhileIdle: true,
+        rescheduleOnReboot: true,
+      );
+      debugPrint(
+          '⏰ [Android Alarm] Đã lên lịch Alarm #$id lúc $scheduledDate (Exact, window=0)');
+    } catch (e) {
+      debugPrint('❌ [Android Alarm] Lỗi đặt Alarm #$id: $e');
+    }
+
+    try {
+      await ensureWorkmanagerInitialized();
+      final delay = scheduledDate.difference(now);
+      if (!delay.isNegative) {
+        await wm.Workmanager().registerOneOffTask(
+          'workmanager_slot_$id',
+          kBgSyncTaskUniqueName,
+          initialDelay: delay,
+          constraints: wm.Constraints(networkType: wm.NetworkType.connected),
+          existingWorkPolicy: wm.ExistingWorkPolicy.replace,
+        );
+        debugPrint(
+            '⏰ [WorkManager Slot] Đã lên lịch Task #workmanager_slot_$id sau ${delay.inMinutes}m (${delay.inSeconds}s) lúc $scheduledDate');
+      }
+    } catch (e) {
+      debugPrint('❌ [WorkManager Slot] Lỗi đặt WorkManager Slot #$id: $e');
+    }
+  }
+
+  /// Đăng ký 3 mốc báo thức đồng bộ nền tự động (09:00, 15:00, 21:00) hàng ngày trên Android
+  static Future<void> scheduleAndroidAlarms() async {
+    for (final id in [kAlarmId0900, kAlarmId1500, kAlarmId2100]) {
+      await scheduleSingleAlarm(id);
+    }
+  }
+
+  /// Hủy 3 mốc báo thức Android
+  static Future<void> cancelAndroidAlarms() async {
+    try {
+      await aam.AndroidAlarmManager.cancel(kAlarmId0900);
+      await aam.AndroidAlarmManager.cancel(kAlarmId1500);
+      await aam.AndroidAlarmManager.cancel(kAlarmId2100);
+      debugPrint('🛑 [Android Alarm] Đã hủy 3 mốc báo thức (09:00, 15:00, 21:00)');
+    } catch (e) {
+      debugPrint('❌ [Android Alarm] Lỗi hủy Alarm: $e');
+    }
+  }
+
   /// Đăng ký sync định kỳ sau khi đăng nhập.
   static Future<void> schedulePeriodicSync({bool force = false}) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final mssv = prefs.getString('saved_mssv') ?? '';
-      final key = 'bg_sync_scheduled_$mssv';
+      final key = 'bg_alarm_sync_enabled_$mssv';
 
-      if (!force && prefs.getBool(key) == true) {
+      // Nếu không phải ép buộc (force) và người dùng chưa bật (mặc định tắt hoàn toàn), bỏ qua
+      if (!force && prefs.getBool(key) != true) {
         debugPrint(
-            'ℹ️ [BG] Periodic sync đã được đăng ký trước đó, bỏ qua re-init Workmanager');
+            'ℹ️ [BG] Đồng bộ nền tự động đang TẮT (mặc định), bỏ qua');
         return;
       }
 
       if (Platform.isAndroid) {
-        await ensureWorkmanagerInitialized();
-        await wm.Workmanager().registerPeriodicTask(
-          kBgSyncTaskUniqueName,
-          kBgSyncTaskName,
-          frequency: const Duration(hours: 6),
-          constraints: wm.Constraints(
-            networkType: wm.NetworkType.connected,
-            requiresBatteryNotLow: true,
-          ),
-          existingWorkPolicy: wm.ExistingPeriodicWorkPolicy.keep,
-          backoffPolicy: wm.BackoffPolicy.linear,
-          backoffPolicyDelay: const Duration(minutes: 30),
-        );
+        // 1. Đăng ký 3 mốc báo thức chính xác (09:00, 15:00, 21:00) qua AlarmManager
+        await scheduleAndroidAlarms();
+
+        // 2. WorkManager đã được đăng ký song song từng mốc qua scheduleSingleAlarm (workmanager_slot_900/1500/2100)
+        // Hủy bỏ tác vụ định kỳ 6h cũ (tramkien_periodic_sync) để triệt tiêu hoàn toàn mốc 03:00 sáng
+        try {
+          await ensureWorkmanagerInitialized();
+          await wm.Workmanager().cancelByUniqueName(kBgSyncTaskUniqueName);
+
+          if (force) {
+            // Nếu bật mới hoặc force, lên lịch chạy ngay 1 lần qua OneOffTask
+            await wm.Workmanager().registerOneOffTask(
+              'bg_sync_force_run',
+              kBgSyncTaskUniqueName,
+              constraints: wm.Constraints(
+                networkType: wm.NetworkType.connected,
+              ),
+              existingWorkPolicy: wm.ExistingWorkPolicy.replace,
+            );
+          }
+        } catch (e) {
+          debugPrint('⚠️ [Android WorkManager] Error: $e');
+        }
+
         await prefs.setBool(key, true);
-        debugPrint('✅ [Android BG] Đã đăng ký periodic sync (mỗi 6 tiếng)');
+        debugPrint('✅ [Android Sync] Đã đăng ký đồng bộ nền tự động (AlarmManager + WorkManager)');
       } else if (Platform.isIOS) {
         await bf.BackgroundFetch.configure(
           bf.BackgroundFetchConfig(
-            minimumFetchInterval: 360, // phút (6 tiếng = 360 phút)
+            minimumFetchInterval: 15, // Hạ từ 360 xuống 15 phút (mức sàn cho Apple ML)
             stopOnTerminate: false, // tiếp tục chạy kể cả khi app bị kill
             enableHeadless: true, // bắt buộc để headless task hoạt động
             startOnBoot: true,
             requiredNetworkType: bf.NetworkType.ANY,
-            requiresBatteryNotLow: true,
+            requiresBatteryNotLow: false,
           ),
           // Callback khi app đang foreground/background
           (taskId) async {
@@ -889,7 +1081,7 @@ class BackgroundSyncService {
           },
         );
         await prefs.setBool(key, true);
-        debugPrint('✅ [iOS BG] Đã cấu hình background_fetch (mỗi 6 tiếng)');
+        debugPrint('✅ [iOS BG] Đã cấu hình background_fetch (mức sàn 15 phút cho Apple ML)');
       }
     } catch (e) {
       debugPrint('❌ schedulePeriodicSync error: $e');
@@ -926,12 +1118,14 @@ class BackgroundSyncService {
       final prefs = await SharedPreferences.getInstance();
       final mssv = prefs.getString('saved_mssv') ?? '';
       if (mssv.isNotEmpty) {
+        await prefs.remove('bg_alarm_sync_enabled_$mssv');
         await prefs.remove('bg_sync_scheduled_$mssv');
       }
       if (Platform.isAndroid) {
+        await cancelAndroidAlarms();
         await ensureWorkmanagerInitialized();
         await wm.Workmanager().cancelAll();
-        debugPrint('🛑 [Android BG] Đã hủy tất cả background task');
+        debugPrint('🛑 [Android BG] Đã hủy tất cả báo thức và WorkManager task');
       } else if (Platform.isIOS) {
         await bf.BackgroundFetch.stop();
         debugPrint('🛑 [iOS BG] Đã dừng background_fetch');
@@ -944,12 +1138,16 @@ class BackgroundSyncService {
   /// Chạy thử ngay lập tức — dùng để debug.
   static Future<void> runOnce() async {
     if (Platform.isAndroid) {
-      await ensureWorkmanagerInitialized();
-      await wm.Workmanager().registerOneOffTask(
-        '${kBgSyncTaskUniqueName}_once',
-        kBgSyncTaskName,
-        constraints: wm.Constraints(networkType: wm.NetworkType.connected),
+      // Hẹn giờ báo thức sau 5 giây để test tính năng đánh thức của AlarmManager
+      await aam.AndroidAlarmManager.oneShot(
+        const Duration(seconds: 5),
+        kAlarmIdTest,
+        alarmSyncCallback,
+        exact: true,
+        wakeup: true,
+        allowWhileIdle: true,
       );
+      debugPrint('🚀 [Android Alarm] One-off alarm test (5s) đã được đăng ký');
     } else if (Platform.isIOS) {
       await bf.BackgroundFetch.scheduleTask(bf.TaskConfig(
         taskId: kBgFetchTaskId,
@@ -957,8 +1155,8 @@ class BackgroundSyncService {
         periodic: false,
         requiresNetworkConnectivity: true,
       ));
+      debugPrint('🚀 [iOS BG] One-off sync đã được đăng ký');
     }
-    debugPrint('🚀 [BG] One-off sync đã được đăng ký');
   }
 
   /// [DEBUG ONLY] Việc 3: Trigger sync + inject lỗi giả lập mất mạng sau delay ngắn.

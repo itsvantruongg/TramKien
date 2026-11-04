@@ -190,9 +190,9 @@ class _DebugSyncScreenState extends State<DebugSyncScreen> {
         '▶ Registering One-off Background Task (BackgroundSyncService.runOnce())...');
     try {
       await BackgroundSyncService.runOnce();
-      _emit('✅ One-off task registered successfully!');
-      _emit('👉 Task ID registered as: tramkien_periodic_sync_once');
-      _emit('🚀 Android WorkManager will execute callbackDispatcher shortly!');
+      _emit('✅ One-off task/alarm registered successfully!');
+      _emit('👉 Android: AlarmManager test hẹn giờ sau 5s | iOS: BackgroundFetch task scheduled');
+      _emit('🚀 OS will wake up isolate to execute sync shortly!');
     } catch (e) {
       _emit('❌ Error registering background task: $e');
     }

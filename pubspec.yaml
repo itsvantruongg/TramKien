@@ -50,6 +50,7 @@ dependencies:
   package_info_plus: ^8.0.0
   # Splash Screen
   flutter_native_splash: ^2.4.1
+  android_alarm_manager_plus: ^5.1.2
 
 dev_dependencies:
   flutter_test:

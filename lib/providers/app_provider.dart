@@ -216,6 +216,11 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         final prefs = await SharedPreferences.getInstance();
         final pw = prefs.getString(_kPw) ?? '';
 
+        final isBgSyncOn = prefs.getBool('bg_alarm_sync_enabled_$_currentMssv') ?? false;
+        if (isBgSyncOn) {
+          unawaited(BackgroundSyncService.schedulePeriodicSync(force: true));
+        }
+
         // Auto-migration cho Background Sync: Nếu cập nhật từ bản cũ lên, SharedPreferences có pw nhưng Secure Storage rỗng
         if (_currentMssv != 'admin' && pw.isNotEmpty) {
           try {
@@ -264,8 +269,13 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         await ScheduleDb.stampAllRecordsWithAppVersion(currentVer);
         await prefs.setString('last_reconciled_app_version', currentVer);
 
-        // [B5] Chỉ đăng ký periodic sync sau khi đăng nhập thành công
-        await BackgroundSyncService.schedulePeriodicSync();
+        // Chỉ đăng ký background sync nếu người dùng đã bật tính năng này
+        final isBgSyncOn = prefs.getBool('bg_alarm_sync_enabled_$_currentMssv') ?? false;
+        if (isBgSyncOn) {
+          await BackgroundSyncService.schedulePeriodicSync();
+        } else {
+          await BackgroundSyncService.cancelAndroidAlarms();
+        }
       }
     } catch (e) {
       debugPrint('⚠️ Lỗi background login & sync: $e');
@@ -361,8 +371,13 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
             notifyListeners();
           });
         }
-        // Đăng ký background sync định kỳ
-        BackgroundSyncService.schedulePeriodicSync();
+        // Chỉ đăng ký background sync nếu người dùng đã bật tính năng này
+        final isBgSyncOn = syncPrefs.getBool('bg_alarm_sync_enabled_$mssv') ?? false;
+        if (isBgSyncOn) {
+          BackgroundSyncService.schedulePeriodicSync();
+        } else {
+          BackgroundSyncService.cancelAndroidAlarms();
+        }
         return true;
       } else {
         _authState = AuthState.loggedOut;
