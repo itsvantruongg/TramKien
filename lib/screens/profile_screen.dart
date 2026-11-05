@@ -581,18 +581,18 @@ class StudentInfoScreen extends StatelessWidget {
                       // Academic grid
                       const _SectionTitle('Thông tin học tập'),
                       const SizedBox(height: 8),
-                      GridView.count(
-                        crossAxisCount: 2,
+                      GridView(
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          mainAxisExtent: 124,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                        ),
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         padding: EdgeInsets
                             .zero, // xóa ambient padding mặc định gây khoảng trắng thừa
-                        crossAxisSpacing: 10,
-                        mainAxisSpacing: 10,
-                        childAspectRatio:
-                            MediaQuery.of(context).size.width < 360
-                                ? 1.15
-                                : 1.3,
                         children: [
                           _GridCard('Chuyên ngành', s?.chuyenNganh ?? '—',
                               Icons.school_outlined),
@@ -664,44 +664,55 @@ class _GridCard extends StatelessWidget {
     final theme = Theme.of(ctx);
 
     return SurfaceCard(
-      padding: EdgeInsets.all(isSmall ? 12 : 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Icon Box
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
+      padding: EdgeInsets.symmetric(
+        horizontal: isSmall ? 12 : 14,
+        vertical: 12,
+      ),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Icon Box
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                size: isSmall ? 18 : 20,
+                color: AppTheme.primary,
+              ),
             ),
-            child: Icon(
-              icon,
-              size: isSmall ? 18 : 20,
-              color: AppTheme.primary,
+            const SizedBox(height: 8),
+            // Tiêu đề nhãn
+            Text(
+              label.toUpperCase(),
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: AppTheme.outline,
+                fontWeight: FontWeight.w800,
+                fontSize: isSmall ? 8 : 9,
+                letterSpacing: 1.2,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          const Spacer(), // Đẩy phần chữ xuống dưới để tạo cảm giác cân bằng kiểu bento
-          Text(
-            label.toUpperCase(),
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: AppTheme.outline,
-              fontWeight: FontWeight.w800,
-              fontSize: isSmall ? 8 : 9,
-              letterSpacing: 1.2,
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: theme.textTheme.titleSmall?.copyWith(
+                height: 1.25,
+                color: AppTheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: theme.textTheme.titleSmall?.copyWith(
-              height: 1.2,
-              color: AppTheme.onSurface,
-            ),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

@@ -93,24 +93,21 @@ class SchedifyApp extends StatelessWidget {
           final mediaQuery = MediaQuery.of(context);
           final size = mediaQuery.size;
 
-          // Tính toán scale factor toàn cục dựa trên breakpoint kích thước màn hình
+          // Tính toán scale factor toàn cục dựa trên kích thước màn hình
+          // Trên tablet (>= 600dp), giữ tỉ lệ 1.0 chuẩn để chữ thanh thoát, không bị phóng đại
           final double scaleFactor;
           if (size.width <= 0) {
             scaleFactor = 1.0;
           } else if (size.width < 360) {
-            scaleFactor = 0.85;
-          } else if (size.width < 480) {
-            scaleFactor = 1.0;
-          } else if (size.width < 600) {
-            scaleFactor = 1.08;
+            scaleFactor = 0.9;
           } else {
-            scaleFactor = 1.15;
+            scaleFactor = 1.0;
           }
 
-          // Cập nhật textScaler dựa trên scaleFactor
+          // Cập nhật textScaler: tôn trọng cỡ chữ người dùng [0.85 - 1.2], tránh double-scaling
           final clampedTextScaler = mediaQuery.textScaler.clamp(
-            minScaleFactor: scaleFactor,
-            maxScaleFactor: scaleFactor * 1.15,
+            minScaleFactor: 0.85,
+            maxScaleFactor: 1.2,
           );
 
           final adjustedMediaQuery = mediaQuery.copyWith(

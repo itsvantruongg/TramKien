@@ -122,6 +122,7 @@ class DashboardScreen extends StatelessWidget {
                                     child: PressScale(
                                       onTap: () => onNavigate?.call(2),
                                       child: GradientCard(
+                                        padding: const EdgeInsets.all(16),
                                         child: (!p.isCacheLoaded &&
                                                 p.diemSummary == null &&
                                                 p.isSyncing)
@@ -133,17 +134,22 @@ class DashboardScreen extends StatelessWidget {
                                                       width: 80,
                                                       height: 12,
                                                       radius: 4),
-                                                  SizedBox(height: 12),
+                                                  SizedBox(height: 8),
                                                   SkeletonBox(
                                                       width: 72,
                                                       height: 36,
                                                       radius: 6),
-                                                  SizedBox(height: 20),
+                                                  Spacer(),
+                                                  SkeletonBox(
+                                                      width: 70,
+                                                      height: 12,
+                                                      radius: 4),
+                                                  SizedBox(height: 6),
                                                   SkeletonBox(
                                                       width: double.infinity,
                                                       height: 6,
                                                       radius: 3),
-                                                  SizedBox(height: 8),
+                                                  SizedBox(height: 4),
                                                   SkeletonBox(
                                                       width: 110,
                                                       height: 12,
@@ -207,7 +213,7 @@ class DashboardScreen extends StatelessWidget {
                                                                           .white70)),
                                                         ),
                                                       ]),
-                                                  const SizedBox(height: 16),
+                                                  const Spacer(),
                                                   Text('Tiến độ học tập',
                                                       style: Theme.of(context)
                                                           .textTheme
@@ -258,18 +264,18 @@ class DashboardScreen extends StatelessWidget {
                                             p.isSyncing)
                                         ? const Column(
                                             mainAxisAlignment:
-                                                MainAxisAlignment.center,
+                                                MainAxisAlignment.spaceBetween,
                                             children: [
                                               SkeletonBox(
                                                   width: 50,
                                                   height: 12,
                                                   radius: 4),
-                                              SizedBox(height: 12),
+                                              SizedBox(height: 8),
                                               SkeletonBox(
                                                   width: 80,
                                                   height: 80,
                                                   radius: 40),
-                                              SizedBox(height: 12),
+                                              SizedBox(height: 8),
                                               SkeletonBox(
                                                   width: 70,
                                                   height: 12,
@@ -278,7 +284,7 @@ class DashboardScreen extends StatelessWidget {
                                           )
                                         : Column(
                                             mainAxisAlignment:
-                                                MainAxisAlignment.center,
+                                                MainAxisAlignment.spaceBetween,
                                             children: [
                                               Text('TÍN CHỈ',
                                                   style: Theme.of(context)
@@ -287,7 +293,7 @@ class DashboardScreen extends StatelessWidget {
                                                       ?.copyWith(
                                                           color: AppTheme
                                                               .onSurfaceVariant)),
-                                              const SizedBox(height: 12),
+                                              const SizedBox(height: 8),
                                               CircularProgressWidget(
                                                 value: (p.totalCredits /
                                                         p.curriculumTotalCredits)
@@ -295,9 +301,9 @@ class DashboardScreen extends StatelessWidget {
                                                 center: '${p.totalCredits}',
                                                 subtitle:
                                                     'của ${p.curriculumTotalCredits}',
-                                                size: 88,
+                                                size: 80,
                                               ),
-                                              const SizedBox(height: 12),
+                                              const SizedBox(height: 8),
                                               Text(
                                                   'Còn ${(p.curriculumTotalCredits - p.totalCredits).clamp(0, p.curriculumTotalCredits)} TC',
                                                   style: Theme.of(context)

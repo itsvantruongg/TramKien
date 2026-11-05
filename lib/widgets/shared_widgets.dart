@@ -345,39 +345,36 @@ class CircularProgressWidget extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) => AspectRatio(
-        aspectRatio: 1,
-        child: SizedBox(
-          width: size,
-          height: size,
-          child: Stack(alignment: Alignment.center, children: [
-            SizedBox(
-                width: size,
-                height: size,
-                child: CircularProgressIndicator(
-                  value: value,
-                  strokeWidth: 8,
-                  backgroundColor: AppTheme.surfaceContainerHighest,
-                  valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
-                  strokeCap: StrokeCap.round,
-                )),
-            FittedBox(
-              fit: BoxFit.scaleDown,
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                Text(center,
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.w800)),
-                Text(subtitle,
-                    style: Theme.of(context)
-                        .textTheme
-                        .labelSmall
-                        ?.copyWith(color: AppTheme.onSurfaceVariant)),
-              ]),
-            ),
-          ]),
-        ),
+  Widget build(BuildContext context) => SizedBox(
+        width: size,
+        height: size,
+        child: Stack(alignment: Alignment.center, children: [
+          SizedBox(
+              width: size,
+              height: size,
+              child: CircularProgressIndicator(
+                value: value,
+                strokeWidth: 8,
+                backgroundColor: AppTheme.surfaceContainerHighest,
+                valueColor: const AlwaysStoppedAnimation(AppTheme.primary),
+                strokeCap: StrokeCap.round,
+              )),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Text(center,
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.w800)),
+              Text(subtitle,
+                  style: Theme.of(context)
+                      .textTheme
+                      .labelSmall
+                      ?.copyWith(color: AppTheme.onSurfaceVariant)),
+            ]),
+          ),
+        ]),
       );
 }
 

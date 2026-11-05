@@ -144,7 +144,6 @@ class _MainShellState extends State<MainShell>
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.of(context).size.width >= 600;
 
     final slideAnimation = Tween<Offset>(
       begin: Offset(_slideDirection * 0.05, 0),
@@ -214,107 +213,10 @@ class _MainShellState extends State<MainShell>
         bucket: _bucket,
         child: Scaffold(
           extendBody: true,
-          body: isWide
-              ? Row(
-                  children: [
-                    _buildNavigationRail(),
-                    const VerticalDivider(
-                      thickness: 1,
-                      width: 1,
-                      color: AppTheme.surfaceContainerHigh,
-                    ),
-                    Expanded(child: bodyContent),
-                  ],
-                )
-              : bodyContent,
-          bottomNavigationBar: isWide ? null : _buildNav(),
+          body: bodyContent,
+          bottomNavigationBar: _buildNav(),
         ),
       ),
-    );
-  }
-
-  Widget _buildNavigationRail() {
-    return NavigationRail(
-      selectedIndex: _idx,
-      onDestinationSelected: (idx) => _navigate(idx),
-      backgroundColor: AppTheme.surface,
-      indicatorColor: AppTheme.primaryFixed,
-      labelType: NavigationRailLabelType.all,
-      minWidth: 72,
-      leading: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
-        child: Container(
-          width: 40,
-          height: 40,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.outlineVariant.withOpacity(0.5),
-              width: 0.5,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.06),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(6),
-          child: Image.asset(
-            'assets/logo.png',
-            fit: BoxFit.contain,
-          ),
-        ),
-      ),
-      selectedIconTheme: const IconThemeData(
-        color: AppTheme.primary,
-        size: 24,
-      ),
-      unselectedIconTheme: const IconThemeData(
-        color: AppTheme.onSurfaceVariant,
-        size: 24,
-      ),
-      selectedLabelTextStyle: const TextStyle(
-        fontFamily: 'Manrope',
-        fontSize: 11,
-        fontWeight: FontWeight.w700,
-        color: AppTheme.primary,
-      ),
-      unselectedLabelTextStyle: const TextStyle(
-        fontFamily: 'Manrope',
-        fontSize: 11,
-        fontWeight: FontWeight.w600,
-        color: AppTheme.onSurfaceVariant,
-      ),
-      destinations: const [
-        NavigationRailDestination(
-          icon: Icon(Icons.dashboard_outlined),
-          selectedIcon: Icon(Icons.dashboard),
-          label: Text('Tổng quan'),
-        ),
-        NavigationRailDestination(
-          icon: Icon(Icons.calendar_today_outlined),
-          selectedIcon: Icon(Icons.calendar_today),
-          label: Text('Lịch học'),
-        ),
-        NavigationRailDestination(
-          icon: Icon(Icons.grade_outlined),
-          selectedIcon: Icon(Icons.grade),
-          label: Text('Điểm số'),
-        ),
-        NavigationRailDestination(
-          icon: Icon(Icons.payments_outlined),
-          selectedIcon: Icon(Icons.payments),
-          label: Text('Học phí'),
-        ),
-        NavigationRailDestination(
-          icon: Icon(Icons.person_outline),
-          selectedIcon: Icon(Icons.person),
-          label: Text('Tài khoản'),
-        ),
-      ],
     );
   }
 

@@ -344,36 +344,41 @@ class _MonthViewState extends State<_MonthView> {
         final isWide = constraints.maxWidth >= 600;
 
         if (isWide) {
-          // Tablet Split View (AC-03): Cột trái (40%, max ~400dp) Lịch tháng mini, Cột phải (Expanded) Danh sách ca học
-          final leftWidth = (constraints.maxWidth * 0.40).clamp(320.0, 400.0);
+          // Tablet Split View: Tiêu đề tháng full width ở hàng trên; hàng dưới gồm box bảng tháng (trái) và thẻ lịch (phải)
+          final leftWidth = (constraints.maxWidth * 0.40).clamp(320.0, 420.0);
           final innerWidth = leftWidth - 72; // 32 margin + 40 padding
           final cellSize = (innerWidth / 7).clamp(28.0, 52.0);
 
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          return Column(
             children: [
-              SizedBox(
-                width: leftWidth,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-                        child: _buildMonthHeader(),
-                      ),
-                      const SizedBox(height: 12),
-                      _buildCalendarCard(cellSize, rowCount),
-                      const SizedBox(height: 20),
-                    ],
-                  ),
-                ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                child: _buildMonthHeader(),
               ),
               Expanded(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(12, 8, 16, 100),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildSelectedDayEvents(context, widget.p),
+                    SizedBox(
+                      width: leftWidth,
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _buildCalendarCard(cellSize, rowCount),
+                            const SizedBox(height: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 16, 100),
+                        children: [
+                          _buildSelectedDayEvents(context, widget.p),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
