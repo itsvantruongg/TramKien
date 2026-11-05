@@ -3037,7 +3037,7 @@ extension Color {
         let r = Double((val >> 16) & 0xff) / 255.0
         let g = Double((val >> 8) & 0xff) / 255.0
         let b = Double(val & 0xff) / 255.0
-        self.init(.sRGB, red: r, green: blue: b, opacity: a)
+        self.init(.sRGB, red: r, green: g, blue: b, opacity: a)
     }
 }
 

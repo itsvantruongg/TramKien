@@ -83,7 +83,7 @@ import WidgetKit
       initialUrlString = urlStr
       if let controller = window?.rootViewController as? FlutterViewController {
         let channel = FlutterMethodChannel(name: "com.tramkien.hau/initial_intent", binaryMessenger: controller.binaryMessenger)
-        channel.invokeMethod("onNewIntent", urlStr)
+        channel.invokeMethod("onNewIntent", arguments: urlStr)
       }
       return true
     }
