@@ -2715,6 +2715,12 @@ struct ScheduleWidgetView: View {
     let entry: ScheduleWidgetEntry
 
     var body: some View {
+        contentView
+            .widgetBackgroundAdaptive(isGlass: entry.isGlass, bgColorHex: entry.bgColorHex, bgOpacity: entry.bgOpacity)
+    }
+
+    @ViewBuilder
+    private var contentView: some View {
         switch family {
         case .accessoryRectangular:
             LockScreenRectangularSwiftUIView(model: entry.lockScreenRectangular)
@@ -2851,7 +2857,6 @@ struct ScheduleWidgetView: View {
                 }
             }
             .padding(12)
-            .widgetBackgroundAdaptive(isGlass: entry.isGlass, bgColorHex: entry.bgColorHex, bgOpacity: entry.bgOpacity)
         }
     }
 
@@ -3070,7 +3075,7 @@ extension View {
 
 extension WidgetConfiguration {
     func disableContentMarginsIfNeeded() -> some WidgetConfiguration {
-        if #available(iOSApplicationExtension 15.0, macOS 12.0, watchOS 9.0, *) {
+        if #available(iOSApplicationExtension 17.0, macOS 14.0, watchOS 10.0, *) {
             return self.contentMarginsDisabled()
         } else {
             return self
@@ -3176,11 +3181,10 @@ struct TramKienLockWidget: Widget {
 struct TramKienWidgetBundle: WidgetBundle {
     var body: some Widget {
         TramKienTodayWidget()
-        TramKienMonthWidget()
         TramKienThreeDayWidget()
+        TramKienMonthWidget()
         TramKienWeekWidget()
         TramKienLockWidget()
-        ScheduleWidget()
     }
 }
 
