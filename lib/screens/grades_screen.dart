@@ -50,6 +50,39 @@ class _GradesScreenState extends State<GradesScreen> {
     } else {
       diemHienThi = (p.diemByKy[currentKy] ?? []);
     }
+
+    // Tính toán / Lấy Summary cho thẻ hiển thị:
+    // Nếu là 'overview' thì hiển thị toàn khóa (p.diemSummary)
+    // Nếu là từng kỳ thì hiển thị thống kê thực tế lấy trực tiếp từ trường (p.semesterSummaries[currentKy])
+    final DiemSummary? effectiveSummary;
+    if (currentKy == 'overview') {
+      effectiveSummary = p.diemSummary;
+    } else {
+      final semSummary = p.semesterSummaries[currentKy];
+      final gpa10Ky = p.gpaByKy[currentKy];
+      final gpa4Ky = p.gpaByKyHe4[currentKy];
+
+      // Tính tổng số tín chỉ học tập của kỳ (fallback nếu summary chưa có)
+      final int creditsKy = semSummary?.soTinChiHocTap ??
+          diemHienThi.fold<int>(0, (sum, d) => sum + d.soTinChi);
+
+      final double? tbc10 = semSummary?.tbcHocTapHe10 ?? gpa10Ky;
+      final double? tbc4 = semSummary?.tbcHocTapHe4 ?? gpa4Ky;
+
+      // Ưu tiên 100% dữ liệu gốc từ trường, không tự gán xếp loại bằng if-else
+      effectiveSummary = DiemSummary(
+        tbcTichLuyHe10: semSummary?.tbcTichLuyHe10 ?? tbc10,
+        tbcTichLuyHe4: semSummary?.tbcTichLuyHe4 ?? tbc4,
+        tbcHocTapHe10: tbc10,
+        tbcHocTapHe4: tbc4,
+        xepLoaiHe10: semSummary?.xepLoaiHe10 ?? '',
+        xepLoaiHe4: semSummary?.xepLoaiHe4 ?? '',
+        soTinChiHocTap: creditsKy,
+        soTinChiTichLuy: semSummary?.soTinChiTichLuy,
+        soTinChiTichLuyMax: semSummary?.soTinChiTichLuyMax,
+        diemKhenThuong: semSummary?.diemKhenThuong,
+      );
+    }
     // Lấy chiều rộng màn hình để tính % vuốt
     final screenWidth = MediaQuery.of(context).size.width;
     return Scaffold(
@@ -170,14 +203,19 @@ class _GradesScreenState extends State<GradesScreen> {
                             ),
                           ),
                         ),
-                        if (p.diemSummary != null)
+                        if (effectiveSummary != null)
                           SliverToBoxAdapter(
                             child: Padding(
                               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                               child: _DiemSummaryCard(
-                                summary: p.diemSummary!,
+                                summary: effectiveSummary,
                                 showHe10: _showHe10,
                                 mssv: p.student?.mssv,
+                                selectedKy: currentKy,
+                                allKyKeys: allKyKeys,
+                                onKyChanged: (v) =>
+                                    setState(() => _selectedKy = v),
+                                totalMonCount: diemHienThi.length,
                               ),
                             ),
                           ),
@@ -234,85 +272,7 @@ class _GradesScreenState extends State<GradesScreen> {
                             ),
                           ),
 
-                        // ── Kỳ selector + GPA kỳ ──────────────────────────────
-                        if (allKyKeys.isNotEmpty || currentKy == 'overview')
-                          SliverToBoxAdapter(
-                            child: Padding(
-                              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                              child: Row(children: [
-                                // Dropdown chọn kỳ
-                                Expanded(
-                                  child: _SemesterSelector(
-                                    value: currentKy,
-                                    allKyKeys: allKyKeys,
-                                    onChanged: (v) =>
-                                        setState(() => _selectedKy = v),
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                // Badge số môn
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.transparent,
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                      color: AppTheme.outline.withOpacity(0.3),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Text('${diemHienThi.length} môn',
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .labelSmall
-                                          ?.copyWith(
-                                            color: AppTheme.onSurfaceVariant,
-                                            fontWeight: FontWeight.w500,
-                                          )),
-                                ),
-                                // GPA kỳ hoặc Badge Tổng kết
-                                if (currentKy == 'overview')
-                                  Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          (_showHe10 ? p.gpa : p.gpaHe4)
-                                              .toStringAsFixed(2),
-                                          style: const TextStyle(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w800,
-                                            color: AppTheme.primary,
-                                          ),
-                                        ),
-                                      ])
-                                else ...[
-                                  // Lấy GPA theo hệ đang chọn
-                                  Builder(builder: (context) {
-                                    final gpaKy = _showHe10
-                                        ? p.gpaByKy[currentKy]
-                                        : p.gpaByKyHe4[currentKy];
-                                    if (gpaKy == null)
-                                      return const SizedBox.shrink();
-                                    return Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            gpaKy.toStringAsFixed(2),
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w800,
-                                              color: AppTheme.primary,
-                                            ),
-                                          ),
-                                        ]);
-                                  }),
-                                ],
-                              ]),
-                            ),
-                          ),
+
 
                         // ── Danh sách điểm ────────────────────────────────────
                         SliverPadding(
@@ -1094,11 +1054,19 @@ class _DiemSummaryCard extends StatelessWidget {
   final DiemSummary summary;
   final bool showHe10;
   final String? mssv;
+  final String selectedKy;
+  final List<String> allKyKeys;
+  final ValueChanged<String> onKyChanged;
+  final int totalMonCount;
 
   const _DiemSummaryCard({
     required this.summary,
     required this.showHe10,
     this.mssv,
+    required this.selectedKy,
+    required this.allKyKeys,
+    required this.onKyChanged,
+    required this.totalMonCount,
   });
 
   @override
@@ -1120,12 +1088,11 @@ class _DiemSummaryCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                     letterSpacing: 1.5,
                     color: AppTheme.outline)),
-            if (mssv != null)
-              Text(mssv!,
-                  style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.outlineVariant)),
+            _SemesterDropdownChip(
+              value: selectedKy,
+              allKyKeys: allKyKeys,
+              onChanged: onKyChanged,
+            ),
           ],
         ),
         const SizedBox(height: 14),
@@ -1159,22 +1126,31 @@ class _DiemSummaryCard extends StatelessWidget {
           ),
         ]),
         const SizedBox(height: 12),
-        // Row 3: Tín chỉ & Khen thưởng
+        // Row 3: Tín chỉ & Tổng số môn
         Row(children: [
           _SummaryItem(
             label: 'Số TC học tập',
             valueNum: summary.soTinChiHocTap?.toDouble(),
             fractionDigits: 0,
           ),
-          if (summary.diemKhenThuong != null && summary.diemKhenThuong! > 0)
+          _SummaryItem(
+            label: 'Tổng số môn',
+            fallbackText: '$totalMonCount',
+            highlight: true,
+          ),
+        ]),
+        // Row 4: Điểm khen thưởng (nếu có)
+        if (summary.diemKhenThuong != null && summary.diemKhenThuong! > 0) ...[
+          const SizedBox(height: 12),
+          Row(children: [
             _SummaryItem(
               label: 'Điểm khen thưởng',
               valueNum: summary.diemKhenThuong,
               fractionDigits: 0,
-            )
-          else
+            ),
             const Expanded(child: SizedBox()),
-        ]),
+          ]),
+        ],
       ]),
     );
   }
@@ -1852,12 +1828,12 @@ class AnimatedNumber extends StatelessWidget {
   }
 }
 
-class _SemesterSelector extends StatelessWidget {
-  final String? value;
+class _SemesterDropdownChip extends StatelessWidget {
+  final String value;
   final List<String> allKyKeys;
-  final ValueChanged<String?> onChanged;
+  final ValueChanged<String> onChanged;
 
-  const _SemesterSelector({
+  const _SemesterDropdownChip({
     required this.value,
     required this.allKyKeys,
     required this.onChanged,
@@ -1866,38 +1842,40 @@ class _SemesterSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isOverview = value == 'overview';
-    String displayLabel = 'Tổng quan';
-    if (!isOverview && value != null) {
-      final parts = value!.split('_');
+    String displayLabel = 'Toàn khóa';
+    if (!isOverview) {
+      final parts = value.split('_');
       displayLabel = parts.length == 2
           ? '${parts[1].replaceAll('HK', 'HK ')} · ${parts[0]}'
-          : value!;
+          : value;
     }
 
     return PressScale(
       onTap: () => _showPicker(context),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
-          color: AppTheme.primaryFixed.withOpacity(0.5),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppTheme.primary.withOpacity(0.15)),
+          color: AppTheme.primaryFixed.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppTheme.primary.withOpacity(0.18)),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
               isOverview
-                  ? Icons.dashboard_outlined
+                  ? Icons.school_outlined
                   : Icons.calendar_today_outlined,
-              size: 16,
+              size: 13,
               color: AppTheme.primary,
             ),
-            const SizedBox(width: 10),
-            Expanded(
+            const SizedBox(width: 6),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 140),
               child: Text(
                 displayLabel,
                 style: const TextStyle(
-                  fontSize: 13,
+                  fontSize: 11,
                   fontWeight: FontWeight.w700,
                   color: AppTheme.primary,
                 ),
@@ -1905,8 +1883,12 @@ class _SemesterSelector extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            const Icon(Icons.keyboard_arrow_down_rounded,
-                size: 20, color: AppTheme.primary),
+            const SizedBox(width: 4),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 16,
+              color: AppTheme.primary,
+            ),
           ],
         ),
       ),
@@ -1951,8 +1933,8 @@ class _SemesterSelector extends StatelessWidget {
                 shrinkWrap: true,
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
                 children: [
-                  _buildOption(context, 'overview', 'Tổng quan',
-                      Icons.dashboard_outlined),
+                  _buildOption(context, 'overview', 'Toàn khóa',
+                      Icons.school_outlined),
                   const Divider(height: 1, indent: 48),
                   ...allKyKeys.reversed.map((ky) {
                     final parts = ky.split('_');

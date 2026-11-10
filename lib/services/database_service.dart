@@ -13,7 +13,7 @@ export 'app_info_service.dart';
 
 class DatabaseService {
   static Database? _db;
-  static const _version = 17;
+  static const _version = 18;
   static const String currentAppVersion = '1.1.0+5';
   static Future<String> getAppVersion() => AppInfoService.getAppVersion();
   static String _currentMssv = '';
@@ -247,6 +247,43 @@ class DatabaseService {
           print(
               '📌 [Migration v17] Thêm last_seen_at + UNIQUE index cho upsert (Bug 6 fix)');
         }
+        if (oldV < 18) {
+          final semInfo =
+              await db.rawQuery('PRAGMA table_info(semester_summaries)');
+          final semCols = semInfo.map((r) => r['name'] as String).toSet();
+          if (!semCols.contains('xep_loai_he10')) {
+            await db.execute(
+                'ALTER TABLE semester_summaries ADD COLUMN xep_loai_he10 TEXT DEFAULT ""');
+          }
+          if (!semCols.contains('xep_loai_he4')) {
+            await db.execute(
+                'ALTER TABLE semester_summaries ADD COLUMN xep_loai_he4 TEXT DEFAULT ""');
+          }
+          if (!semCols.contains('tbc_tich_luy_he10')) {
+            await db.execute(
+                'ALTER TABLE semester_summaries ADD COLUMN tbc_tich_luy_he10 REAL');
+          }
+          if (!semCols.contains('tbc_tich_luy_he4')) {
+            await db.execute(
+                'ALTER TABLE semester_summaries ADD COLUMN tbc_tich_luy_he4 REAL');
+          }
+          if (!semCols.contains('tc_tich_luy_a')) {
+            await db.execute(
+                'ALTER TABLE semester_summaries ADD COLUMN tc_tich_luy_a INTEGER');
+          }
+          if (!semCols.contains('tc_tich_luy_b')) {
+            await db.execute(
+                'ALTER TABLE semester_summaries ADD COLUMN tc_tich_luy_b INTEGER');
+          }
+          if (!semCols.contains('diem_khen_thuong')) {
+            await db.execute(
+                'ALTER TABLE semester_summaries ADD COLUMN diem_khen_thuong REAL');
+          }
+          // Xóa cache để trigger đồng bộ lại dữ liệu đầy đủ từ API
+          await db.delete('cache_meta', where: "key = 'diem_all'");
+          print(
+              '📌 [Migration v18] Thêm các cột xếp loại & tích lũy cho semester_summaries');
+        }
       },
     );
   }
@@ -315,6 +352,13 @@ class DatabaseService {
       tbc_he10 REAL,
       tbc_he4 REAL,
       so_tc_dat INTEGER,
+      xep_loai_he10 TEXT DEFAULT "",
+      xep_loai_he4 TEXT DEFAULT "",
+      tbc_tich_luy_he10 REAL,
+      tbc_tich_luy_he4 REAL,
+      tc_tich_luy_a INTEGER,
+      tc_tich_luy_b INTEGER,
+      diem_khen_thuong REAL,
       UNIQUE(mssv, nam_hoc, hoc_ky)
     )
   ''');

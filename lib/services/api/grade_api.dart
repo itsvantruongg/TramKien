@@ -569,11 +569,12 @@ class GradeApi {
 
 // Fetch overview riêng bằng ThongTinDiemSinhVien không tham số
     try {
+      // Gọi endpoint toàn khoá HocKy=-1&NamHoc=-1&ChuyenNganh=0 (tránh 500 của HAU)
       final overviewUrl =
           Uri.parse('${HauApiService.base}/TraCuuDiem/ThongTinDiemSinhVien')
               .replace(queryParameters: {
-        'HocKy': '0',
-        'NamHoc': '0',
+        'HocKy': '-1',
+        'NamHoc': '-1',
         'ChuyenNganh': '0',
       });
 
@@ -599,6 +600,7 @@ class GradeApi {
         final rows = HauApiService.parseTable(overviewResp.body);
         print('📋 [Overview] parseTable → ${rows.length} dòng thô');
 
+        print('📋 [GradeOverview] Nhận ${rows.length} hàng từ ThongTinDiemSinhVien (-1,-1)');
         diemOverview = rows.map((row) {
           String col(List<String> keys, String fb) {
             for (final k in keys) {
@@ -726,6 +728,7 @@ class GradeApi {
             mssv: mssv ?? '',
             namHoc: '${k.nam}-${k.nam + 1}',
             hocKy: k.ky,
+            summary: result.summary,
             tbc10: result.summary!.tbcHocTapHe10,
             tbc4: result.summary!.tbcHocTapHe4,
             tc: result.summary!.soTinChiHocTap,
@@ -783,6 +786,7 @@ class GradeApi {
               mssv: mssv ?? '',
               namHoc: '${k.nam}-${k.nam + 1}',
               hocKy: k.ky,
+              summary: retry.summary,
               tbc10: retry.summary!.tbcHocTapHe10,
               tbc4: retry.summary!.tbcHocTapHe4,
               tc: retry.summary!.soTinChiHocTap,

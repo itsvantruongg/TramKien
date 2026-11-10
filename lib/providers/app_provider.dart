@@ -478,6 +478,17 @@ class AppProvider extends ChangeNotifier with WidgetsBindingObserver {
         return;
       }
 
+      // Pre-flight Check: Tái xác thực phiên đăng nhập trước khi bắn 5 luồng API
+      if (_currentMssv != 'admin' && !fromLogin) {
+        debugPrint('🔐 [SyncAll] Pre-flight: Đảm bảo Session Cookie hợp lệ...');
+        final reauthOk = await HauApiService.reauthenticateIfNeeded();
+        if (!reauthOk && !HauApiService.isLoggedIn) {
+          debugPrint('⚠️ [SyncAll] Không thể lấy session mới -> Giữ nguyên dữ liệu cũ trong cache');
+          await _loadFromCache();
+          return;
+        }
+      }
+
       // Snapshot trước sync để detect thay đổi
       final prevDiemCount = gradeProvider.diem.length;
       final prevLichHocCount = scheduleProvider.lichHoc.length;

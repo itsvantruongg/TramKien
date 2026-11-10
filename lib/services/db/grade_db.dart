@@ -296,6 +296,7 @@ class GradeDb {
     required String mssv,
     required String namHoc,
     required int hocKy,
+    DiemSummary? summary,
     double? tbc10,
     double? tbc4,
     int? tc,
@@ -307,9 +308,16 @@ class GradeDb {
         'mssv': mssv,
         'nam_hoc': namHoc,
         'hoc_ky': hocKy,
-        'tbc_he10': tbc10,
-        'tbc_he4': tbc4,
-        'so_tc_dat': tc,
+        'tbc_he10': summary?.tbcHocTapHe10 ?? tbc10,
+        'tbc_he4': summary?.tbcHocTapHe4 ?? tbc4,
+        'so_tc_dat': summary?.soTinChiHocTap ?? tc,
+        'xep_loai_he10': summary?.xepLoaiHe10 ?? '',
+        'xep_loai_he4': summary?.xepLoaiHe4 ?? '',
+        'tbc_tich_luy_he10': summary?.tbcTichLuyHe10,
+        'tbc_tich_luy_he4': summary?.tbcTichLuyHe4,
+        'tc_tich_luy_a': summary?.soTinChiTichLuy,
+        'tc_tich_luy_b': summary?.soTinChiTichLuyMax,
+        'diem_khen_thuong': summary?.diemKhenThuong,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -324,7 +332,14 @@ class GradeDb {
       result[key] = DiemSummary(
         tbcHocTapHe10: (r['tbc_he10'] as num?)?.toDouble(),
         tbcHocTapHe4: (r['tbc_he4'] as num?)?.toDouble(),
+        tbcTichLuyHe10: (r['tbc_tich_luy_he10'] as num?)?.toDouble(),
+        tbcTichLuyHe4: (r['tbc_tich_luy_he4'] as num?)?.toDouble(),
+        xepLoaiHe10: (r['xep_loai_he10'] as String?) ?? '',
+        xepLoaiHe4: (r['xep_loai_he4'] as String?) ?? '',
+        soTinChiTichLuy: (r['tc_tich_luy_a'] as num?)?.toInt(),
+        soTinChiTichLuyMax: (r['tc_tich_luy_b'] as num?)?.toInt(),
         soTinChiHocTap: (r['so_tc_dat'] as num?)?.toInt(),
+        diemKhenThuong: (r['diem_khen_thuong'] as num?)?.toDouble(),
       );
     }
     return result;

@@ -55,7 +55,19 @@ class HauApiService {
       return _reauthCompleter!.future;
     }
 
-    if (_savedMssv == null || _savedPassword == null) return false;
+    if (_savedMssv == null || _savedPassword == null) {
+      try {
+        final creds = await BgCredentials.load();
+        if (creds != null) {
+          _savedMssv = creds.mssv;
+          _savedPassword = creds.pw;
+        } else {
+          return false;
+        }
+      } catch (_) {
+        return false;
+      }
+    }
 
     _isReauthing = true;
     final completer = Completer<bool>();
@@ -87,6 +99,8 @@ class HauApiService {
         'Accept':
             'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
         'Accept-Language': 'vi-VN,vi;q=0.9,en;q=0.8',
+        'Accept-Encoding': 'gzip, deflate',
+        'Connection': 'keep-alive',
         'Referer': base,
       };
 
@@ -447,24 +461,36 @@ class HauApiService {
         return '';
       }
 
+      String getField(List<String> ids) {
+        for (final id in ids) {
+          final v = valueById(id);
+          if (v.isNotEmpty) return v;
+          final t = textById(id);
+          if (t.isNotEmpty) return t;
+        }
+        return '';
+      }
+
       final student = Student(
-        mssv: textById('lblMaSinhVien').isNotEmpty
-            ? textById('lblMaSinhVien')
-            : _currentMssv ?? '',
-        hoTen: textById('lblHoTen'),
-        ngaySinh: textById('lblNgaySinh'),
-        gioiTinh: textById('lblGioiTinh'),
+        mssv: getField(['lblMaSinhVien', 'txtMaSinhVien']).isNotEmpty
+            ? getField(['lblMaSinhVien', 'txtMaSinhVien'])
+            : (_currentMssv ?? ''),
+        hoTen: getField(['lblHoTen', 'txtHoten', 'txtHoTen']),
+        ngaySinh: getField(['lblNgaySinh', 'txtNgaySinh']),
+        gioiTinh: getField(['lblGioiTinh', 'cbbGioiTinh', 'txtGioiTinh']),
         chuyenNganh: spanAfterLabel('Chuyên ngành'),
         heDaoTao: spanAfterLabel('Hệ đào tạo'),
         nienKhoa: spanAfterLabel('Niên khóa'),
         khoaHoc: spanAfterLabel('Khóa học'),
-        cmnd: valueById('CMND'),
-        email: valueById('Email'),
-        dienThoai: valueById('Dienthoai_canhan'),
-        queQuan: valueById('Que_quan'),
-        diaChiBaoTin: valueById('Dia_chi_bao_tin'),
+        cmnd: getField(['CMND', 'txtCMND']),
+        email: getField(['Email', 'txtEmail']),
+        dienThoai: getField(['Dienthoai_canhan', 'txtDTCaNhan', 'txtDienThoai']),
+        queQuan: getField(['Que_quan', 'txtQueQuan']),
+        diaChiBaoTin: getField(['Dia_chi_bao_tin', 'txtDiaChiBaoTin', 'txtHKThuongTru', 'txtNoiOHienNay']),
         lastUpdated: DateTime.now(),
       );
+
+      print('👤 [StudentInfo] Fetch thanh cong: ' + student.hoTen + ' (' + student.mssv + ') | CCCD: ' + student.cmnd + ' | SDT: ' + student.dienThoai + ' | Que quan: ' + student.queQuan);
 
       await DatabaseService.saveStudent(student);
       await DatabaseService.updateCacheMeta('student', _hash(r.body));

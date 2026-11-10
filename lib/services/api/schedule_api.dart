@@ -149,49 +149,57 @@ class ScheduleApi {
     final allResults = <LichHoc>[];
     bool complete = true;
 
-    // Batch by Dot: Quét song song cả 2 chuyên ngành (chính & bằng kép) ở từng đợt
+    bool cn1Active = true;
+
+    // Batch by Dot: Dò Đợt 1 cho cả CN0 và CN1. Nếu CN1 rỗng thì ngắt nhánh CN1 ngay.
     for (int dot = 1; dot <= 8; dot++) {
-      final dotFutures = [
-        _fetchLichHocWithRetry(
-          hocKy: hocKy,
-          namHoc: namHoc,
-          chuyenNganh: 0,
-          dotHoc: dot,
-          priority: priority,
-        ),
-        _fetchLichHocWithRetry(
-          hocKy: hocKy,
-          namHoc: namHoc,
-          chuyenNganh: 1,
-          dotHoc: dot,
-          priority: priority,
-        ),
-      ];
+      final activeCns = <int>[0];
+      if (cn1Active) activeCns.add(1);
+
+      final dotFutures = activeCns.map((cn) => _fetchLichHocWithRetry(
+        hocKy: hocKy,
+        namHoc: namHoc,
+        chuyenNganh: cn,
+        dotHoc: dot,
+        priority: priority,
+      )).toList();
 
       final dotResults = await Future.wait(dotFutures);
-      bool dotHasItems = false;
-      bool dotAllSuccessful = true;
+      bool cn0HasItems = false;
+      bool cn0Success = true;
 
-      for (int cn = 0; cn <= 1; cn++) {
-        final r = dotResults[cn];
+      for (int i = 0; i < activeCns.length; i++) {
+        final cn = activeCns[i];
+        final r = dotResults[i];
+        final cnName = cn == 0 ? 'Chính (CN0)' : 'Bằng 2 (CN1)';
+
         if (!r.success) {
           complete = false;
-          dotAllSuccessful = false;
+          if (cn == 0) cn0Success = false;
         }
+
         if (r.items.isNotEmpty) {
-          dotHasItems = true;
+          if (cn == 0) cn0HasItems = true;
           allResults.addAll(r.items);
           final monNames = r.items.map((l) => l.tenHocPhan).toSet().join(', ');
-          print('   ✅ Đợt $dot | CN${cn == 0 ? "Chính" : "Thứ2"}: '
-              '${r.items.length} bản ghi → $monNames');
+          print('   ✅ [LichHoc] Đợt $dot | $cnName: ${r.items.length} bản ghi → $monNames');
         } else {
-          print('   ⚪ Đợt $dot | CN${cn == 0 ? "Chính" : "Thứ2"}: rỗng');
+          print('   ⚪ [LichHoc] Đợt $dot | $cnName: rỗng');
+          if (dot == 1 && cn == 1) {
+            cn1Active = false;
+            print('   🛑 [Branch-Pruning] CN1 Đợt 1 rỗng → Ngắt nhánh Bằng 2 (không quét tiếp các đợt sau)');
+          }
         }
       }
 
-      // Early-Stop Heuristic: Chỉ dừng khi Đợt 3 thành công mạng 100% nhưng không có môn
-      if (dot >= 3 && !dotHasItems && dotAllSuccessful) {
-        print('   🛑 [Early-Stop] Đợt $dot rỗng ở cả 2 ngành (mạng OK) → kết thúc quét kỳ này.');
+      // Early-Stop thích ứng:
+      // - Nếu Đợt 2 của CN0 rỗng (mạng OK) → ngắt luôn, không quét đợt 3..8
+      // - Nếu Đợt 2 có môn, tiếp tục quét Đợt 3. Nếu Đợt 3 rỗng → dừng
+      if (dot == 2 && !cn0HasItems && cn0Success) {
+        print('   🛑 [Early-Stop] Đợt 2 rỗng (mạng OK) → Dừng quét học kỳ (tiết kiệm request)');
+        break;
+      } else if (dot >= 3 && !cn0HasItems && cn0Success) {
+        print('   🛑 [Early-Stop] Đợt $dot rỗng (mạng OK) → Kết thúc quét học kỳ');
         break;
       }
     }
@@ -207,6 +215,33 @@ class ScheduleApi {
         'complete=$complete');
 
     return (items: unique, complete: complete);
+  }
+
+  /// Quét toàn bộ lịch học của cả năm (song song HK1 và HK2)
+  static Future<({List<LichHoc> items, bool complete})> fetchLichHocCaNam({
+    required int namHoc,
+    RequestPriority priority = RequestPriority.normal,
+  }) async {
+    print('📅 [LichHoc] Quét toàn bộ lịch học năm $namHoc-${namHoc + 1} (HK1 + HK2)...');
+    final results = await Future.wait([
+      fetchLichHocAllDotsWithStatus(hocKy: 1, namHoc: namHoc, priority: priority),
+      fetchLichHocAllDotsWithStatus(hocKy: 2, namHoc: namHoc, priority: priority),
+    ]);
+
+    final allItems = <LichHoc>[
+      ...results[0].items,
+      ...results[1].items,
+    ];
+    final allComplete = results[0].complete && results[1].complete;
+
+    final seen = <String>{};
+    final unique = allItems.where((l) {
+      final key = '${l.tenHocPhan}_${l.thoiGian}_${l.thu}_${l.tiet}';
+      return seen.add(key);
+    }).toList();
+
+    print('📅 [LichHoc] Hoàn tất cả năm $namHoc-${namHoc + 1}: ${unique.length} môn unique (complete=$allComplete)');
+    return (items: unique, complete: allComplete);
   }
 
   /// Thăm dò nhẹ xem học kỳ mới đã có môn học xuất hiện chưa (chỉ tốn đúng 1 request Đợt 1 CN0).
